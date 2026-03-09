@@ -32,7 +32,6 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/create-pipeline` | Generate v0 pipeline YAML (CI, CD, combined, approvals) |
 | `/create-pipeline-v1` | Generate v1 simplified pipeline YAML |
 | `/create-trigger` | Create webhook, scheduled, and artifact triggers |
-| `/create-input-set` | Create input sets and overlay input sets for pipelines |
 | `/create-template` | Create reusable step, stage, pipeline, and step group templates |
 | `/run-pipeline` | Execute and monitor pipeline runs |
 | `/debug-pipeline` | Diagnose pipeline execution failures |

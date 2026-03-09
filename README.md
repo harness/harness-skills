@@ -172,7 +172,6 @@ The skills in this repo are plain Markdown files with YAML frontmatter. They wor
 | [`/create-infrastructure`](skills/create-infrastructure/SKILL.md) | Create infrastructure definitions |
 | [`/create-connector`](skills/create-connector/SKILL.md) | Create connectors (Git, cloud, registries, clusters) |
 | [`/create-secret`](skills/create-secret/SKILL.md) | Create secrets (text, file, SSH, WinRM) |
-| [`/create-input-set`](skills/create-input-set/SKILL.md) | Create reusable input sets and overlays |
 
 ### Access Control & Feature Flags (MCP)
 
@@ -217,7 +216,7 @@ harness-skills/
 │   │   └── SKILL.md
 │   ├── debug-pipeline/
 │   │   └── SKILL.md
-│   └── ...                  # 27 skills total
+│   └── ...                  # 26 skills total
 ├── scripts/
 │   └── validate-skills.sh   # Frontmatter validation
 ├── examples/

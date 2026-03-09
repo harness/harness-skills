@@ -204,6 +204,12 @@ Create WinRM NTLM credentials for the Windows deployment servers
 | Invalid secret type | Unsupported type string | Use `SecretText`, `SecretFile`, `SSHKey`, or `WinRmCredentials` |
 | Invalid valueType | Case mismatch | Use `Inline` or `Reference` (case-sensitive) |
 
+## Performance Notes
+
+- Never include actual secret values in generated YAML. Use placeholder references only.
+- Verify the correct scope (account, org, project) before creating — secrets at the wrong scope will not be accessible.
+- Confirm the secret manager exists and is accessible before creating secrets.
+
 ## Troubleshooting
 
 ### Secret Not Accessible in Pipeline

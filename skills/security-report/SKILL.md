@@ -164,6 +164,12 @@ Parameters:
 - "Download SBOM for api-service:v2.3" - Get scs_sbom by artifact
 - "Create exemption for CVE-2024-1234" - Create security_exemption
 
+## Performance Notes
+
+- Gather the complete vulnerability list before summarizing. Do not report on partial scan results.
+- Cross-reference vulnerabilities with SBOM data for accurate component attribution.
+- Quality and accuracy of the security report is more important than speed.
+
 ## Troubleshooting
 
 ### No Vulnerabilities Shown

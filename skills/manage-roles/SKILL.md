@@ -161,6 +161,12 @@ Show me all resource groups and what they include
 | Duplicate identifier | Role with same ID exists | Use a unique identifier or update the existing role |
 | Permission denied | Caller lacks RBAC management permissions | Need `core_role_view` / `core_role_edit` permissions |
 
+## Performance Notes
+
+- List existing roles and resource groups before creating new ones to avoid duplication.
+- Verify role permissions match the principle of least privilege.
+- Confirm user/group identifiers are correct before assigning roles — incorrect assignments may grant unintended access.
+
 ## Troubleshooting
 
 ### User Cannot Access Resources

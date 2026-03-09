@@ -119,6 +119,12 @@ For Split.io-backed Feature Management & Experimentation (FME), use these additi
 - "List all feature flags in the payments project" -- List with project scope
 - "Is the beta-dashboard flag enabled?" -- Get flag details with environment
 
+## Performance Notes
+
+- Verify the flag identifier and environment before toggling. Toggling the wrong flag can cause production issues.
+- List existing flags before creating to avoid duplicates.
+- Confirm the flag type (boolean vs. multivariate) matches the intended use case.
+
 ## Troubleshooting
 
 ### Flag Not Toggling

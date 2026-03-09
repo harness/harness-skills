@@ -169,6 +169,12 @@ Show me all input sets for the build-and-deploy pipeline
 | Duplicate identifier | Input set with same ID exists | Use a unique identifier or update the existing input set |
 | Missing required inputs | Pipeline has required inputs not provided | Get pipeline details and ensure all `<+input>` fields are covered |
 
+## Performance Notes
+
+- Verify that all referenced pipeline identifiers and variable names match the target pipeline exactly.
+- When creating overlay input sets, confirm all component input sets exist first.
+- Validate runtime input values against the pipeline's expected types and constraints.
+
 ## Troubleshooting
 
 ### Input Set Not Applying During Execution

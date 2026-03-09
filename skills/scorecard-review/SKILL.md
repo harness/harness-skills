@@ -124,6 +124,12 @@ Parameters:
 - "Help me improve checkout-service score" - Get score, identify failing checks, suggest fixes
 - "Show all services below 80% compliance" - List and filter idp_score
 
+## Performance Notes
+
+- Analyze all scorecard checks before recommending improvements. Do not skip failing checks.
+- Cross-reference failing checks with the service's actual configuration and documentation.
+- Prioritize recommendations by impact — focus on checks that affect production readiness first.
+
 ## Troubleshooting
 
 ### No Scores Available

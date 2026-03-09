@@ -203,6 +203,13 @@ Parameters:
 - "Create a Helm service" - NativeHelm type with HelmChart manifest
 - "Create an ECS service with ECR" - ECS type with Ecr artifact source
 
+## Performance Notes
+
+- Verify that referenced connectors exist before creating the service definition.
+- Ensure the deployment type matches the infrastructure type that will be used in the pipeline.
+- For artifact sources, confirm the image path and registry are accessible.
+- Quality of service configuration is more important than speed.
+
 ## Troubleshooting
 
 - `CONNECTOR_NOT_FOUND` - Create connector first or fix connectorRef

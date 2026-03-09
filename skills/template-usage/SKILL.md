@@ -159,6 +159,12 @@ what does it reference and what references it?
 | No usage data | Template genuinely unused or scope mismatch | Search at broader scope; account templates may be used in any project |
 | Empty search results | No templates match query | Try broader search terms or list all templates |
 
+## Performance Notes
+
+- Paginate through all usage results before generating the impact report. Large templates may have many references.
+- Check usage across all scopes (account, org, project) for complete impact analysis.
+- Verify version information to distinguish between teams using current vs. outdated template versions.
+
 ## Troubleshooting
 
 ### No Usage Data Returned

@@ -143,6 +143,12 @@ Also: `sei_ai_adoption_breakdown`, `sei_ai_impact`, `sei_ai_usage`, `sei_ai_usag
 - "What's our deployment frequency trend?" - Get sei_deployment_frequency with drilldown
 - "Show AI adoption metrics" - Get sei_ai_adoption and breakdown
 
+## Performance Notes
+
+- Gather metrics across the full requested time range before generating the report. Partial data skews results.
+- Compare metrics across multiple time periods to identify trends, not just snapshots.
+- Quality of analysis and actionable recommendations is more important than speed.
+
 ## Troubleshooting
 
 ### No Metric Data

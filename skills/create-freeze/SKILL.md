@@ -115,6 +115,12 @@ windows:
 - "Freeze the payment service for 4 hours" - Service-specific freeze with duration
 - "Set up a monthly maintenance window" - Recurring monthly freeze
 
+## Performance Notes
+
+- Verify freeze window times are in the correct timezone before creating.
+- Confirm scope filters match the intended pipelines, services, or environments.
+- Check for existing overlapping freeze windows to avoid conflicts.
+
 ## Troubleshooting
 
 ### Freeze Not Blocking Deployments

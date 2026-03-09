@@ -13,6 +13,13 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 Generate Harness Infrastructure Definition YAML and push via MCP.
 
+## Instructions
+
+1. **Identify infrastructure type** - KubernetesDirect, KubernetesGcp (GKE), KubernetesAzure (AKS), ECS, or ServerlessAwsLambda
+2. **Ensure prerequisites exist** - The environment and cloud/cluster connector must be created first
+3. **Generate YAML** using the templates below, referencing the correct connector and environment
+4. **Create via MCP** using `harness_create` with resource_type `infrastructure`
+
 ## Infrastructure Types
 
 ### KubernetesDirect
@@ -102,6 +109,12 @@ Parameters:
 - "Create a K8s infrastructure for prod" - KubernetesDirect with prod namespace
 - "Set up GKE infrastructure" - KubernetesGcp with GCP connector
 - "Create ECS Fargate infrastructure" - ECS type with AWS connector
+
+## Performance Notes
+
+- Verify the referenced connector and environment exist before creating the infrastructure definition.
+- Ensure namespace and cluster names are accurate — typos will cause deployment failures.
+- Use `<+INFRA_KEY_SHORT_ID>` in releaseName to guarantee uniqueness across deployments.
 
 ## Troubleshooting
 

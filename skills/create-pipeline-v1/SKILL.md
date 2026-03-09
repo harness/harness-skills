@@ -18,6 +18,13 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 Generate Harness v1 simplified Pipeline YAML and optionally push to Harness via MCP.
 
+## Instructions
+
+1. **Confirm v1 format** - User must specifically want v1 syntax (lowercase types, `${{ }}` expressions). Default to v0 if unclear.
+2. **Clarify requirements** - Pipeline type (CI, CD, or both), language/framework, deployment target
+3. **Generate v1 YAML** using lowercase types (`ci`, `run`, `deployment`), `${{ }}` expressions, and `version: 1` header
+4. **Optionally create via MCP** using `harness_create` with resource_type `pipeline`
+
 ## v1 Key Differences from v0
 
 - Expression syntax: `${{ }}` instead of `<+ >`
@@ -302,6 +309,12 @@ Create a simplified Kubernetes deployment pipeline with staging and production s
 /create-pipeline-v1
 Create a v1 pipeline that tests across Node 16, 18, and 20 using matrix strategy
 ```
+
+## Performance Notes
+
+- Double-check v1 syntax: lowercase types (`ci`, `run`, `deployment`), `${{ }}` expressions, and `version: 1` header.
+- Do not mix v0 and v1 syntax in the same pipeline. If in doubt about the format, ask the user.
+- Validate that all expressions use `${{ }}` and not `<+...>` before presenting.
 
 ## Troubleshooting
 

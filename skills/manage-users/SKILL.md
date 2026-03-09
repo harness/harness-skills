@@ -166,6 +166,12 @@ This skill manages **principals** (users, groups, service accounts). Use `/manag
 - "What permissions are available?" -- List permissions
 - "Delete the old test-bot service account" -- Delete service_account
 
+## Performance Notes
+
+- Verify user email addresses and group identifiers before making changes.
+- List existing groups and service accounts before creating to avoid duplicates.
+- For service accounts, confirm the token expiry and scope match the intended usage.
+
 ## Troubleshooting
 
 ### User Not Found

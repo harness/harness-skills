@@ -125,6 +125,12 @@ deny[msg] {
 - "Require artifact signing before production" -- Create policy checking signature status
 - "Check which artifacts violate our policies" -- List scs_compliance_result
 
+## Performance Notes
+
+- Validate Rego syntax before submitting. Common issues: missing package declaration, deny rules without msg return.
+- Ensure the policy package name follows `package harness.<domain>` convention.
+- Test policy logic mentally against expected inputs before creating.
+
 ## Troubleshooting
 
 ### Policy Not Enforcing

@@ -18,6 +18,14 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 Generate Harness v0 Template YAML for reusable components and push via MCP.
 
+## Instructions
+
+1. **Determine template type** - Step, Stage, Pipeline, or StepGroup
+2. **Identify reusable parameters** - Mark configurable fields with `<+input>` for runtime inputs
+3. **Generate YAML** using the structure below with a unique `versionLabel`
+4. **Create via MCP** using `harness_create` with resource_type `template`
+5. **Verify creation** using `harness_list` with resource_type `template`
+
 ## Template Types
 
 - **Step** - Reusable step definitions
@@ -227,6 +235,12 @@ Parameters:
 - "Create a Docker build and push step template" - Generate Step template with BuildAndPushDockerRegistry
 - "Create a reusable K8s deployment stage" - Generate Stage template with Deployment type
 - "Make a standard CI/CD pipeline template" - Generate Pipeline template with CI + CD stages
+
+## Performance Notes
+
+- Mark all configurable fields with `<+input>` to maximize template reusability.
+- Verify the versionLabel is unique for each template update.
+- Test template references in a pipeline before distributing to other teams.
 
 ## Troubleshooting
 

@@ -166,6 +166,12 @@ Also: `cost_commitment_coverage`, `cost_commitment_utilisation`, `cost_commitmen
 - "Break down costs by team" - Get cost_breakdown or cost_perspective
 - "Are we using our reserved instances?" - Get cost_commitment_utilisation
 
+## Performance Notes
+
+- Gather data from all relevant perspectives before drawing cost conclusions. Partial data leads to incorrect recommendations.
+- Cross-reference recommendations with anomaly data to distinguish trends from spikes.
+- Quality of cost analysis is more important than speed. Verify savings estimates before presenting.
+
 ## Troubleshooting
 
 ### No Cost Data

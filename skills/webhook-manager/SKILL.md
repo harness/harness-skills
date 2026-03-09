@@ -114,6 +114,12 @@ Parameters:
 - "List all GitX webhooks" - List webhooks at the appropriate scope
 - "Update webhook to sync more folders" - Update with additional folder paths
 
+## Performance Notes
+
+- List existing webhooks before creating to avoid duplicates.
+- Verify the folder path and Git connector reference are correct before creating.
+- Test webhook connectivity after creation to confirm events are being received.
+
 ## Troubleshooting
 
 ### Events Not Received

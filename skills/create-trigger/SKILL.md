@@ -13,6 +13,14 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 Generate Harness Trigger YAML and push to Harness via MCP.
 
+## Instructions
+
+1. **Identify trigger type** - Webhook (Git events), Scheduled (cron), Artifact (registry updates), or Manifest (Helm chart updates)
+2. **Configure conditions** - Branch filters, payload conditions, cron expression, or artifact path
+3. **Generate YAML** using the templates below, referencing the target pipeline
+4. **Create via MCP** using `harness_create` with resource_type `trigger`
+5. **Verify webhook registration** - For webhook triggers, confirm the webhook is registered in the Git provider
+
 ## Trigger Types
 
 - **Webhook** - GitHub, GitLab, Bitbucket, Azure Repos, Custom
@@ -193,6 +201,12 @@ Common keys: `sourceBranch`, `targetBranch`, `ref`, `action`, `tag`
 - "Set up nightly builds at 2 AM" - Scheduled trigger with cron
 - "Trigger deploy when new Docker image is pushed" - Artifact trigger with DockerRegistry
 - "Create a release trigger for tags" - Webhook with Push type, tag filter
+
+## Performance Notes
+
+- Verify payload conditions match actual webhook payloads from the Git provider.
+- For cron triggers, double-check the expression — cron uses UTC timezone.
+- Confirm the target pipeline identifier and inputYaml match the pipeline's expected inputs.
 
 ## Troubleshooting
 

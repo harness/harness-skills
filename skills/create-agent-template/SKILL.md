@@ -19,6 +19,13 @@ compatibility: No MCP server required. Generates YAML files locally.
 
 Generate Harness Agent Template files for AI-powered automation agents.
 
+## Instructions
+
+1. **Identify the agent's purpose** - What task should the agent automate (code review, security scanning, test generation, documentation)?
+2. **Define inputs and configuration** - What parameters does the agent need (repo, branch, connector, secrets)?
+3. **Generate three files** - metadata.json (template metadata), pipeline.yaml (v1 syntax), and wiki.MD (user documentation)
+4. **Validate consistency** - Ensure input references in pipeline.yaml match definitions in metadata.json
+
 ## Overview
 
 Agent templates are modular pipeline definitions that encapsulate AI-powered automation. Each template produces three files:
@@ -293,6 +300,12 @@ Build an agent template that generates unit tests to improve code coverage
 | Pipeline validation error | Invalid v1 YAML syntax | Verify pipeline structure follows v1 schema |
 | Connector not found | Referenced connector does not exist | Create the connector before running the agent |
 | Undefined input reference | `<+inputs.x>` used but `x` not defined in inputs | Add missing input definition |
+
+## Performance Notes
+
+- Validate all three generated files (metadata.json, pipeline.yaml, wiki.MD) are consistent with each other.
+- Ensure the pipeline YAML uses correct v1 syntax with lowercase types and ${{ }} expressions.
+- Test that all input references in the pipeline match the inputs defined in metadata.json.
 
 ## Troubleshooting
 

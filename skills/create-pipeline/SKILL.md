@@ -491,6 +491,13 @@ Create a CI pipeline that tests across Node 16, 18, and 20 on both Linux and mac
 Create a pipeline with parallel test stages for unit tests, integration tests, and linting
 ```
 
+## Performance Notes
+
+- Always check `references/native-steps.md` before using a Run step. Native steps provide better error handling and UI integration.
+- Validate that all referenced connectors, services, and environments exist before creating the pipeline.
+- For CD pipelines, confirm the deployment type matches the service definition type.
+- Quality of generated YAML is more important than speed. Verify structure before submitting.
+
 ## Troubleshooting
 
 ### YAML Validation Errors

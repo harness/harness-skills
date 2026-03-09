@@ -125,6 +125,12 @@ Parameters:
 - "Run the weekly resilience test" - Execute run action
 - "What were the results of the last chaos run?" - Get chaos_experiment_run
 
+## Performance Notes
+
+- Review existing experiments before creating duplicates. Check for similar fault types targeting the same service.
+- Wait for experiment completion before analyzing results. Do not draw conclusions from partial runs.
+- Verify the target infrastructure and service are healthy before running chaos experiments.
+
 ## Troubleshooting
 
 ### Experiment Won't Run

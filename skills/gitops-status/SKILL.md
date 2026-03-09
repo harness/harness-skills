@@ -132,6 +132,12 @@ Parameters:
 - "Get pod logs for failing service" - Get gitops_pod_log
 - "Show the resource tree for my app" - Get gitops_app_resource_tree
 
+## Performance Notes
+
+- Check all applications in the requested scope before summarizing health status.
+- For out-of-sync applications, examine the resource tree to identify the specific drift.
+- Gather pod logs for failing resources before diagnosing issues.
+
 ## Troubleshooting
 
 ### Application OutOfSync

@@ -18,6 +18,13 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 Generate Harness Environment YAML and push to Harness via MCP.
 
+## Instructions
+
+1. **Determine environment type** - `PreProduction` for dev/staging/QA, `Production` for live environments
+2. **Define variables and overrides** - Environment-specific config values and manifest overrides
+3. **Generate YAML** using the structure below
+4. **Create via MCP** using `harness_create` with resource_type `environment`
+
 ## Environment Structure
 
 ```yaml
@@ -116,6 +123,12 @@ Parameters:
 
 - "Create dev, staging, and prod environments" - Generate 3 environments with appropriate types
 - "Set up a production environment with overrides" - Production type with manifest overrides
+
+## Performance Notes
+
+- When creating multiple environments (dev/staging/prod), ensure variable values are distinct per environment.
+- Verify that manifest override paths exist in the referenced repository before creating.
+- Use Production type only for live environments — it enables additional safeguards like deployment freezes.
 
 ## Troubleshooting
 

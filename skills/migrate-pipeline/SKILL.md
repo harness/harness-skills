@@ -127,6 +127,12 @@ Parameters:
 - "Show me what ci-pipeline would look like in v1" - Fetch, convert, display only
 - "Convert all pipelines in the project" - List all, convert each
 
+## Performance Notes
+
+- Read the complete v0 pipeline before starting migration. Missing stages or steps will produce an incomplete v1 pipeline.
+- Verify all expressions are converted from `<+...>` to `${{ }}` format.
+- Compare the v0 and v1 outputs to confirm no functionality was lost in translation.
+
 ## Troubleshooting
 
 ### Unsupported v0 Features

@@ -13,6 +13,13 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 Generate Harness Connector YAML and create/test via MCP.
 
+## Instructions
+
+1. **Identify connector type** - Determine what service to connect (Git provider, cloud provider, container registry, Kubernetes cluster)
+2. **Generate YAML** using the templates below, filling in credentials and endpoint details
+3. **Create via MCP** using `harness_create` with resource_type `connector`
+4. **Test connection** using `harness_execute` with action `test_connection` to verify
+
 ## Git Connectors
 
 ### GitHub
@@ -212,6 +219,12 @@ Parameters:
 - "Set up AWS connector" - Aws type with access key credentials
 - "Create Docker Hub connector" - DockerRegistry type
 - "Connect to my K8s cluster" - K8sCluster with service account
+
+## Performance Notes
+
+- Always test the connection after creation using `harness_execute` with action `test_connection`.
+- Verify that referenced secrets exist before creating the connector.
+- For cloud connectors, confirm IAM permissions match the intended usage (read-only vs. read-write).
 
 ## Troubleshooting
 

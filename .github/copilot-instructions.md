@@ -140,6 +140,10 @@ When creating resources via `harness_create`, the Harness API validates the payl
    ```
 3. **On validation errors**, read the API error message to identify the missing or invalid field, then fix and retry
 
+## Skill Standards
+
+When creating or modifying skills, run `scripts/validate-skills.sh` to check compliance. See `CONTRIBUTING.md` for the full structure guide. Skills must have: frontmatter (name, description, metadata, license, compatibility), `## Instructions`, `## Examples`, `## Performance Notes`, and `## Troubleshooting` sections.
+
 ## Schema References
 
 - **v0 Pipelines/Templates/Triggers**: https://github.com/harness/harness-schema/tree/main/v0

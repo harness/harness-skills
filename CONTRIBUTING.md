@@ -145,9 +145,28 @@ All tools use a `resource_type` parameter to dispatch to the correct Harness API
 - Use snake_case for identifiers in YAML examples
 - Wrap long description values with `>-` (folded block scalar, strip trailing newline)
 
+## Validation
+
+Run the validation script before submitting a PR:
+
+```bash
+./scripts/validate-skills.sh
+```
+
+This checks all skills against the [Anthropic Skills Guide](https://docs.anthropic.com) standards:
+
+- Frontmatter fields (name, description, metadata, license, compatibility)
+- Skill folder naming (kebab-case, no underscores/spaces/capitals)
+- Description quality (under 1024 chars, includes trigger phrases, no XML brackets)
+- Required sections (Instructions, Examples, Performance Notes, Troubleshooting)
+- Word count (SKILL.md body under 5000 words)
+- No README.md inside skill folders
+
+The same checks run automatically via GitHub Actions on every PR to `main`.
+
 ## Pull Request Process
 
-1. Ensure your skill follows the structure and guidelines above
+1. Run `./scripts/validate-skills.sh` and fix any errors
 2. Verify the SKILL.md frontmatter is valid YAML
 3. Update `CLAUDE.md` and `README.md` if adding a new skill
 4. Write a clear PR description explaining what the skill does

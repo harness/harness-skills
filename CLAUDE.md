@@ -129,6 +129,17 @@ Before making any MCP API call that creates or modifies resources, always establ
 3. **Account-level resources** (no org/project) are visible to all orgs and projects. Org-level resources are visible to all projects in that org. Project-level resources are only visible within that project.
 4. **If the user provides a Harness UI URL**, extract `org_id`, `project_id`, and `resource_id` from it -- MCP tools support URL auto-extraction.
 
+## Schema Validation Convention
+
+When creating resources via `harness_create`, the Harness API validates the payload and returns specific error messages for malformed requests. Skills do NOT need to embed full API schemas. Instead:
+
+1. **Each skill lists required fields** in its Instructions section (identifier, name, type, yaml, etc.)
+2. **Use `harness_describe`** to discover the full schema for any resource type at runtime -- this is a local lookup with no API call:
+   ```
+   harness_describe(resource_type="service")
+   ```
+3. **On validation errors**, read the API error message to identify the missing or invalid field, then fix and retry
+
 ## Schema References
 
 - **v0 Pipelines/Templates/Triggers**: https://github.com/harness/harness-schema/tree/main/v0

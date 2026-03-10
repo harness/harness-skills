@@ -292,6 +292,18 @@ Same structure but with S3-specific fields (region, bucket).
     timeout: 30s
 ```
 
+## Stage validation (required by API)
+
+- **Stage name:** Must match `^[a-zA-Z_0-9-.][-0-9a-zA-Z_\\s.]{0,127}$`. No commas; use letters, numbers, spaces, hyphens, underscores, or periods only.
+- **failureStrategies:** Every CI and CD stage must include a `failureStrategies` array (Approval stages do not require one). Use `MarkAsFailure` for CI; use `StageRollback` for CD. Example for CI:
+  ```yaml
+  failureStrategies:
+    - onFailure:
+        errors: [AllErrors]
+        action:
+          type: MarkAsFailure
+  ```
+
 ## HarnessApproval (required by API)
 
 `approvers.disallowPipelineExecutor` is required. Set to `true` so the pipeline executor cannot approve their own run; omit it and the API returns "disallowPipelineExecutor: is missing but it is required".

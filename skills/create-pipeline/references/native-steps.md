@@ -316,7 +316,7 @@ Use these instead of running scanners via `Run` steps — native steps integrate
 A `Run` step is appropriate when:
 
 - **Custom build commands** - `npm ci && npm run build`, `go build ./...`, `mvn clean package`
-- **Custom test commands** - `npm test`, `pytest`, `go test ./...` (use `reports` for JUnit output)
+- **Custom test commands** - `npm test`, `pytest`, `go test ./...` — **must include a `reports` block** (e.g. `type: JUnit`, `spec.paths`) so Harness captures test results; see codebase-analysis.md for framework → report path.
 - **Custom linting** - `eslint .`, `ruff check .`, `golangci-lint run`
 - **One-off scripts** - Data migration, environment setup, custom validation
 - **No native step exists** - Check this reference first before defaulting to Run

@@ -41,8 +41,14 @@ Generate Harness v0 Pipeline YAML and optionally push to Harness via MCP.
    - Approvals → use `HarnessApproval` / `JiraApproval` (never polling scripts)
    - Ticketing → use `JiraCreate` / `ServiceNowCreate` (never `Run: curl`)
    - Use `Run` steps only for custom build/test/lint commands with no native equivalent
-4. **Generate valid YAML** following the structure below, using the detected build/test/deploy commands
+   - **Test steps:** Any Run step that runs unit or integration tests must include a `reports` block (e.g. `type: JUnit`, `spec.paths`) so Harness can capture results; see `references/codebase-analysis.md` for framework → report path.
+4. **Generate valid YAML** following the structure below, using the detected build/test/deploy commands. **Validation rules:** (a) Stage names must match `^[a-zA-Z_0-9-.][-0-9a-zA-Z_\\s.]{0,127}$` — use only letters, numbers, spaces, hyphens, underscores, or periods (no commas). (b) Every stage, including CI, must include a `failureStrategies` array. For CI use `MarkAsFailure` so the stage and pipeline actually fail and show as Failed when a step fails (never `Ignore`) — e.g. `onFailure: errors: [AllErrors], action: type: MarkAsFailure`.
 5. **Optionally create via MCP** using `harness_create` with resource_type `pipeline`
+
+## Critical Rules
+
+- **Never set `failureStrategies.action.type: Ignore` on CI stages** — it hides failures and is a bad default. Use `MarkAsFailure` so the stage and pipeline actually fail and show as Failed when a step fails; for CD use `StageRollback` as appropriate.
+- **Test Run steps must include a `reports` block** when the step runs unit or integration tests. Use `type: JUnit` and `spec.paths` matching the test framework output (see `references/codebase-analysis.md` for framework → report path). Without it Harness cannot capture test results or show them in the UI.
 
 ## Pipeline Structure
 
@@ -70,6 +76,8 @@ pipeline:
 
 ### CI Stage (type: CI)
 
+Every CI stage must include `failureStrategies` (required by the API). Use `MarkAsFailure` so when a step fails the stage and pipeline actually fail and show as Failed; do not use `Ignore` (see Critical Rules).
+
 ```yaml
 - stage:
     identifier: build
@@ -86,6 +94,11 @@ pipeline:
       execution:
         steps:
           - step: ...
+    failureStrategies:
+      - onFailure:
+          errors: [AllErrors]
+          action:
+            type: MarkAsFailure
 ```
 
 ### CD Stage (type: Deployment)
@@ -140,6 +153,9 @@ pipeline:
 ## Common Step Types
 
 ### Run Step
+
+For steps that run tests, **always include a `reports` block** (JUnit or the framework's report format) so Harness can capture and display results. See Critical Rules and `references/codebase-analysis.md` for framework → report paths.
+
 ```yaml
 - step:
     identifier: run_tests
@@ -152,7 +168,7 @@ pipeline:
         npm test
       envVariables:
         NODE_ENV: test
-      reports:
+      reports:              # Required for test steps — do not omit
         type: JUnit
         spec:
           paths: ["junit.xml"]
@@ -350,6 +366,10 @@ pipeline:
                       spec:
                         shell: Bash
                         command: npm test
+                        reports:
+                          type: JUnit
+                          spec:
+                            paths: ["junit.xml"]
               - step:
                   identifier: docker_push
                   name: Build and Push
@@ -358,6 +378,11 @@ pipeline:
                     connectorRef: dockerhub
                     repo: myorg/my-app
                     tags: [<+pipeline.sequenceId>, latest]
+        failureStrategies:
+          - onFailure:
+              errors: [AllErrors]
+              action:
+                type: MarkAsFailure
 ```
 
 ## Complete CD Example
@@ -501,7 +526,9 @@ Create a pipeline with parallel test stages for unit tests, integration tests, a
 ## Troubleshooting
 
 ### YAML Validation Errors
-- Identifier must match `^[a-zA-Z_][0-9a-zA-Z_]{0,127}$`
+- **Pipeline/step identifier:** must match `^[a-zA-Z_][0-9a-zA-Z_]{0,127}$` (letters, numbers, underscores only).
+- **Stage name:** must match `^[a-zA-Z_0-9-.][-0-9a-zA-Z_\\s.]{0,127}$` — no commas; use letters, numbers, spaces, hyphens, underscores, or periods (e.g. use "Build Test and Push" not "Build, Test and Push").
+- **Every stage** (including CI) must include a `failureStrategies` array; omit it and the API returns "failureStrategies: is missing but it is required". For CI use `type: MarkAsFailure` so the stage actually fails and shows as Failed (never `Ignore`).
 - Stage type is case-sensitive: `CI`, `Deployment`, `Approval`, `Custom`
 - Every stage must have a `spec` field
 

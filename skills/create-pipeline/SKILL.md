@@ -29,7 +29,12 @@ Generate Harness v0 Pipeline YAML and optionally push to Harness via MCP.
    - Dockerfile presence and registry type (Docker Hub, ECR, GCR, ACR)
    - Deployment manifests → Harness service/deployment type (k8s manifests → Kubernetes, Chart.yaml → NativeHelm, task-definition.json → ECS, serverless.yml → ServerlessAwsLambda)
    - Existing CI/CD configs for migration (GitHub Actions, Jenkins, GitLab CI, etc.)
-2. **Clarify requirements** - Confirm detected settings with the user. Ask about anything that couldn't be auto-detected: deployment target, cloud provider, approval gates, notification channels.
+2. **Clarify requirements** - Confirm detected settings with the user. **Ask about anything that couldn't be auto-detected** — do not guess or use placeholders. If the user's request is ambiguous, ask before generating YAML. Examples of what to ask when missing:
+   - **Deployment target / infrastructure:** region (e.g. us-east-1), cluster name or ID, account ID (e.g. AWS account for ECR/ECS)
+   - **Registry:** which registry (Docker Hub, ECR, GCR, ACR), registry identifier/URL, repo path
+   - **Cloud provider:** which account, region, and resource identifiers for connectors/infrastructure
+   - **Approval gates, notification channels** if relevant
+   **Critical rule:** Never hardcode placeholder values (e.g. `123456789012`, `us-east-1`, `my-cluster`) for deployment target, region, registry, or cluster when the user did not specify them — ask the user instead. If the user did not specify region, account ID, cluster, or registry (e.g. "deploys to ECS" with no region or cluster), ask the user for those values before generating YAML.
 3. **Select native steps** - Always prefer Harness native steps over `Run` or `ShellScript` steps. Consult `references/native-steps.md` for the full mapping. Key rules:
    - Docker build/push → use `BuildAndPushDockerRegistry` / `BuildAndPushECR` / `BuildAndPushGCR` / `BuildAndPushACR` (never `Run: docker build && docker push`)
    - K8s deploy → use `K8sRollingDeploy` / `K8sBlueGreenDeploy` / `K8sCanaryDeploy` (never `Run: kubectl apply`)
@@ -572,6 +577,9 @@ Create a pipeline with parallel test stages for unit tests, integration tests, a
 - `DUPLICATE_IDENTIFIER` - Pipeline already exists; use `harness_update` instead
 - `CONNECTOR_NOT_FOUND` - Create the connector first or fix connectorRef
 - `ACCESS_DENIED` - Check API key permissions
+
+### Ambiguous or Incomplete Requests
+- **"Deploys to ECS" / "K8s deploy" / "push to registry" with no specifics** — Ask the user for region, account ID, cluster name/ID, and which registry (ECR, Docker Hub, etc.) before generating YAML. Do not insert placeholder values (e.g. `us-east-1`, `123456789012`).
 
 ### Execution Failures
 - Missing `<+input>` values - provide via input sets or runtime inputs

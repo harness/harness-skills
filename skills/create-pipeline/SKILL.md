@@ -264,13 +264,16 @@ failureStrategies:
 
 After generating the YAML, create it in Harness:
 
+1. **Ensure the project exists** — If the project does not exist, create it first with `harness_create` (resource_type: `project`, body: `{ identifier, name }`) or ask the user to create it. List projects with `harness_list` (resource_type: `project`, org_id) to verify.
+2. **Create the pipeline** — Use `harness_create` with the pipeline YAML in the body as a **yamlPipeline** string. Passing a large nested JSON `pipeline` object can cause serialization errors and may not satisfy the API; the reliable format is:
+
 ```
 Call MCP tool: harness_create
 Parameters:
   resource_type: "pipeline"
   org_id: "<organization>"
   project_id: "<project>"
-  body: <the pipeline YAML>
+  body: { yamlPipeline: "<full pipeline YAML string, including 'pipeline:' root>" }
 ```
 
 To update an existing pipeline:
@@ -282,8 +285,10 @@ Parameters:
   resource_id: "<pipeline_identifier>"
   org_id: "<organization>"
   project_id: "<project>"
-  body: <the updated pipeline YAML>
+  body: { yamlPipeline: "<full updated pipeline YAML string>" }
 ```
+
+**MCP server note:** If the Harness MCP server (harness-mcp-v2) documents in `harness_describe`(resource_type: "pipeline") or in the pipeline schema that create accepts `body.yamlPipeline` (YAML string), agents can discover this format without relying on the skill.
 
 To verify it was created:
 
@@ -506,6 +511,8 @@ Create a pipeline with parallel test stages for unit tests, integration tests, a
 - Every stage must have a `spec` field
 
 ### MCP Creation Errors
+- **Project not found** — Create the project first with `harness_create` (resource_type: `project`, body: `{ identifier, name }`) or confirm project_id/org_id. List projects with `harness_list` (resource_type: `project`, org_id).
+- **Missing required fields for pipeline: pipeline** — Pass the body as `{ yamlPipeline: "<full pipeline YAML string>" }` (not a nested JSON `pipeline` object). Avoid large nested JSON to prevent serialization issues.
 - `DUPLICATE_IDENTIFIER` - Pipeline already exists; use `harness_update` instead
 - `CONNECTOR_NOT_FOUND` - Create the connector first or fix connectorRef
 - `ACCESS_DENIED` - Check API key permissions

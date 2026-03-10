@@ -123,6 +123,8 @@ pipeline:
 
 ### Approval Stage (type: Approval)
 
+`HarnessApproval` requires `approvers.disallowPipelineExecutor` (required by the API). Set it to `true` so the pipeline executor cannot approve their own run; omit it and the API returns "disallowPipelineExecutor: is missing but it is required".
+
 ```yaml
 - stage:
     identifier: approval
@@ -140,7 +142,14 @@ pipeline:
                 approvers:
                   userGroups: [prod_approvers]
                   minimumCount: 1
+                  disallowPipelineExecutor: true
+                includePipelineExecutionHistory: true
               timeout: 1d
+    failureStrategies:
+      - onFailure:
+          errors: [AllErrors]
+          action:
+            type: Abort
 ```
 
 ## Common Step Types
@@ -434,7 +443,14 @@ pipeline:
                     approvers:
                       userGroups: [prod_approvers]
                       minimumCount: 1
+                      disallowPipelineExecutor: true
+                    includePipelineExecutionHistory: true
                   timeout: 1d
+        failureStrategies:
+          - onFailure:
+              errors: [AllErrors]
+              action:
+                type: Abort
     - stage:
         identifier: deploy_prod
         name: Deploy Production
@@ -522,6 +538,7 @@ Create a pipeline with parallel test stages for unit tests, integration tests, a
 - **Every CI and CD stage** must include a `failureStrategies` array (Approval stages do not require one); omit it and the API returns "failureStrategies: is missing but it is required". For CI use `type: MarkAsFailure`; for CD use `type: StageRollback`.
 - Stage type is case-sensitive: `CI`, `Deployment`, `Approval`, `Custom`
 - Every stage must have a `spec` field
+- **HarnessApproval:** "disallowPipelineExecutor: is missing but it is required" — add `approvers.disallowPipelineExecutor: true` to the step spec.
 
 ### MCP Creation Errors
 - `DUPLICATE_IDENTIFIER` - Pipeline already exists; use `harness_update` instead

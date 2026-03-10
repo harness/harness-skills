@@ -208,6 +208,25 @@ Use these instead of running `docker build` / `docker push` in a Run step:
 | ServiceNow approval | `ServiceNowApproval` | `Run: curl ServiceNow API ...` |
 | Custom approval | `CustomApproval` | `ShellScript` with polling |
 
+### HarnessApproval (required fields)
+
+The API requires `approvers.disallowPipelineExecutor`. Always include it (set to `true` so the pipeline executor cannot approve their own run).
+
+```yaml
+- step:
+    identifier: approve
+    name: Approve
+    type: HarnessApproval
+    spec:
+      approvalMessage: "Please review and approve"
+      approvers:
+        userGroups: [prod_approvers]
+        minimumCount: 1
+        disallowPipelineExecutor: true
+      includePipelineExecutionHistory: true
+    timeout: 1d
+```
+
 ## Ticketing & Notification Steps
 
 | Task | Native Step | Instead of |

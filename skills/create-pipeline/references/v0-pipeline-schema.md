@@ -304,6 +304,10 @@ Same structure but with S3-specific fields (region, bucket).
           type: MarkAsFailure
   ```
 
+## HarnessApproval (required by API)
+
+`approvers.disallowPipelineExecutor` is required. Set to `true` so the pipeline executor cannot approve their own run; omit it and the API returns "disallowPipelineExecutor: is missing but it is required".
+
 ## CI Steps
 
 ### GitClone

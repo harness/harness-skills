@@ -9,7 +9,7 @@ description: >-
   Harness pipeline, Kubernetes deploy pipeline.
 metadata:
   author: Harness
-  version: 2.1.0
+  version: 2.2.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
@@ -29,7 +29,12 @@ Generate Harness v0 Pipeline YAML and optionally push to Harness via MCP.
    - Dockerfile presence and registry type (Docker Hub, ECR, GCR, ACR)
    - Deployment manifests → Harness service/deployment type (k8s manifests → Kubernetes, Chart.yaml → NativeHelm, task-definition.json → ECS, serverless.yml → ServerlessAwsLambda)
    - Existing CI/CD configs for migration (GitHub Actions, Jenkins, GitLab CI, etc.)
-2. **Clarify requirements** - Confirm detected settings with the user. Ask about anything that couldn't be auto-detected: deployment target, cloud provider, approval gates, notification channels.
+2. **Clarify requirements** - Confirm detected settings with the user. **Ask about anything that couldn't be auto-detected** — do not guess or use placeholders. If the user's request is ambiguous, ask before generating YAML. Examples of what to ask when missing:
+   - **Deployment target / infrastructure:** region (e.g. us-east-1), cluster name or ID, account ID (e.g. AWS account for ECR/ECS)
+   - **Registry:** which registry (Docker Hub, ECR, GCR, ACR), registry identifier/URL, repo path
+   - **Cloud provider:** which account, region, and resource identifiers for connectors/infrastructure
+   - **Approval gates, notification channels** if relevant
+   **Critical rule:** Never hardcode placeholder values (e.g. `123456789012`, `us-east-1`, `my-cluster`) for deployment target, region, registry, or cluster when the user did not specify them — ask the user instead. If the user did not specify region, account ID, cluster, or registry (e.g. "deploys to ECS" with no region or cluster), ask the user for those values before generating YAML.
 3. **Select native steps** - Always prefer Harness native steps over `Run` or `ShellScript` steps. Consult `references/native-steps.md` for the full mapping. Key rules:
    - Docker build/push → use `BuildAndPushDockerRegistry` / `BuildAndPushECR` / `BuildAndPushGCR` / `BuildAndPushACR` (never `Run: docker build && docker push`)
    - K8s deploy → use `K8sRollingDeploy` / `K8sBlueGreenDeploy` / `K8sCanaryDeploy` (never `Run: kubectl apply`)
@@ -41,8 +46,9 @@ Generate Harness v0 Pipeline YAML and optionally push to Harness via MCP.
    - Approvals → use `HarnessApproval` / `JiraApproval` (never polling scripts)
    - Ticketing → use `JiraCreate` / `ServiceNowCreate` (never `Run: curl`)
    - Use `Run` steps only for custom build/test/lint commands with no native equivalent
-4. **Generate valid YAML** following the structure below, using the detected build/test/deploy commands
-5. **Optionally create via MCP** using `harness_create` with resource_type `pipeline`
+   - **Test steps:** Any Run step that runs unit or integration tests must include a `reports` block (e.g. `type: JUnit`, `spec.paths`) so Harness can capture results; see `references/codebase-analysis.md` for framework → report path.
+4. **Generate valid YAML** following the structure below, using the detected build/test/deploy commands. **Validation rules:** (a) Stage names must match `^[a-zA-Z_0-9-.][-0-9a-zA-Z_\\s.]{0,127}$` — use only letters, numbers, spaces, hyphens, underscores, or periods (no commas). (b) Every CI and CD stage must include a `failureStrategies` array (Approval stages do not require one). For CI use `MarkAsFailure` (never `Ignore` — it hides failures); for CD use `StageRollback`.
+5. **Optionally create via MCP** — First verify the project exists (see "Creating via MCP" section below), then use `harness_create` with resource_type `pipeline` and `body: { yamlPipeline: "<YAML string>" }`
 
 ## Pipeline Structure
 
@@ -86,6 +92,11 @@ pipeline:
       execution:
         steps:
           - step: ...
+    failureStrategies:
+      - onFailure:
+          errors: [AllErrors]
+          action:
+            type: MarkAsFailure
 ```
 
 ### CD Stage (type: Deployment)
@@ -117,6 +128,8 @@ pipeline:
 
 ### Approval Stage (type: Approval)
 
+`HarnessApproval` requires `approvers.disallowPipelineExecutor` (required by the API). Set it to `true` so the pipeline executor cannot approve their own run; omit it and the API returns "disallowPipelineExecutor: is missing but it is required".
+
 ```yaml
 - stage:
     identifier: approval
@@ -134,12 +147,20 @@ pipeline:
                 approvers:
                   userGroups: [prod_approvers]
                   minimumCount: 1
+                  disallowPipelineExecutor: true
+                includePipelineExecutionHistory: true
               timeout: 1d
+    failureStrategies:
+      - onFailure:
+          errors: [AllErrors]
+          action:
+            type: Abort
 ```
 
 ## Common Step Types
 
 ### Run Step
+
 ```yaml
 - step:
     identifier: run_tests
@@ -291,16 +312,26 @@ Reference matrix values in steps with `<+stage.matrix.TAG>` (e.g. `<+stage.matri
 
 After generating the YAML, create it in Harness:
 
+1. **Verify the project exists** — List projects with `harness_list` (resource_type: `project`, org_id) to confirm. If the project does not exist, create it first with `harness_create` (resource_type: `project`, body: `{ identifier, name }`) or ask the user.
+2. **Create the pipeline** — Use `harness_create` with the pipeline YAML serialized as a **`yamlPipeline`** string in the body. Do not pass a nested JSON `pipeline` object; it causes serialization errors.
+
 ```
 Call MCP tool: harness_create
 Parameters:
   resource_type: "pipeline"
   org_id: "<organization>"
   project_id: "<project>"
-  body: <the pipeline YAML>
+  body: { yamlPipeline: "<full pipeline YAML string, including 'pipeline:' root key>" }
 ```
 
-To update an existing pipeline:
+**Example body** (abbreviated):
+```json
+{
+  "yamlPipeline": "pipeline:\n  identifier: nodejs_ci\n  name: Node.js CI\n  projectIdentifier: my_project\n  orgIdentifier: default\n  stages:\n    - stage:\n        identifier: build\n        ..."
+}
+```
+
+To update an existing pipeline, use the same `yamlPipeline` format:
 
 ```
 Call MCP tool: harness_update
@@ -309,7 +340,7 @@ Parameters:
   resource_id: "<pipeline_identifier>"
   org_id: "<organization>"
   project_id: "<project>"
-  body: <the updated pipeline YAML>
+  body: { yamlPipeline: "<full updated pipeline YAML string>" }
 ```
 
 To verify it was created:
@@ -377,6 +408,10 @@ pipeline:
                       spec:
                         shell: Bash
                         command: npm test
+                        reports:
+                          type: JUnit
+                          spec:
+                            paths: ["junit.xml"]
               - step:
                   identifier: docker_push
                   name: Build and Push
@@ -385,6 +420,11 @@ pipeline:
                     connectorRef: dockerhub
                     repo: myorg/my-app
                     tags: [<+pipeline.sequenceId>, latest]
+        failureStrategies:
+          - onFailure:
+              errors: [AllErrors]
+              action:
+                type: MarkAsFailure
 ```
 
 ## Complete CD Example
@@ -445,7 +485,14 @@ pipeline:
                     approvers:
                       userGroups: [prod_approvers]
                       minimumCount: 1
+                      disallowPipelineExecutor: true
+                    includePipelineExecutionHistory: true
                   timeout: 1d
+        failureStrategies:
+          - onFailure:
+              errors: [AllErrors]
+              action:
+                type: Abort
     - stage:
         identifier: deploy_prod
         name: Deploy Production
@@ -521,6 +568,7 @@ Create a pipeline with parallel test stages for unit tests, integration tests, a
 ## Performance Notes
 
 - Always check `references/native-steps.md` before using a Run step. Native steps provide better error handling and UI integration.
+- Verify the target project exists (`harness_list`, resource_type: `project`) before creating the pipeline.
 - Validate that all referenced connectors, services, and environments exist before creating the pipeline.
 - For CD pipelines, confirm the deployment type matches the service definition type.
 - Quality of generated YAML is more important than speed. Verify structure before submitting.
@@ -528,15 +576,23 @@ Create a pipeline with parallel test stages for unit tests, integration tests, a
 ## Troubleshooting
 
 ### YAML Validation Errors
-- Identifier must match `^[a-zA-Z_][0-9a-zA-Z_]{0,127}$`
+- **Pipeline/step identifier:** must match `^[a-zA-Z_][0-9a-zA-Z_]{0,127}$` (letters, numbers, underscores only).
+- **Stage name:** must match `^[a-zA-Z_0-9-.][-0-9a-zA-Z_\\s.]{0,127}$` — no commas; use letters, numbers, spaces, hyphens, underscores, or periods (e.g. use "Build Test and Push" not "Build, Test and Push").
+- **Every CI and CD stage** must include a `failureStrategies` array (Approval stages do not require one); omit it and the API returns "failureStrategies: is missing but it is required". For CI use `type: MarkAsFailure`; for CD use `type: StageRollback`.
 - Stage type is case-sensitive: `CI`, `Deployment`, `Approval`, `Custom`
 - Every stage must have a `spec` field
 - **Matrix not applied / not visible in UI:** `strategy` must be a sibling of `spec` on the stage, not inside `spec`. Use `strategy.matrix` at the stage level and reference values as `<+stage.matrix.TAG>`.
+- **HarnessApproval:** "disallowPipelineExecutor: is missing but it is required" — add `approvers.disallowPipelineExecutor: true` to the step spec.
 
 ### MCP Creation Errors
-- `DUPLICATE_IDENTIFIER` - Pipeline already exists; use `harness_update` instead
-- `CONNECTOR_NOT_FOUND` - Create the connector first or fix connectorRef
-- `ACCESS_DENIED` - Check API key permissions
+- **Project not found** — Verify the project exists with `harness_list` (resource_type: `project`, org_id). Create it first with `harness_create` (resource_type: `project`, body: `{ identifier, name }`) or confirm org_id/project_id are correct.
+- **Missing required fields for pipeline: pipeline** — Pass the body as `{ yamlPipeline: "<full pipeline YAML string>" }` instead of a nested JSON `pipeline` object. Nested JSON causes serialization errors.
+- `DUPLICATE_IDENTIFIER` — Pipeline already exists; use `harness_update` instead
+- `CONNECTOR_NOT_FOUND` — Create the connector first or fix connectorRef
+- `ACCESS_DENIED` — Check API key permissions
+
+### Ambiguous or Incomplete Requests
+- **"Deploys to ECS" / "K8s deploy" / "push to registry" with no specifics** — Ask the user for region, account ID, cluster name/ID, and which registry (ECR, Docker Hub, etc.) before generating YAML. Do not insert placeholder values (e.g. `us-east-1`, `123456789012`).
 
 ### Execution Failures
 - Missing `<+input>` values - provide via input sets or runtime inputs

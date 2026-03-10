@@ -10,7 +10,7 @@ description: >-
   pipeline format, create v1, modern pipeline syntax.
 metadata:
   author: Harness
-  version: 3.0.0
+  version: 3.1.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
@@ -420,13 +420,16 @@ pipeline:
 
 ## Creating via MCP
 
+1. **Verify the project exists** — List projects with `harness_list` (resource_type: `project`, org_id) to confirm. If the project does not exist, create it first with `harness_create` (resource_type: `project`, body: `{ identifier, name }`) or ask the user.
+2. **Create the pipeline** — Use `harness_create` with the v1 pipeline YAML serialized as a **`yamlPipeline`** string in the body. Do not pass a nested JSON `pipeline` object; it causes serialization errors.
+
 ```
 Call MCP tool: harness_create
 Parameters:
   resource_type: "pipeline"
   org_id: "<organization>"
   project_id: "<project>"
-  body: <the v1 pipeline YAML>
+  body: { yamlPipeline: "<full v1 pipeline YAML string, including 'pipeline:' root key>" }
 ```
 
 ## Examples
@@ -474,5 +477,7 @@ Create a v1 pipeline that tests across Go 1.19, 1.20, and 1.21 using matrix stra
 
 ### MCP Errors
 
-- `DUPLICATE_IDENTIFIER` - Pipeline exists; use `harness_update`
-- `INVALID_REQUEST` - Check YAML structure matches v1 schema
+- **Project not found** — Verify the project exists with `harness_list` (resource_type: `project`, org_id). Create it first or confirm org_id/project_id are correct.
+- **Missing required fields for pipeline: pipeline** — Pass the body as `{ yamlPipeline: "<full v1 pipeline YAML string>" }` instead of a nested JSON `pipeline` object.
+- `DUPLICATE_IDENTIFIER` — Pipeline exists; use `harness_update`
+- `INVALID_REQUEST` — Check YAML structure matches v1 schema

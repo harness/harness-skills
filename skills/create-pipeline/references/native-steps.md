@@ -208,6 +208,25 @@ Use these instead of running `docker build` / `docker push` in a Run step:
 | ServiceNow approval | `ServiceNowApproval` | `Run: curl ServiceNow API ...` |
 | Custom approval | `CustomApproval` | `ShellScript` with polling |
 
+### HarnessApproval (required fields)
+
+The API requires `approvers.disallowPipelineExecutor`. Always include it (set to `true` so the pipeline executor cannot approve their own run).
+
+```yaml
+- step:
+    identifier: approve
+    name: Approve
+    type: HarnessApproval
+    spec:
+      approvalMessage: "Please review and approve"
+      approvers:
+        userGroups: [prod_approvers]
+        minimumCount: 1
+        disallowPipelineExecutor: true
+      includePipelineExecutionHistory: true
+    timeout: 1d
+```
+
 ## Ticketing & Notification Steps
 
 | Task | Native Step | Instead of |
@@ -297,7 +316,7 @@ Use these instead of running scanners via `Run` steps — native steps integrate
 A `Run` step is appropriate when:
 
 - **Custom build commands** - `npm ci && npm run build`, `go build ./...`, `mvn clean package`
-- **Custom test commands** - `npm test`, `pytest`, `go test ./...` (use `reports` for JUnit output)
+- **Custom test commands** - `npm test`, `pytest`, `go test ./...` — **must include a `reports` block** (e.g. `type: JUnit`, `spec.paths`) so Harness captures test results; see codebase-analysis.md for framework → report path.
 - **Custom linting** - `eslint .`, `ruff check .`, `golangci-lint run`
 - **One-off scripts** - Data migration, environment setup, custom validation
 - **No native step exists** - Check this reference first before defaulting to Run

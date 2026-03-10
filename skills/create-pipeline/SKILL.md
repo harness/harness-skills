@@ -267,13 +267,40 @@ failureStrategies:
 
 ## Matrix Strategy
 
+**Placement:** `strategy` must be at the **stage level**, as a **sibling of `spec`**, not inside `spec`. If you put `strategy` under `spec`, the matrix will not be applied and the UI will not show matrix iterations.
+
+Reference matrix values in steps with `<+stage.matrix.TAG>` (e.g. `<+stage.matrix.python_version>`). Use hyphen-free dimension names (e.g. `python_version` not `python-version`).
+
 ```yaml
 - stage:
+    identifier: test_matrix
+    name: Test Matrix
+    type: CI
+    spec:
+      cloneCodebase: true
+      platform:
+        os: Linux
+        arch: Amd64
+      runtime:
+        type: Cloud
+        spec: {}
+      execution:
+        steps:
+          - step:
+              type: Run
+              spec:
+                image: node:<+stage.matrix.node_version>
+                command: npm test
     strategy:
       matrix:
         node_version: ["16", "18", "20"]
         os: [linux, macos]
       maxConcurrency: 3
+    failureStrategies:
+      - onFailure:
+          errors: [AllErrors]
+          action:
+            type: Abort
 ```
 
 ## Creating via MCP
@@ -538,6 +565,7 @@ Create a pipeline with parallel test stages for unit tests, integration tests, a
 - **Every CI and CD stage** must include a `failureStrategies` array (Approval stages do not require one); omit it and the API returns "failureStrategies: is missing but it is required". For CI use `type: MarkAsFailure`; for CD use `type: StageRollback`.
 - Stage type is case-sensitive: `CI`, `Deployment`, `Approval`, `Custom`
 - Every stage must have a `spec` field
+- **Matrix not applied / not visible in UI:** `strategy` must be a sibling of `spec` on the stage, not inside `spec`. Use `strategy.matrix` at the stage level and reference values as `<+stage.matrix.TAG>`.
 - **HarnessApproval:** "disallowPipelineExecutor: is missing but it is required" — add `approvers.disallowPipelineExecutor: true` to the step spec.
 
 ### MCP Creation Errors

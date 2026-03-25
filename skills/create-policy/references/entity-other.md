@@ -141,23 +141,41 @@ contains(arr, elem) {
 ## Connector
 
 ### Package: `connector`
-### Root path: `input.connectorEntity`
+### Root path: `input.entity` + `input.metadata`
 ### Valid actions: `onsave`
 
 ### Schema (common fields)
 
 ```
-input.connectorEntity.identifier
-input.connectorEntity.name
-input.connectorEntity.orgIdentifier
-input.connectorEntity.projectIdentifier
-input.connectorEntity.type                   # "K8sCluster", "Git", "Github", "DockerRegistry", "Aws", "Gcp", etc.
-input.connectorEntity.description
-input.connectorEntity.tags
-input.connectorEntity.spec                   # type-specific fields
+input.entity.identifier
+input.entity.name
+input.entity.orgIdentifier
+input.entity.projectIdentifier
+input.entity.type                            # "K8sCluster", "Git", "Github", "DockerRegistry", "Aws", "Gcp", etc.
+input.entity.description
+input.entity.tags                            # object {}
+input.entity.spec                            # type-specific fields
+input.entity.spec.credential.type            # e.g. "ManualConfig" for Aws
+input.entity.spec.credential.region          # e.g. "ap-south-2" for Aws
+input.entity.spec.executeOnDelegate          # boolean
+input.entity.spec.proxy                      # boolean
+
+input.metadata.action                        # "onsave"
+input.metadata.type                          # "connector"
+input.metadata.timestamp                     # unix timestamp
+input.metadata.principalIdentifier           # user ID
+input.metadata.principalType                 # "USER"
+input.metadata.user.name
+input.metadata.user.email
+input.metadata.roleAssignmentMetadata[i].roleIdentifier    # "_project_admin", "_account_admin", etc.
+input.metadata.roleAssignmentMetadata[i].roleName
+input.metadata.roleAssignmentMetadata[i].roleScopeLevel    # "project", "organization", "account"
+input.metadata.projectMetadata.identifier
+input.metadata.projectMetadata.name
+input.metadata.projectMetadata.orgIdentifier
 ```
 
-### Example: Restrict connector types
+### Example 1: Restrict connector types
 
 ```rego
 package connector
@@ -165,12 +183,128 @@ package connector
 allowed_types = ["K8sCluster", "Git", "DockerRegistry"]
 
 deny[msg] {
-  not contains(allowed_types, input.connectorEntity.type)
-  msg := sprintf("Connector type '%s' is not allowed", [input.connectorEntity.type])
+  not array_contains(allowed_types, input.entity.type)
+  msg := sprintf("Connector type '%s' is not allowed", [input.entity.type])
 }
 
-contains(arr, elem) {
+array_contains(arr, elem) {
   arr[_] = elem
+}
+```
+
+### Example 2: Deny connectors with forbidden words in the name
+
+```rego
+package connector
+
+forbidden_words = ["test", "temp", "dummy"]
+
+deny[msg] {
+  name := lower(input.entity.name)
+  word := forbidden_words[_]
+  contains(name, word)
+  msg := sprintf("Connector '%s' is not allowed because it contains the forbidden word '%s'", [input.entity.name, word])
+}
+```
+
+### Example 3: Restrict connector creation by role
+
+```rego
+package connector
+
+deny[msg] {
+  input.entity.type == "Aws"
+  not has_admin_role
+  msg := sprintf("Only admins can create AWS connectors. Connector: '%s'", [input.entity.name])
+}
+
+has_admin_role {
+  some i
+  input.metadata.roleAssignmentMetadata[i].roleIdentifier == "_account_admin"
+}
+```
+
+### Example 4: Require connectors to use delegate execution
+
+```rego
+package connector
+
+deny[msg] {
+  input.entity.spec.executeOnDelegate == false
+  msg := sprintf("Connector '%s' must use delegate execution", [input.entity.name])
+}
+```
+
+### Sample JSON
+
+```json
+{
+  "entity": {
+    "description": "",
+    "identifier": "awsprod",
+    "name": "aws-prod",
+    "orgIdentifier": "abhijittestorg",
+    "projectIdentifier": "abhijitCRDProject",
+    "spec": {
+      "awsSdkClientBackOffStrategyOverride": {
+        "spec": { "fixedBackoff": 0, "retryCount": 0 },
+        "type": "FixedDelayBackoffStrategy"
+      },
+      "credential": {
+        "region": "ap-south-2",
+        "spec": {
+          "accessKey": "blah",
+          "secretKeyRef": "account.CI_AWS_KKKKKK",
+          "sessionTokenRef": "account.CI_AWS_KKKKKK"
+        },
+        "type": "ManualConfig"
+      },
+      "executeOnDelegate": false,
+      "ignoreTestConnection": false,
+      "proxy": false
+    },
+    "tags": {},
+    "type": "Aws"
+  },
+  "metadata": {
+    "action": "onsave",
+    "principalIdentifier": "1PSO8LO2Svud3biXkMGOlA",
+    "principalType": "USER",
+    "projectMetadata": {
+      "description": "",
+      "identifier": "abhijitCRDProject",
+      "modules": ["CD", "CI", "CV", "CF", "CE", "STO", "CHAOS", "SRM", "IACM", "CET", "IDP", "CODE", "SSCA"],
+      "name": "abhijitCRDProject",
+      "orgIdentifier": "abhijittestorg",
+      "tags": {}
+    },
+    "roleAssignmentMetadata": [
+      {
+        "identifier": "role_assignment_ornacoGX5gRQzdmpGvQn",
+        "managedRole": true,
+        "resourceGroupIdentifier": "_all_project_level_resources",
+        "resourceGroupName": "All Project Level Resources",
+        "roleIdentifier": "_project_admin",
+        "roleName": "Project Admin",
+        "roleScopeLevel": "project"
+      },
+      {
+        "identifier": "role_assignment_9DGgbMEYB8XEJmHzhwXL",
+        "managedRole": true,
+        "resourceGroupIdentifier": "_all_resources_including_child_scopes",
+        "resourceGroupName": "All Resources Including Child Scopes",
+        "roleIdentifier": "_account_admin",
+        "roleName": "Account Admin",
+        "roleScopeLevel": "account"
+      }
+    ],
+    "timestamp": 1774285364,
+    "type": "connector",
+    "user": {
+      "email": "abhijit.pujare@harness.io",
+      "name": "Abhijit Pujare"
+    }
+  }
 }
 ```
 
@@ -179,23 +313,37 @@ contains(arr, elem) {
 ## Secret
 
 ### Package: `secret`
-### Root path: `input.secretEntity`
+### Root path: `input.secret` + `input.metadata`
 ### Valid actions: `onsave`
 
 ### Schema (common fields)
 
 ```
-input.secretEntity.identifier
-input.secretEntity.name
-input.secretEntity.orgIdentifier
-input.secretEntity.projectIdentifier
-input.secretEntity.type                      # "SecretText", "SecretFile", "SSHKey"
-input.secretEntity.description
-input.secretEntity.tags                      # object {}
-input.secretEntity.spec.secretManagerIdentifier
-```
+input.secret.identifier
+input.secret.name
+input.secret.orgIdentifier
+input.secret.projectIdentifier
+input.secret.type                            # "SecretText", "SecretFile", "SSHKey", "WinRmCredentials"
+input.secret.description
+input.secret.tags                            # object {}
+input.secret.spec                            # type-specific fields
+input.secret.spec.auth.type                  # e.g. "NTLM" for WinRmCredentials
+input.secret.spec.port                       # e.g. 5986 for WinRm
 
-**NOTE:** Some deployments use `input.secret` instead of `input.secretEntity` as the root path. Check your actual input payload. The community examples use `input.secret`.
+input.metadata.action                        # "onsave"
+input.metadata.type                          # "secret"
+input.metadata.timestamp                     # unix timestamp
+input.metadata.principalIdentifier           # user ID
+input.metadata.principalType                 # "USER"
+input.metadata.user.name
+input.metadata.user.email
+input.metadata.roleAssignmentMetadata[i].roleIdentifier    # "_project_admin", "_account_admin", etc.
+input.metadata.roleAssignmentMetadata[i].roleName
+input.metadata.roleAssignmentMetadata[i].roleScopeLevel    # "project", "organization", "account"
+input.metadata.projectMetadata.identifier
+input.metadata.projectMetadata.name
+input.metadata.projectMetadata.orgIdentifier
+```
 
 ### Example 1: Require secret descriptions
 
@@ -203,13 +351,13 @@ input.secretEntity.spec.secretManagerIdentifier
 package secret
 
 deny[msg] {
-  input.secretEntity.description == ""
-  msg := sprintf("Secret '%s' must have a description", [input.secretEntity.name])
+  input.secret.description == ""
+  msg := sprintf("Secret '%s' must have a description", [input.secret.name])
 }
 
 deny[msg] {
-  not input.secretEntity.description
-  msg := sprintf("Secret '%s' must have a description", [input.secretEntity.name])
+  not input.secret.description
+  msg := sprintf("Secret '%s' must have a description", [input.secret.name])
 }
 ```
 
@@ -221,27 +369,104 @@ package secret
 forbidden_prefix = "secret"
 
 deny[msg] {
-  startswith(lower(input.secretEntity.name), lower(forbidden_prefix))
-  msg := sprintf("Secret '%s' name must not begin with '%s'", [input.secretEntity.name, forbidden_prefix])
+  startswith(lower(input.secret.name), lower(forbidden_prefix))
+  msg := sprintf("Secret '%s' name must not begin with '%s'", [input.secret.name, forbidden_prefix])
 }
 ```
 
-### Example 3: Enforce approved secret managers
+### Example 3: Enforce approved secret types
 
 ```rego
 package secret
 
-approved_secret_managers := ["harnessSecretManager", "vault_prod"]
+allowed_types = ["SecretText", "SecretFile"]
 
 deny[msg] {
-  sm := input.secretEntity.spec.secretManagerIdentifier
-  not array_contains(approved_secret_managers, sm)
-  msg := sprintf("Secret '%s' uses unapproved Secret Manager '%s'. Approved: [%s]",
-    [input.secretEntity.name, sm, concat(", ", approved_secret_managers)])
+  not array_contains(allowed_types, input.secret.type)
+  msg := sprintf("Secret '%s' uses disallowed type '%s'. Allowed: %v", [input.secret.name, input.secret.type, allowed_types])
 }
 
 array_contains(arr, elem) {
   arr[_] = elem
+}
+```
+
+### Example 4: Restrict secret creation by role
+
+```rego
+package secret
+
+deny[msg] {
+  input.secret.type == "WinRmCredentials"
+  not has_admin_role
+  msg := sprintf("Only admins can create WinRm secrets. Secret: '%s'", [input.secret.name])
+}
+
+has_admin_role {
+  some i
+  input.metadata.roleAssignmentMetadata[i].roleIdentifier == "_account_admin"
+}
+```
+
+### Sample JSON
+
+```json
+{
+  "metadata": {
+    "action": "onsave",
+    "principalIdentifier": "1PSO8LO2Svud3biXkMGOlA",
+    "principalType": "USER",
+    "projectMetadata": {
+      "description": "",
+      "identifier": "abhijitCRDProject",
+      "modules": ["CD", "CI", "CV", "CF", "CE", "STO", "CHAOS", "SRM", "IACM", "CET", "IDP", "CODE", "SSCA"],
+      "name": "abhijitCRDProject",
+      "orgIdentifier": "abhijittestorg",
+      "tags": {}
+    },
+    "roleAssignmentMetadata": [
+      {
+        "roleIdentifier": "_project_admin",
+        "roleName": "Project Admin",
+        "roleScopeLevel": "project"
+      },
+      {
+        "roleIdentifier": "_account_admin",
+        "roleName": "Account Admin",
+        "roleScopeLevel": "account"
+      }
+    ],
+    "timestamp": 1774292341,
+    "type": "secret",
+    "user": {
+      "email": "abhijit.pujare@harness.io",
+      "name": "Abhijit Pujare"
+    }
+  },
+  "secret": {
+    "description": "",
+    "identifier": "applerm",
+    "name": "apple-rm-2",
+    "orgIdentifier": "abhijittestorg",
+    "projectIdentifier": "abhijitCRDProject",
+    "spec": {
+      "auth": {
+        "spec": {
+          "domain": "blah",
+          "password": "account.CI_AWS_KKKKKK",
+          "skipCertChecks": false,
+          "useNoProfile": false,
+          "useSSL": true,
+          "username": "blah"
+        },
+        "type": "NTLM"
+      },
+      "parameters": [],
+      "port": 5986
+    },
+    "tags": {},
+    "type": "WinRmCredentials"
+  }
 }
 ```
 

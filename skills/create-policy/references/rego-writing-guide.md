@@ -22,17 +22,18 @@
 | fmeEnvironment | `fme_environment` | `input.fmeEnvironment` + `input.entityMetadata` | onsave |
 | fmeSegment | `fme_segment` | `input.fmeSegment` + `input.entityMetadata` | onsave |
 | flag (legacy FF) | `flag` | `input.flag` | onsave |
-| connector | `connector` | `input.connectorEntity` | onsave |
-| secret | `secret` | `input.secretEntity` | onsave |
+| connector | `connector` | `input.entity` + `input.metadata` | onsave |
+| secret | `secret` | `input.secret` + `input.metadata` | onsave |
 | variable | `variable` | `input.variable` + `input.metadata` | onsave |
 | override | `override` | `input.overrideEntity` | onsave |
 | securityTests | `securityTests` | `input[i]` (array of outputs) | onstep |
 | sbom | `sbom` | `input` (array of packages) | onstep |
 | terraformPlan | `terraform_plan` | `input.planned_values`, `input.resource_changes` | afterTerraformPlan |
-| terraformPlanCost | `terraform_plan_cost` | `input.TotalMonthlyCost`, etc. | afterTerraformPlan |
-| terraformState | `terraform_state` | `input.resources` | afterTerraformPlan, afterTerraformApply |
+| terraformPlanCost | `terraform_plan_cost` | `input` (flat: cost fields, `input.Diff`, `input.metadata`, `input.iacmMetadata`) | afterTerraformPlan |
+| terraformState | `terraform_state` | `input.resources`, `input.outputs`, `input.metadata`, `input.iacmMetadata` | afterTerraformPlan, afterTerraformApply |
 | workspace | `workspace` | `input.workspace` | onsave |
 | gitopsApplication | `gitopsApplication` | `input.gitopsApplication` | onsave, onsync |
+| repository | `repository` | `input` (flat structure, no wrapper key) | onsave |
 | upstreamProxy | `firewall` | `input` (array of packages) | onEvaluation |
 
 ## Metadata Object

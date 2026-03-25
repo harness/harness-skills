@@ -133,6 +133,7 @@ For writing Rego policies for any Harness entity, consult these reference files:
 - [SBOM policies](references/entity-sbom.md) — SBOM deny/allow list patterns with semver comparison
 - [Terraform and Workspace](references/entity-terraform.md) — Terraform plan, cost, state, workspace schemas
 - [GitOps Application](references/entity-gitops.md) — GitOps app schema, namespace/label/revision policies
+- [Code Repository](references/entity-code-repository.md) — Code repo naming, visibility, branch policies
 - [Variable, Override, Connector, Secret, Template](references/entity-other.md) — Other entity schemas
 - [Upstream Firewall](references/entity-upstream-firewall.md) — Firewall package schema, CVE/license policies
 - [Advanced patterns](references/advanced-patterns.md) — Exception handling, walk, scoped references, exemptions

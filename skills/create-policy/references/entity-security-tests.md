@@ -170,6 +170,79 @@ deny[msg] {
 }
 ```
 
+## Example 5: Block by EPSS score threshold
+
+**Scenario:** Deny if any vulnerability exceeds an EPSS score or percentile threshold.
+
+```rego
+package securityTests
+
+import future.keywords.in
+import future.keywords.if
+
+max_issues := 0
+epss_threshold := 90.0
+epss_percentile_threshold := 90.0
+
+deny[msg] {
+  unique_issue_ids := {issue.id |
+    some i, j
+    input[i].name == "securityTestData"
+    issue := input[i].outcome.issues[j]
+    issue.details.epss.score != null
+    round_off(issue.details.epss.score) > epss_threshold
+    round_off(issue.details.epss.percentile) > epss_percentile_threshold
+  }
+  issue_count := count(unique_issue_ids)
+  issue_count > max_issues
+  msg := sprintf("Found %d issue(s) exceeding EPSS thresholds (score > %.1f, percentile > %.1f)", [issue_count, epss_threshold, epss_percentile_threshold])
+}
+
+round_off(score) := result {
+  result = round(score * 1000) / 10.0
+}
+```
+
+## Example 6: Block app-layer vulnerabilities with base image exemption
+
+**Scenario:** Block pipelines with app-layer or base-image vulnerabilities. Skip base image checks if `BASE_IMAGE_APPROVED` is "true".
+
+```rego
+package securityTests
+
+import future.keywords.in
+import future.keywords.if
+
+deny_list := [
+  { "name": "APP_CRITICAL", "value": 0, "operator": ">" },
+  { "name": "APP_HIGH", "value": 0, "operator": ">" },
+  { "name": "BASE_CRITICAL", "value": 0, "operator": ">" },
+  { "name": "BASE_HIGH", "value": 0, "operator": ">" }
+]
+
+deny[msg] {
+  input[i].name == "output"
+  output_variables := input[i].outcome.outputVariables
+  not ignore_base_vulns(output_variables)
+  ov_name := object.keys(output_variables)[_]
+  rule := deny_list[_]
+  ov_name == rule.name
+  num_compare(to_number(output_variables[ov_name]), rule.operator, rule.value)
+  msg := sprintf("Pipeline blocked: Output Variable '%s' = %s violates threshold %v %v", [ov_name, output_variables[ov_name], rule.operator, rule.value])
+}
+
+ignore_base_vulns(output_variables) {
+  status := output_variables["BASE_IMAGE_APPROVED"]
+  lower(status) == "true"
+}
+
+num_compare(a, "==", b) := a == b
+num_compare(a, "<=", b) := a <= b
+num_compare(a, ">=", b) := a >= b
+num_compare(a, "<", b) := a < b
+num_compare(a, ">", b) := a > b
+```
+
 ## Key Notes
 
 - The security tests input is an **array at root level**, not nested under a key.

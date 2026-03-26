@@ -134,7 +134,12 @@ For writing Rego policies for any Harness entity, consult these reference files:
 - [Terraform and Workspace](references/entity-terraform.md) — Terraform plan, cost, state, workspace schemas
 - [GitOps Application](references/entity-gitops.md) — GitOps app schema, namespace/label/revision policies
 - [Code Repository](references/entity-code-repository.md) — Code repo naming, visibility, branch policies
-- [Variable, Override, Connector, Secret, Template](references/entity-other.md) — Other entity schemas
+- [Variable policies](references/entity-variable.md) — Variable schema, role-based restrictions
+- [Override policies](references/entity-override.md) — Override schema, config file and variable protection
+- [Connector policies](references/entity-connector.md) — Connector schema, type/auth/naming restrictions
+- [Secret policies](references/entity-secret.md) — Secret schema, naming/type/provider restrictions
+- [Template policies](references/entity-template.md) — Template schema, approval/versioning/environment checks
+- [Database DevOps policies](references/entity-database.md) — SQL statement governance, DDL restrictions, transaction limits
 - [Upstream Firewall](references/entity-upstream-firewall.md) — Firewall package schema, CVE/license policies
 - [Advanced patterns](references/advanced-patterns.md) — Exception handling, walk, scoped references, exemptions
 

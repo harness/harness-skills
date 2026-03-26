@@ -9,6 +9,7 @@
 The upstream firewall input is an **array of package objects** at the root level:
 
 ```
+input[i].purl                               # package URL, e.g. "pkg:npm/lodash@4.17.21"
 input[i].name
 input[i].version
 input[i].description

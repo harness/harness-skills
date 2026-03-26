@@ -996,6 +996,115 @@ deny[msg] {
 }
 ```
 
+## Example 13: Deployment freeze window
+
+**Scenario:** Block all deployments during a specific date/time window.
+
+```rego
+package pipeline
+
+deny[msg] {
+  freezeStart := time.parse_rfc3339_ns("2022-11-18T00:00:00+00:00")
+  freezeEnd := time.parse_rfc3339_ns("2022-11-20T00:00:00+00:00")
+  now := time.now_ns()
+  now > freezeStart
+  now < freezeEnd
+  msg := "Deployment is currently frozen from 18th Nov to 20th Nov"
+}
+```
+
+## Example 14: Enforce approved stage template usage
+
+**Scenario:** All deployment stages must use a specific approved stage template.
+
+```rego
+package pipeline
+
+stageType := "Deployment"
+template := "my_stage_template"
+
+deny[msg] {
+  stage = input.pipeline.stages[_].stage
+  stage.type == stageType
+  not stage.template
+  msg = sprintf("Stage '%s' has no template, it must use template '%s'", [stage.name, template])
+}
+
+deny[msg] {
+  stage = input.pipeline.stages[_].stage
+  stage.type == stageType
+  stage.template.templateRef != template
+  msg = sprintf("Stage '%s' uses the wrong template, it must use template '%s'", [stage.name, template])
+}
+```
+
+## Example 15: Enforce stable template versions
+
+**Scenario:** Pipeline stages and steps using a specific template must pin to a stable version.
+
+```rego
+package pipeline
+
+template := "my_template"
+stableVersion := "1"
+
+deny[msg] {
+  stage = input.pipeline.stages[_].stage
+  stage.template.templateRef == template
+  stage.template.versionLabel != stableVersion
+  msg = sprintf(
+    "Stage '%s' has template '%s' with version '%s', it should be version '%s'",
+    [stage.name, template, stage.template.versionLabel, stableVersion],
+  )
+}
+
+deny[msg] {
+  stage = input.pipeline.stages[_].stage
+  step = stage.spec.execution.steps[_].step
+  step.template.templateRef == template
+  step.template.versionLabel != stableVersion
+  msg = sprintf(
+    "Step '%s' in stage '%s' has template '%s' with version '%s', it should be version '%s'",
+    [step.name, stage.name, template, step.template.versionLabel, stableVersion],
+  )
+}
+```
+
+## Example 16: Enforce stage naming convention
+
+**Scenario:** Deployment stage names must follow a regex pattern (lowercase, hyphens, 3-10 chars).
+
+```rego
+package pipeline
+
+deny[msg] {
+  stage = input.pipeline.stages[_].stage
+  stage.type == "Deployment"
+  not regex.match("^[a-z][a-z0-9-]{2,9}$", stage.name)
+  msg := sprintf("The provided stage name '%s' is invalid. Must be 3-10 lowercase alphanumeric/hyphen characters.", [stage.name])
+}
+```
+
+## Example 17: Block pipelines with secrets.getValue references
+
+**Scenario:** Deny pipelines that reference `secrets.getValue` for non-account-scoped secrets.
+
+```rego
+package pipeline
+
+has_secret_value {
+  walk(input, [_, value])
+  is_string(value)
+  contains(value, "<+secrets.getValue")
+  not contains(value, "<+secrets.getValue(\"account.")
+}
+
+deny[msg] {
+  has_secret_value
+  msg := "Found potentially sensitive value containing 'secrets.getValue' referencing non-account-scoped secrets"
+}
+```
+
 **Key patterns:**
 - When writing policies that inspect `stages`, always handle both `stages[i].stage` (sequential) and `stages[i].parallel[j].stage` (parallel).
 - When writing policies that inspect `steps`, use `walk()` to find steps at any nesting depth (inside step groups, parallel blocks, and insert nodes). Only use explicit path enumeration if you need positional/ordering information.

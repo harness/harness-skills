@@ -243,6 +243,170 @@ deny[msg] {
 }
 ```
 
+## Example 7: Require description before save (FME)
+
+**Scenario:** Feature flags must have a non-empty description. Skip validation during deletion.
+
+```rego
+package fme_feature_flags
+
+deny[msg] {
+  input.entityMetadata.changeTrigger != "delete"
+  not input.featureFlag.description
+  msg := sprintf(
+    "Feature flag '%s' must include a description before it can be saved",
+    [input.featureFlag.name]
+  )
+}
+
+deny[msg] {
+  input.entityMetadata.changeTrigger != "delete"
+  input.featureFlag.description == ""
+  msg := sprintf(
+    "Feature flag '%s' must include a non-empty description",
+    [input.featureFlag.name]
+  )
+}
+```
+
+## Example 8: Require owner for active flags (FME)
+
+**Scenario:** Active feature flags cannot exist without an assigned owner.
+
+```rego
+package fme_feature_flags
+
+deny[msg] {
+  input.featureFlag.status == "ACTIVE"
+  count(input.entityMetadata.owners) == 0
+  msg := sprintf(
+    "Feature flag '%s' cannot be active without an assigned owner",
+    [input.featureFlag.name]
+  )
+}
+```
+
+## Example 9: Enforce Jira ticket in flag name (FME)
+
+**Scenario:** New feature flag names must start with a valid Jira ticket prefix.
+
+```rego
+package fme_feature_flags
+
+deny[msg] {
+  input.entityMetadata.changeTrigger == "create"
+  not regex.match("^FME-[0-9]+-.*", input.featureFlag.name)
+  msg := sprintf(
+    "Feature flag name '%s' must start with a valid Jira ticket (for example, FME-1234-*)",
+    [input.featureFlag.name]
+  )
+}
+```
+
+## Example 10: Prevent archiving flags with recent traffic (FME)
+
+**Scenario:** Feature flags that received traffic within the last 24 hours cannot be archived.
+
+```rego
+package fme_feature_flags
+
+deny[msg] {
+  input.entityMetadata.changeTrigger == "archive"
+  last_traffic_ns := time.parse_rfc3339_ns(input.featureFlag.lastTrafficDate)
+  now_ns := time.now_ns()
+  one_day_ns := 24 * 60 * 60 * 1000000000
+  now_ns - last_traffic_ns < one_day_ns
+  msg := sprintf(
+    "Feature flag '%s' cannot be archived because it received traffic within the last 24 hours (last traffic: %s)",
+    [input.featureFlag.name, input.featureFlag.lastTrafficDate]
+  )
+}
+```
+
+---
+
+## Example 11: Require default treatment to be OFF (FME Definition)
+
+**Scenario:** Feature flag definitions must have "off" as the default treatment.
+
+```rego
+package fme_feature_flag_definitions
+
+deny[msg] {
+  input.entityMetadata.changeTrigger != "delete"
+  some i
+  input.featureFlagDefinition.treatments[i].defaultTreatment == true
+  input.featureFlagDefinition.treatments[i].name != "off"
+  msg := sprintf(
+    "Feature flag '%s' in '%s' must have 'off' as the default treatment",
+    [input.featureFlagDefinition.name, input.featureFlagDefinition.environmentName]
+  )
+}
+```
+
+## Example 12: Require flag sets in Production (FME Definition)
+
+**Scenario:** Feature flag definitions in Production must belong to at least one flag set.
+
+```rego
+package fme_feature_flag_definitions
+
+deny[msg] {
+  input.featureFlagDefinition.environmentName == "Production"
+  count(input.featureFlagDefinition.flagSets) == 0
+  msg := sprintf(
+    "Feature flag '%s' in Production must belong to at least one flag set",
+    [input.featureFlagDefinition.name]
+  )
+}
+```
+
+---
+
+## Example 13: Production/stage sync check (Legacy)
+
+**Scenario:** A flag cannot be enabled in production if it is disabled in stage.
+
+```rego
+package feature_flags
+
+deny[msg] {
+  prod := input.flag.envProperties[_]
+  prod.environment == "production"
+  prod.state == "on"
+  stage := input.flag.envProperties[_]
+  stage.environment == "stage"
+  stage.state == "off"
+  msg := sprintf("Flag '%s' cannot be enabled in 'production' because it is disabled in 'stage'", [input.flag.name])
+}
+```
+
+## Example 14: Boolean type enforcement (Legacy)
+
+**Scenario:** Flags must be of boolean type only.
+
+```rego
+package feature_flags
+
+deny[msg] {
+  input.flag.kind != "boolean"
+  msg := sprintf("Flag '%s' isn't of type 'boolean'", [input.flag.name])
+}
+```
+
+## Example 15: Jira ticket naming (Legacy)
+
+**Scenario:** Flag names must contain a Jira ticket number.
+
+```rego
+package feature_flags
+
+deny[msg] {
+  not regex.match("[FFM|OPA|CI|CD]+[-][1-9][0-9]?", input.flag.name)
+  msg := sprintf("Flag name '%s' doesn't contain a Jira ticket number", [input.flag.name])
+}
+```
+
 ## Sample featureFlag JSON
 
 ```json

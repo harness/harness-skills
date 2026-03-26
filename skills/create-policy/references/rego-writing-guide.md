@@ -34,6 +34,10 @@
 | workspace | `workspace` | `input.workspace` | onsave |
 | gitopsApplication | `gitopsApplication` | `input.gitopsApplication` | onsave, onsync |
 | repository | `repository` | `input` (flat structure, no wrapper key) | onsave |
+| serviceAccount | `serviceAccount` | `input.serviceAccount` + `input.metadata` | onsave |
+| apiKey | `apiKey` | `input.apiKey` + `input.metadata` | onsave |
+| token | `token` | `input.token` + `input.metadata` | onsave |
+| dbSql | `db_sql` | `input.dbInstance`, `input.dbSchema`, `input.sqlStatements` | onsave |
 | upstreamProxy | `firewall` | `input` (array of packages) | onEvaluation |
 
 ## Metadata Object

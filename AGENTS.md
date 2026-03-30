@@ -13,7 +13,7 @@ All skills use the [Harness MCP v2](https://github.com/thisrohangupta/harness-mc
 | `harness_create` | Create a resource (requires confirmation) |
 | `harness_update` | Update a resource (requires confirmation) |
 | `harness_delete` | Delete a resource (requires confirmation) |
-| `harness_execute` | Run, retry, sync, toggle, approve, reject, test_connection |
+| `harness_execute` | Run, retry, interrupt, sync, toggle, approve, reject, test_connection |
 | `harness_search` | Cross-resource keyword search |
 | `harness_describe` | Local metadata/schema lookup (no API call) |
 | `harness_diagnose` | Pipeline failure analysis |

@@ -178,17 +178,18 @@ Parameters:
   resource_id: "<execution_id>"
   org_id: "<organization>"
   project_id: "<project>"
-  interrupt_type: "AbortAll"
+  params:
+    interrupt_type: "AbortAll"
 ```
 
-The `interrupt_type` parameter is required. Valid values:
+The `interrupt_type` field inside `params` is required. Valid values:
 
 | interrupt_type | Effect |
 |----------------|--------|
 | `AbortAll` | Abort the entire pipeline execution |
 | `UserMarkedFailure` | Mark the execution as failed by user |
 
-To abort multiple stuck executions, call `harness_execute` with `interrupt_type: "AbortAll"` for each execution ID.
+To abort multiple stuck executions, call `harness_execute` with `params: {interrupt_type: "AbortAll"}` for each execution ID.
 
 ## Examples
 
@@ -196,8 +197,8 @@ To abort multiple stuck executions, call `harness_execute` with `interrupt_type:
 - "Deploy version 2.0.0 to staging" - Find deploy pipeline, provide version input, execute
 - "What's the status of execution xyz123?" - Get execution details
 - "Retry the last failed deployment" - List recent failed executions, retry
-- "Abort all stuck executions" - List running/waiting executions, interrupt each with `interrupt_type: "AbortAll"`
-- "Stop execution abc123" - Interrupt the specific execution with `interrupt_type: "AbortAll"`
+- "Abort all stuck executions" - List running/waiting executions, interrupt each with `params: {interrupt_type: "AbortAll"}`
+- "Stop execution abc123" - Interrupt the specific execution with `params: {interrupt_type: "AbortAll"}`
 
 ## Performance Notes
 
@@ -219,4 +220,4 @@ To abort multiple stuck executions, call `harness_execute` with `interrupt_type:
 ### Execution Stuck
 - Check for pending approvals with `harness_list` (resource_type: "approval_instance")
 - Check delegate status with `harness_status`
-- Abort stuck executions with `harness_execute` (resource_type: "execution", action: "interrupt", interrupt_type: "AbortAll")
+- Abort stuck executions with `harness_execute` (resource_type: "execution", action: "interrupt", params: {interrupt_type: "AbortAll"})

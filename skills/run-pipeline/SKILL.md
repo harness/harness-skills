@@ -2,13 +2,15 @@
 name: run-pipeline
 description: >-
   Execute and monitor Harness pipeline runs via MCP tools. Find pipelines, provide runtime inputs, trigger
-  executions, monitor progress, handle approvals, and retry failures. Use when asked to run a pipeline,
-  execute a deployment, trigger a build, start a pipeline, deploy a service, check execution status, or
-  approve a pipeline. Trigger phrases: run pipeline, execute pipeline, deploy, start build, trigger
-  pipeline, check execution, approve deployment, retry failed pipeline.
+  executions, monitor progress, handle approvals, retry failures, and abort running or stuck executions.
+  Use when asked to run a pipeline, execute a deployment, trigger a build, start a pipeline, deploy a
+  service, check execution status, approve a pipeline, or abort/stop/interrupt executions. Trigger phrases:
+  run pipeline, execute pipeline, deploy, start build, trigger pipeline, check execution, approve
+  deployment, retry failed pipeline, abort execution, stop pipeline, interrupt execution, kill stuck
+  pipeline.
 metadata:
   author: Harness
-  version: 2.0.0
+  version: 2.1.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
@@ -166,6 +168,8 @@ Parameters:
 
 ## Interrupting Running Executions
 
+To abort an entire pipeline execution:
+
 ```
 Call MCP tool: harness_execute
 Parameters:
@@ -174,7 +178,17 @@ Parameters:
   resource_id: "<execution_id>"
   org_id: "<organization>"
   project_id: "<project>"
+  interrupt_type: "AbortAll"
 ```
+
+The `interrupt_type` parameter is required. Valid values:
+
+| interrupt_type | Effect |
+|----------------|--------|
+| `AbortAll` | Abort the entire pipeline execution |
+| `UserMarkedFailure` | Mark the execution as failed by user |
+
+To abort multiple stuck executions, call `harness_execute` with `interrupt_type: "AbortAll"` for each execution ID.
 
 ## Examples
 
@@ -182,6 +196,8 @@ Parameters:
 - "Deploy version 2.0.0 to staging" - Find deploy pipeline, provide version input, execute
 - "What's the status of execution xyz123?" - Get execution details
 - "Retry the last failed deployment" - List recent failed executions, retry
+- "Abort all stuck executions" - List running/waiting executions, interrupt each with `interrupt_type: "AbortAll"`
+- "Stop execution abc123" - Interrupt the specific execution with `interrupt_type: "AbortAll"`
 
 ## Performance Notes
 
@@ -203,3 +219,4 @@ Parameters:
 ### Execution Stuck
 - Check for pending approvals with `harness_list` (resource_type: "approval_instance")
 - Check delegate status with `harness_status`
+- Abort stuck executions with `harness_execute` (resource_type: "execution", action: "interrupt", interrupt_type: "AbortAll")

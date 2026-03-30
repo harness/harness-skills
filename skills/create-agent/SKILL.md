@@ -1,5 +1,5 @@
 ---
-name: create/update agent
+name: create-agent
 description: >-
   Create and update Harness AI agent instances for automated code and infrastructure tasks. Supports
   multi-stage execution, MCP server integration, LLM connector configuration, runtime inputs, repository
@@ -457,6 +457,20 @@ All agent specs are validated using `harness_schema(resource_type="agent-pipelin
 | **Multi-stage**          | Steps run sequentially — pass state between stages via files (e.g. INFO.md)                                                              |
 | **Quality first**        | Agent quality is paramount — verify YAML structure, validate all references, ensure complete task instructions before creating           |
 
+
+## Examples
+
+- "Create an agent that reviews PRs for security issues" - Gather requirements, generate agent spec with GitHub MCP, create via `harness_create`
+- "Update my code coverage agent to use a different model" - Fetch agent with `harness_get`, modify spec, update via `harness_update`
+- "Build an agent that runs tests and reports results to Slack" - Multi-MCP setup with GitHub and Slack servers
+- "Create an autonomous agent to fix failing tests" - Agent with repo clone, shell steps, and Claude Code plugin
+
+## Performance Notes
+
+- Use `harness_schema(resource_type="agent-pipeline", path="...")` with specific `path` values to avoid loading the full 4k+ line schema into context.
+- Always check for existing agents with `harness_list` before creating new ones to avoid duplicates.
+- Set `max_turns` proportional to task complexity: 100 for simple tasks, 150-200 for complex multi-step workflows.
+- Use `depth: 1` for branch clones and `depth: 1000` for PR clones to balance clone speed and diff history.
 
 ## Troubleshooting
 

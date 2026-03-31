@@ -6,7 +6,7 @@ This repository is designed as a workflow system, not just a folder of prompts. 
 
 ## Prerequisites
 
-- [Harness MCP v2 Server](https://github.com/thisrohangupta/harness-mcp-v2) - required for MCP-powered skills. Most skills in this repo depend on it for Harness API access.
+- [Harness MCP v2 Server](https://github.com/harness/mcp-server) - required for MCP-powered skills. Most skills in this repo depend on it for Harness API access.
 
 ## Setup
 
@@ -150,7 +150,7 @@ Create a CI pipeline for my Python service
 The skills in this repo are plain Markdown files with YAML frontmatter. They work with any AI coding tool that supports:
 
 1. **System instructions** - Use `CLAUDE.md` as project-level context.
-2. **MCP servers** - Connect the [Harness MCP v2 server](https://github.com/thisrohangupta/harness-mcp-v2) for API access.
+2. **MCP servers** - Connect the [Harness MCP v2 server](https://github.com/harness/mcp-server) for API access.
 3. **File context** - Reference individual `skills/*/SKILL.md` files in prompts.
 
 ## Operating Model
@@ -340,7 +340,7 @@ For complex skills, add `references/` or `templates/` under the skill directory 
 
 ## MCP Tools
 
-MCP-powered skills use the [Harness MCP v2 server](https://github.com/thisrohangupta/harness-mcp-v2), which provides 10 generic tools dispatched by `resource_type`:
+MCP-powered skills use the [Harness MCP v2 server](https://github.com/harness/mcp-server), which provides 10 generic tools dispatched by `resource_type`:
 
 | Tool | Purpose |
 |------|---------|
@@ -360,7 +360,7 @@ MCP-powered skills use the [Harness MCP v2 server](https://github.com/thisrohang
 - [v0 Pipeline/Template/Trigger Schema](https://github.com/harness/harness-schema/tree/main/v0)
 - [v1 Pipeline Spec](https://github.com/thisrohangupta/spec)
 - [Agent Templates](https://github.com/thisrohangupta/agents)
-- [Harness MCP v2 Server](https://github.com/thisrohangupta/harness-mcp-v2)
+- [Harness MCP v2 Server](https://github.com/harness/mcp-server)
 
 ## Contributing
 

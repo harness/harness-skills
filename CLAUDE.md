@@ -83,6 +83,7 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
 | `/template-usage` | Template dependency tracking, impact analysis, and adoption |
 | `/create-policy` | Create OPA governance policies for supply chain security |
+| `/manage-idp` | Service catalog, self-service workflows, documentation, and developer onboarding (IDP) |
 | `/manage-slos` | SLO definition, error budgets, incident detection, and operational runbooks |
 | `/sei-analytics` | Sprint analytics, investment allocation, capacity forecasting, and release readiness |
 | `/ai-operations` | Predictive failure analysis and intelligent alert correlation (AIDA) |

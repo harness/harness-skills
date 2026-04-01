@@ -105,10 +105,11 @@ Based on the requirements gathered in Step 1, recommend specific configurations 
    - Map each input to what the agent needs (repo, branch, executionId, thresholds, etc.)
    - Example: `repo` (string), `coverageThreshold` (string), `llmKey` (secret)
 
-3. **User preferences** (`rules` field):
-   - Convert constraints and coding standards into bullet points
+3. **User preferences** (RULES section in `task` field):
+   - Convert constraints and coding standards into a dedicated RULES section at the end of the task
+   - Format as a markdown section with bullet points
    - Be specific and actionable
-   - Example: "Use idiomatic Go code", "Do not modify existing tests", "Keep COVERAGE.md under 10000 characters"
+   - Example: Add `## RULES\n- Use idiomatic Go code\n- Do not modify existing tests\n- Keep COVERAGE.md under 10000 characters` at the end of the task
 
 4. **MCP servers** (`mcp_servers` in spec):
    - Identify which external services the agent needs to interact with
@@ -162,7 +163,6 @@ platform:
 - The Claude Code plugin is packaged via this image
 ```yaml
 container:
-  connector: account.harnessImage
   image: pkg.harness.io/vrvdt5ius7uwygso8s0bia/harness-agents/claude-code-plugin:main
 ```
 
@@ -170,7 +170,7 @@ container:
 ```yaml
 env:
   ANTHROPIC_MODEL: arn:aws:bedrock:us-east-1:587817102444:application-inference-profile/7p8sn93lhspw
-  AWS_BEARER_TOKEN_BEDROCK: <+secrets.getValue("bedrock_yaml_key")>
+  AWS_BEARER_TOKEN_BEDROCK: <+secrets.getValue("bedrock_api_key")>
   AWS_REGION: us-east-1
   CLAUDE_CODE_USE_BEDROCK: "1"
 ```
@@ -299,8 +299,7 @@ Using the requirements from Phase 2 and defaults from section 3-6, assemble the 
 4. For each step, include:
    - Container image and connector
    - Environment variables (Bedrock configuration)
-   - `task:` field with step-by-step instructions
-   - `rules:` field with user preferences
+   - `task:` field with step-by-step instructions AND a `## RULES` section at the end containing user preferences
    - `mcp_servers:` based on external services needed
    - `with.allowed_tools:` and `with.log_file:`
    - `max_turns:` adjusted for task complexity (100-200)
@@ -422,15 +421,18 @@ agent:
           name: Analyze Coverage with AI
           agent:
             container:
-              connector: account.harnessImage
               image: pkg.harness.io/vrvdt5ius7uwygso8s0bia/harness-agents/claude-code-plugin:main
             env:
               ANTHROPIC_MODEL: arn:aws:bedrock:us-east-1:587817102444:application-inference-profile/7p8sn93lhspw
-              AWS_BEARER_TOKEN_BEDROCK: <+secrets.getValue("bedrock_yaml_key")>
+              AWS_BEARER_TOKEN_BEDROCK: <+secrets.getValue("bedrock_api_key")>
               AWS_REGION: us-east-1
               CLAUDE_CODE_USE_BEDROCK: "1"
             task: |
               Analyze the test coverage output and generate improvement recommendations.
+              
+              ## RULES
+              - Focus on actionable recommendations
+              - Prioritize high-impact improvements
             max_turns: 100
 ```
 
@@ -441,6 +443,118 @@ All agent specs are validated using `harness_schema(resource_type="agent-pipelin
 - Traditional pipeline constructs (use `path="stages"`, `path="steps"` to explore)
 
 **If a user asks to add shell steps, container steps, or any traditional pipeline feature, it's perfectly valid to include them in the agent spec.**
+
+### Chaining Agents Together
+
+**⚠️ ADVANCED FEATURE: THIS IS FOR ADVANCED USERS ONLY. BUILD SINGLE-AGENT WORKFLOWS FIRST AND ONLY USE AGENT CHAINING WHEN YOU HAVE PUSHED A SINGLE AGENT TO ITS ABSOLUTE LIMIT. SINGLE AGENTS ARE EXTREMELY POWERFUL AND EFFICIENT — MOST TASKS DO NOT REQUIRE CHAINING.**
+
+**Agents can pass data to each other by writing outputs to fixed file locations and reading from those locations in subsequent steps.**
+
+#### How Agent Chaining Works
+
+1. **Agent 1** outputs its results to a fixed file location using `with.log_file`
+2. **Agent 2** reads from that file location in its `task` instructions
+3. This creates a sequential chain where each agent builds on the previous agent's work
+
+#### Key Pattern
+
+```yaml
+steps:
+  # First agent - outputs to fixed location
+  - id: analyzer
+    name: Analyze Code
+    agent:
+      task: |
+        Analyze the codebase and write findings to analysis-report.md
+      with:
+        allowed_tools: Read,Write,Grep,Glob
+        log_file: .agent/output/analyzer-log.jsonl  # ← Agent 1 outputs here
+      max_turns: 100
+
+  # Second agent - reads from first agent's output
+  - id: recommender
+    name: Generate Recommendations
+    agent:
+      task: |
+        Read the analysis from .agent/output/analyzer-log.jsonl  # ← Agent 2 reads here
+        and generate actionable recommendations.
+      with:
+        allowed_tools: Read,Write
+        log_file: .agent/output/recommender-log.jsonl
+      max_turns: 50
+```
+
+**Important:** The file path (`.agent/output/analyzer-log.jsonl`) must match exactly between the first agent's `log_file` and the second agent's `task` instructions. This creates the handoff between agents.
+
+### Adding Custom Skills to Agents
+
+**IMPORTANT: This is NOT a default feature. Only add custom skills when the user explicitly insists on it.**
+
+By default, agents work with the task instructions provided in the `task` field. Custom skills are an advanced feature and should only be added if the user specifically requests them.
+
+**Example: Adding a Custom Skill**
+
+```yaml
+version: 1
+agent:
+  stages:
+    - name: Setup and Execute
+      id: setup_execute
+      platform:
+        os: linux
+        arch: arm64
+      steps:
+        # Step 1: Create custom skill (runs BEFORE agent step)
+        - id: create_skill
+          name: Setup Hello World Skill
+          run:
+            shell: bash
+            script: |
+              mkdir -p /harness/.claude/skills/hello-world
+              cat > /harness/.claude/skills/hello-world/SKILL.md << 'EOF'
+              ---
+              name: hello-world
+              description: Responds to greetings with a funny joke
+              triggers:
+                - hi
+                - hello
+                - hii claude
+              ---
+
+              You are a greeting assistant.
+
+              When the user says "hi", "hello", or "hii claude":
+              - Respond with "Hi!"
+              - Include a short funny joke
+
+              Keep responses short and fun.
+              EOF
+
+        # Step 2: Agent step (can now use the custom skill)
+        - id: run_agent
+          name: Run Agent with Custom Skill
+          agent:
+            container:
+              image: pkg.harness.io/vrvdt5ius7uwygso8s0bia/harness-agents/claude-code-plugin:main
+            env:
+              ANTHROPIC_MODEL: arn:aws:bedrock:us-east-1:587817102444:application-inference-profile/7p8sn93lhspw
+              AWS_BEARER_TOKEN_BEDROCK: <+secrets.getValue("bedrock_api_key")>
+              AWS_REGION: us-east-1
+              CLAUDE_CODE_USE_BEDROCK: "1"
+            task: |
+              Execute the task using the available skills.
+
+              ## RULES
+              - Use the hello-world skill when appropriate
+            max_turns: 100
+```
+
+**Key Points:**
+- The working directory for the agent is `/harness`
+- Skills path format: `/harness/.claude/skills/<skill-name>/SKILL.md`
+- Use heredoc (`<< 'EOF'`) to write multi-line skill files
+- The skill file must include valid frontmatter and instructions
+- Multiple skills can be created in the same step by repeating the mkdir/cat commands
 
 ## CRITICAL GUIDELINES
 

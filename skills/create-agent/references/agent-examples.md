@@ -52,7 +52,6 @@ agent:
           name: Run Code Coverage Agent
           agent:
             container:
-              connector: account.harnessImage
               image: pkg.harness.io/vrvdt5ius7uwygso8s0bia/harness-agents/claude-code-plugin:main
             env:
               ANTHROPIC_MODEL: arn:aws:bedrock:us-east-1:587817102444:application-inference-profile/7p8sn93lhspw
@@ -76,11 +75,12 @@ agent:
                 c. Open a PR titled "Code Coverage: Automated coverage increase by Harness AI".
                 d. Post COVERAGE.md contents as a PR comment under "## Code Coverage Report".
               7. Write INFO.md with PR url, repo, branch, and PR number.
-            max_turns: 150
-            rules:
+              
+              ## RULES
               - Use idiomatic Go code with table-driven tests
               - Do not modify or delete existing tests
               - Keep COVERAGE.md under 10000 characters
+            max_turns: 150
             mcp_servers:
               harness:
                 url: https://harmfully-unregulative-theressa.ngrok-free.dev/mcp
@@ -102,7 +102,6 @@ agent:
           name: Run Code Review Agent
           agent:
             container:
-              connector: account.harnessImage
               image: pkg.harness.io/vrvdt5ius7uwygso8s0bia/harness-agents/claude-code-plugin:main
             env:
               ANTHROPIC_MODEL: arn:aws:bedrock:us-east-1:587817102444:application-inference-profile/7p8sn93lhspw
@@ -115,11 +114,12 @@ agent:
               1. Analyzing all changed files for correctness, code quality, security issues, performance, and best practices.
               2. Posting inline review comments via GitHub MCP tools for any issues or suggestions.
               3. Posting a final summary comment with: key issues found, suggestions made, and overall verdict (Approve / Request Changes).
-            max_turns: 150
-            rules:
+              
+              ## RULES
               - Focus on security vulnerabilities first
               - Check test coverage for new code
               - Provide constructive feedback only
+            max_turns: 150
             mcp_servers:
               harness:
                 url: https://harmfully-unregulative-theressa.ngrok-free.dev/mcp

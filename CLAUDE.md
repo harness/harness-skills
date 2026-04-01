@@ -65,6 +65,10 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | Skill | Description |
 |-------|-------------|
 | `/manage-delegates` | Monitor delegate health and manage registration tokens |
+| `/manage-iacm` | Terraform workspaces, drift detection, cost estimation, and approval workflows |
+| `/manage-cde` | Cloud development environments, workspace templates, and auto-hibernation |
+| `/manage-artifacts` | Artifact registry setup, security scanning, and cross-region replication |
+| `/manage-supply-chain` | SBOM generation, artifact signing, and supply chain policy enforcement |
 
 ### Observability & Governance
 
@@ -79,6 +83,14 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
 | `/template-usage` | Template dependency tracking, impact analysis, and adoption |
 | `/create-policy` | Create OPA governance policies for supply chain security |
+| `/manage-idp` | Service catalog, self-service workflows, documentation, and developer onboarding (IDP) |
+| `/manage-slos` | SLO definition, error budgets, incident detection, and operational runbooks |
+| `/sei-analytics` | Sprint analytics, investment allocation, capacity forecasting, and release readiness |
+| `/ai-operations` | Predictive failure analysis and intelligent alert correlation (AIDA) |
+| `/optimize-pipeline` | Pipeline speed optimization, parallel testing, caching, and monorepo builds |
+| `/deployment-readiness` | Pre-deployment readiness checks, environment drift, and canary decisions |
+| `/incident-response` | Deployment-incident correlation, blast radius analysis, and postmortems |
+| `/pr-analysis` | PR pipeline impact, security review, and PR-to-production tracking |
 
 ### Agents
 

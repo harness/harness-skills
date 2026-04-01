@@ -237,6 +237,10 @@ Typical sequence:
 | [`/run-pipeline`](skills/run-pipeline/SKILL.md) | Execute pipelines, monitor progress, handle approvals |
 | [`/debug-pipeline`](skills/debug-pipeline/SKILL.md) | Analyze execution failures, diagnose root causes |
 | [`/migrate-pipeline`](skills/migrate-pipeline/SKILL.md) | Convert pipelines from v0 to v1 format |
+| [`/optimize-pipeline`](skills/optimize-pipeline/SKILL.md) | Pipeline speed optimization, parallel testing, caching, monorepo builds |
+| [`/deployment-readiness`](skills/deployment-readiness/SKILL.md) | Pre-deployment readiness checks, environment drift, canary decisions |
+| [`/incident-response`](skills/incident-response/SKILL.md) | Deployment-incident correlation, blast radius, postmortems |
+| [`/pr-analysis`](skills/pr-analysis/SKILL.md) | PR pipeline impact, security review, PR-to-production tracking |
 | [`/template-usage`](skills/template-usage/SKILL.md) | Track template dependencies and adoption |
 | [`/manage-delegates`](skills/manage-delegates/SKILL.md) | Monitor delegate health and manage tokens |
 
@@ -247,9 +251,17 @@ Typical sequence:
 | [`/analyze-costs`](skills/analyze-costs/SKILL.md) | Cloud cost analysis and optimization (CCM) |
 | [`/security-report`](skills/security-report/SKILL.md) | Vulnerability reports, SBOMs, compliance (SCS/STO) |
 | [`/dora-metrics`](skills/dora-metrics/SKILL.md) | DORA metrics and engineering performance (SEI) |
+| [`/sei-analytics`](skills/sei-analytics/SKILL.md) | Sprint analytics, investment allocation, capacity forecasting, release readiness |
+| [`/manage-slos`](skills/manage-slos/SKILL.md) | SLO definition, error budgets, incident detection, runbooks (SRM) |
+| [`/ai-operations`](skills/ai-operations/SKILL.md) | Predictive failure analysis and intelligent alert correlation (AIDA) |
 | [`/gitops-status`](skills/gitops-status/SKILL.md) | GitOps application health and sync status |
 | [`/chaos-experiment`](skills/chaos-experiment/SKILL.md) | Create and run chaos experiments |
 | [`/scorecard-review`](skills/scorecard-review/SKILL.md) | Service maturity scorecards (IDP) |
+| [`/manage-idp`](skills/manage-idp/SKILL.md) | Service catalog, self-service workflows, documentation, onboarding (IDP) |
+| [`/manage-iacm`](skills/manage-iacm/SKILL.md) | Terraform workspaces, drift detection, cost estimation (IaCM) |
+| [`/manage-cde`](skills/manage-cde/SKILL.md) | Cloud development environments and workspace templates (CDE) |
+| [`/manage-artifacts`](skills/manage-artifacts/SKILL.md) | Artifact registry, security scanning, replication (AR) |
+| [`/manage-supply-chain`](skills/manage-supply-chain/SKILL.md) | SBOM generation, artifact signing, supply chain policies (SSCA) |
 | [`/audit-report`](skills/audit-report/SKILL.md) | Audit trails and compliance reports |
 | [`/create-policy`](skills/create-policy/SKILL.md) | Create OPA governance policies for supply chain security |
 

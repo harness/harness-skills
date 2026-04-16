@@ -36,11 +36,13 @@ Determine what the policy should enforce:
 ```
 Call MCP tool: harness_create
 Parameters:
-  resource_type: "scs_opa_policy"
+  resource_type: "policy"
   org_id: "<organization>"
   project_id: "<project>"
   body: <policy definition>
 ```
+
+OPA policies are managed under the `governance` toolset — `resource_type: "policy"` supports full CRUD (list, get, create, update, delete).
 
 ### Step 3: Verify Compliance Results
 
@@ -115,8 +117,10 @@ deny[msg] {
 
 | Resource Type | Operations | Description |
 |--------------|-----------|-------------|
-| `scs_opa_policy` | create | Create governance policies |
-| `scs_compliance_result` | list | Check policy compliance status |
+| `policy` | list, get, create, update, delete | OPA governance policies (governance toolset) |
+| `policy_set` | list, get, create, update, delete | Group policies with enforcement actions |
+| `policy_evaluation` | list, get | View policy evaluation results |
+| `scs_compliance_result` | list | Check SCS policy compliance status |
 | `artifact_security` | list, get | View artifact security posture |
 | `code_repo_security` | list, get | View repository security posture |
 | `scs_chain_of_custody` | get | Verify artifact provenance |
@@ -165,9 +169,10 @@ For writing Rego policies for any Harness entity, consult these reference files:
 ## Troubleshooting
 
 ### Policy Not Enforcing
-- Policies are create-only via MCP -- verify the policy was created successfully
+- Verify the policy was created successfully (list via `resource_type: "policy"`)
+- Policies must be attached to a `policy_set` with an enforcement action (warn/deny) before they fire
 - Check that the policy scope matches the target artifacts/repositories
-- Use `scs_compliance_result` to verify the policy is being evaluated
+- Use `scs_compliance_result` or `policy_evaluation` to verify the policy is being evaluated
 
 ### Policy Syntax Errors
 - OPA policies use Rego language -- validate syntax before submitting
@@ -175,6 +180,5 @@ For writing Rego policies for any Harness entity, consult these reference files:
 - Deny rules must return a `msg` string explaining the violation
 
 ### Limitations
-- MCP supports create-only for OPA policies (no list, update, or delete via MCP)
-- For managing existing policies, use the Harness UI under Supply Chain Assurance settings
 - Policies apply within the project scope where they are created
+- Attach policies to a `policy_set` to activate enforcement

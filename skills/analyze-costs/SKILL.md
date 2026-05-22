@@ -20,7 +20,7 @@ Analyze cloud costs and identify savings using Harness Cloud Cost Management (CC
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "cost_overview"
+  resource_type: "cost_account_overview"
 ```
 
 Returns total spend, provider breakdown, and trend vs previous period.
@@ -99,8 +99,9 @@ To dismiss a known anomaly:
 Call MCP tool: harness_execute
 Parameters:
   resource_type: "cost_anomaly"
-  action: "ignore"
+  action: "report_feedback"
   resource_id: "<anomaly_id>"
+  body: { feedback: "FALSE_ANOMALY" }  # or TRUE_ANOMALY / NOT_RESPONDED
 ```
 
 ### Step 7: Commitment Analysis
@@ -108,10 +109,8 @@ Parameters:
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "cost_commitment_analysis"
+  resource_type: "cost_commitment"
 ```
-
-Also: `cost_commitment_coverage`, `cost_commitment_utilisation`, `cost_commitment_savings`
 
 ## Report Format
 
@@ -145,26 +144,27 @@ Also: `cost_commitment_coverage`, `cost_commitment_utilisation`, `cost_commitmen
 
 | Resource Type | Operations | Description |
 |--------------|-----------|-------------|
-| `cost_overview` | get | Total spend summary |
-| `cost_summary` | get | Filtered cost summary |
+| `cost_account_overview` | get | Account-level total spend summary |
+| `cost_summary` | get | Perspective-scoped cost summary |
 | `cost_timeseries` | get | Cost trends over time |
 | `cost_breakdown` | get | Multi-dimensional breakdown |
 | `cost_perspective` | list, get | Custom cost views |
 | `cost_recommendation` | list | Optimization suggestions |
 | `cost_recommendation_detail` | get | Detailed recommendation |
 | `cost_recommendation_stats` | get | Summary statistics |
-| `cost_estimated_savings` | get | Savings projections |
-| `cost_anomaly` | list, get | Cost spikes |
+| `cost_anomaly` | list, get, execute(report_feedback) | Cost spikes |
+| `cost_anomaly_summary` | get | Anomaly aggregate summary |
 | `cost_category` | list, get | Cost allocation |
+| `cost_commitment` | get | Commitment coverage/utilisation/savings |
 | `cost_filter_value` | get | Available filter values |
 
 ## Examples
 
-- "How much are we spending on cloud?" - Get cost_overview
+- "How much are we spending on cloud?" - Get cost_account_overview
 - "Find $5,000 in monthly savings" - List cost_recommendations, prioritize by savings
 - "Why did our bill spike last week?" - List cost_anomaly
 - "Break down costs by team" - Get cost_breakdown or cost_perspective
-- "Are we using our reserved instances?" - Get cost_commitment_utilisation
+- "Are we using our reserved instances?" - Get cost_commitment
 
 ## Performance Notes
 

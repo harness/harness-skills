@@ -3,10 +3,10 @@ name: dora-metrics
 description: Generate DORA metrics and engineering performance reports using Harness SEI via MCP. Track deployment frequency, lead time, change failure rate, and MTTR. Use when user says "DORA metrics", "deployment frequency", "lead time", "engineering metrics", or asks about team performance.
 metadata:
   author: Harness
-  version: 2.0.0
+  version: 2.1.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
-compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
+compatibility: Requires Harness MCP v2 server (harness-mcp-v2). All six DORA metric variants are served by a single consolidated `sei_dora_metric` resource — pick the variant via the `metric` parameter.
 ---
 
 # DORA Metrics
@@ -15,64 +15,109 @@ Generate DORA metrics reports using Harness Software Engineering Insights (SEI) 
 
 ## Instructions
 
-### Step 1: Get DORA Metrics
+All DORA metrics are served by a single resource type: `sei_dora_metric`. Pass the `metric` parameter to select the variant:
+
+- `deployment_frequency`
+- `deployment_frequency_drilldown`
+- `lead_time`
+- `change_failure_rate`
+- `change_failure_rate_drilldown`
+- `mttr`
+
+Required inputs on every DORA call: `team_ref_id`, `date_start`, `date_end`, `granularity` (DAILY | WEEKLY | MONTHLY).
+
+### Step 1: Get a DORA Metric
 
 Deployment Frequency:
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "sei_deployment_frequency"
+  resource_type: "sei_dora_metric"
+  metric: "deployment_frequency"
+  team_ref_id: "<team_id>"
+  date_start: "2026-03-01"
+  date_end: "2026-04-01"
+  granularity: "WEEKLY"
 ```
 
 Lead Time for Changes:
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "sei_lead_time"
+  resource_type: "sei_dora_metric"
+  metric: "lead_time"
+  team_ref_id: "<team_id>"
+  date_start: "2026-03-01"
+  date_end: "2026-04-01"
+  granularity: "WEEKLY"
 ```
 
 Change Failure Rate:
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "sei_change_failure_rate"
+  resource_type: "sei_dora_metric"
+  metric: "change_failure_rate"
+  team_ref_id: "<team_id>"
+  date_start: "2026-03-01"
+  date_end: "2026-04-01"
+  granularity: "WEEKLY"
 ```
 
 Mean Time to Recovery:
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "sei_mttr"
+  resource_type: "sei_dora_metric"
+  metric: "mttr"
+  team_ref_id: "<team_id>"
+  date_start: "2026-03-01"
+  date_end: "2026-04-01"
+  granularity: "WEEKLY"
 ```
 
 ### Step 2: Get Drilldown Data
 
-For detailed deployment frequency:
+Per-deployment detail for frequency:
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "sei_deployment_frequency_drilldown"
+  resource_type: "sei_dora_metric"
+  metric: "deployment_frequency_drilldown"
+  team_ref_id: "<team_id>"
+  date_start: "2026-03-01"
+  date_end: "2026-04-01"
+  granularity: "DAILY"
 ```
 
-For detailed change failure rate:
+Per-failure detail for CFR:
 ```
 Call MCP tool: harness_get
 Parameters:
-  resource_type: "sei_change_failure_rate_drilldown"
+  resource_type: "sei_dora_metric"
+  metric: "change_failure_rate_drilldown"
+  team_ref_id: "<team_id>"
+  date_start: "2026-03-01"
+  date_end: "2026-04-01"
+  granularity: "DAILY"
 ```
 
 ### Step 3: Get Team Data
 
+List teams:
 ```
 Call MCP tool: harness_list
 Parameters:
   resource_type: "sei_team"
 ```
 
+Get team details (integrations, developers, integration filters):
 ```
 Call MCP tool: harness_list
 Parameters:
-  resource_type: "sei_team_developer"
+  resource_type: "sei_team_detail"
+  team_ref_id: "<team_id>"
+  aspect: "developers"   # or "integrations" | "integration_filters"
 ```
 
 ### Step 4: AI Metrics (Optional)
@@ -83,7 +128,7 @@ Parameters:
   resource_type: "sei_ai_adoption"
 ```
 
-Also: `sei_ai_adoption_breakdown`, `sei_ai_impact`, `sei_ai_usage`, `sei_ai_usage_breakdown`
+Related: `sei_ai_impact`, `sei_ai_usage`, `sei_ai_raw_metric`.
 
 ## DORA Benchmarks
 
@@ -123,40 +168,41 @@ Also: `sei_ai_adoption_breakdown`, `sei_ai_impact`, `sei_ai_usage`, `sei_ai_usag
 
 | Resource Type | Operations | Description |
 |--------------|-----------|-------------|
-| `sei_deployment_frequency` | get | Deploy frequency metric |
-| `sei_deployment_frequency_drilldown` | get | Detailed frequency data |
-| `sei_lead_time` | get | Lead time for changes |
-| `sei_change_failure_rate` | get | Change failure rate |
-| `sei_change_failure_rate_drilldown` | get | Detailed CFR data |
-| `sei_mttr` | get | Mean time to recovery |
+| `sei_dora_metric` | get (+ `metric` param) | All 6 DORA variants: deployment_frequency, deployment_frequency_drilldown, lead_time, change_failure_rate, change_failure_rate_drilldown, mttr |
 | `sei_team` | list, get | Team definitions |
-| `sei_team_developer` | list | Team members |
+| `sei_team_detail` | list (+ `aspect` param: developers / integrations / integration_filters) | Per-team sub-resources |
 | `sei_metric` | list, get | Generic metrics |
-| `sei_org_tree` | get | Organization structure |
+| `sei_productivity_metric` | get | Productivity metrics |
+| `sei_org_tree` | list, get | Organization structure |
+| `sei_org_tree_detail` | list, get | Org tree detail |
 | `sei_business_alignment` | get | Business alignment |
 | `sei_ai_adoption` | get | AI adoption metrics |
+| `sei_ai_impact` | get | AI impact metrics |
+| `sei_ai_usage` | get | AI usage metrics |
+| `sei_ai_raw_metric` | get | Raw AI metrics |
 
 ## Examples
 
-- "How are we doing on DORA metrics?" - Get all 4 metrics, compare to benchmarks
-- "Compare DORA across teams" - List teams, get metrics per team
-- "What's our deployment frequency trend?" - Get sei_deployment_frequency with drilldown
-- "Show AI adoption metrics" - Get sei_ai_adoption and breakdown
+- "How are we doing on DORA metrics?" - Call `sei_dora_metric` four times with each primary `metric`
+- "Compare DORA across teams" - List `sei_team`, then call `sei_dora_metric` per `team_ref_id`
+- "What's our deployment frequency trend?" - Get `sei_dora_metric` with `metric: deployment_frequency`, then drilldown
+- "Show AI adoption metrics" - Get `sei_ai_adoption` and related AI resources
 
 ## Performance Notes
 
+- Always pass `team_ref_id`, `date_start`, `date_end`, `granularity` — these are required.
 - Gather metrics across the full requested time range before generating the report. Partial data skews results.
 - Compare metrics across multiple time periods to identify trends, not just snapshots.
-- Quality of analysis and actionable recommendations is more important than speed.
 
 ## Troubleshooting
 
 ### No Metric Data
 - Verify SEI integrations are configured (Git, CI/CD, issue tracking)
-- Check team mappings exist
-- Allow time for data collection and calculation
+- Confirm `team_ref_id` belongs to an active SEI team (`harness_list resource_type: sei_team`)
+- Check the date range covers data the integrations have ingested
+- Allow time for data collection and calculation after new integrations are added
 
 ### Metrics Seem Incorrect
 - Verify deployment detection rules in SEI settings
 - Check failure classification criteria
-- Review team member mappings
+- Review team member mappings via `sei_team_detail aspect: developers`

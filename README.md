@@ -244,6 +244,12 @@ Typical sequence:
 | [`/template-usage`](skills/template-usage/SKILL.md) | Track template dependencies and adoption |
 | [`/manage-delegates`](skills/manage-delegates/SKILL.md) | Monitor delegate health and manage tokens |
 
+### Security
+
+| Skill | Description |
+|-------|-------------|
+| [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Configure code scanning in pipelines with STO security scanners |
+
 ### Platform Intelligence (MCP)
 
 | Skill | Description |

@@ -70,6 +70,12 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/manage-artifacts` | Artifact registry setup, security scanning, and cross-region replication |
 | `/manage-supply-chain` | SBOM generation, artifact signing, and supply chain policy enforcement |
 
+### Security
+
+| Skill | Description |
+|-------|-------------|
+| `/configure-repo-scan` | Configure code scanning in pipelines with STO security scanners |
+
 ### Observability & Governance
 
 | Skill | Description |

@@ -1,31 +1,49 @@
 ---
 name: manage-slos
 description: >-
-  Manage Harness Service Reliability Management (SRM) via MCP. Define SLOs with SLIs and error budgets,
-  configure burn-rate alerts, set up incident detection and automated response workflows, generate
-  on-call handover reports, triage incidents with root cause analysis, and create operational runbooks.
-  Use when asked to define SLOs, configure error budgets, set up incident detection, create on-call
-  handover reports, generate runbooks, or monitor service reliability. Do NOT use for DORA metrics
-  (use dora-metrics instead) or chaos experiments (use chaos-experiment instead). Trigger phrases:
-  SLO, SLI, error budget, burn rate, incident detection, on-call handover, runbook, service reliability,
-  MTTR, availability target, latency SLO, incident response, on-call shift.
+  Assist with Harness Service Reliability Management (SRM) tasks that the MCP server currently
+  supports: pulling recent deployments for incident correlation, generating on-call handover
+  reports from deployment/execution history, and drafting operational runbooks. Use when asked
+  about SLOs, error budgets, burn-rate alerts, on-call handover, runbooks, or incident triage.
+  Do NOT use for DORA metrics (use dora-metrics instead) or chaos experiments (use
+  chaos-experiment instead). Trigger phrases: SLO, SLI, error budget, burn rate, on-call handover,
+  runbook, service reliability, incident response, on-call shift.
 metadata:
   author: Harness
-  version: 1.0.0
+  version: 2.0.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
-compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
+compatibility: |
+  Requires Harness MCP v2 server (harness-mcp-v2).
+  NOTE: SRM CRUD resources (`slo`, `slo_alert`, `monitored_service`) are NOT currently exposed
+  by the MCP server. Creating/managing SLOs and monitored services must be done in the Harness
+  UI. This skill focuses on the incident-correlation and reporting workflows that the MCP server
+  does support today (via `execution`, `service`, `environment`).
 ---
 
-# Manage SLOs
+# Manage SLOs / SRM
 
-Define, configure, and monitor Service Level Objectives (SLOs), incident detection workflows, on-call handover reports, and operational runbooks in Harness SRM.
+> **Limitation:** The MCP server does not currently expose `slo`, `slo_alert`, or
+> `monitored_service` resource types. SLO definitions, burn-rate alerts, and monitored-service
+> configuration must be created and edited via the Harness UI under
+> **Service Reliability Management**. This skill covers the parts of the SRM workflow that
+> *are* supported via MCP: deployment correlation, on-call handover reports, and operational
+> runbooks.
+
+## What this skill can do via MCP
+
+| Workflow | Supported today |
+|---|---|
+| Define an SLO or SLI | ❌ Use the Harness UI |
+| Configure error-budget / burn-rate alerts | ❌ Use the Harness UI |
+| Configure a monitored service | ❌ Use the Harness UI |
+| Correlate deployments with an incident | ✅ via `execution` |
+| Summarize recent releases for on-call handover | ✅ via `execution`, `service`, `environment` |
+| Draft an operational runbook | ✅ (LLM-authored; pulls context from MCP) |
 
 ## Instructions
 
 ### Step 1: Establish Scope
-
-Confirm the user's org and project context. SRM resources are project-scoped.
 
 ```
 Call MCP tool: harness_list
@@ -34,157 +52,107 @@ Parameters:
   org_id: "<organization>"
 ```
 
-### Step 2: Define SLOs
+### Step 2: Incident Triage — Correlate Deployments
 
-Gather the following from the user:
-- Service name and tier (Tier 1 / Tier 2 / Tier 3)
-- Health sources (e.g., Datadog, Prometheus, CloudWatch)
-- SLO targets: availability %, latency threshold, error rate target
-- Rolling window (typically 30 days)
-- SLI type: ratio-based (good/total requests) or window-based (% of time healthy)
+When the user reports an active incident:
 
-Create the SLO:
-
-```
-Call MCP tool: harness_create
-Parameters:
-  resource_type: "slo"
-  org_id: "<organization>"
-  project_id: "<project>"
-  body:
-    name: "<service>-availability-slo"
-    identifier: "<service>_availability_slo"
-    type: "Simple"
-    sloTarget:
-      type: "Rolling"
-      sloTargetPercentage: 99.9
-      periodLengthDays: 30
-    serviceLevelIndicators:
-      - type: "Ratio"
-        eventType: "Good"
-        metric1: "<good_event_metric>"
-        metric2: "<valid_event_metric>"
-    healthSourceRef: "<health_source_connector>"
-```
-
-### Step 3: Configure Error Budget Alerts
-
-Set up multi-window burn-rate alerts:
-- Page on-call when remaining budget drops below 10%
-- Warn the team when below 25%
-- Configure burn-rate multiplier alerts (e.g., 14.4x burn rate over 1 hour)
-
-```
-Call MCP tool: harness_create
-Parameters:
-  resource_type: "slo_alert"
-  org_id: "<organization>"
-  project_id: "<project>"
-  body:
-    sloIdentifier: "<slo_identifier>"
-    conditions:
-      - type: "ErrorBudgetRemainingPercentage"
-        threshold: 10
-        notificationRuleRef: "<page_notification>"
-      - type: "BurnRate"
-        threshold: 14.4
-        lookbackDuration: "1h"
-        notificationRuleRef: "<page_notification>"
-```
-
-### Step 4: Set Up Incident Detection (Optional)
-
-If the user wants automated incident detection:
-- Configure anomaly detection method (static threshold, ML-based, or composite)
-- Set alert correlation window (group related alerts within N minutes)
-- Define escalation tiers with response time SLAs
-
-```
-Call MCP tool: harness_create
-Parameters:
-  resource_type: "monitored_service"
-  org_id: "<organization>"
-  project_id: "<project>"
-  body:
-    name: "<service_name>"
-    identifier: "<service_identifier>"
-    type: "Application"
-    serviceRef: "<service_ref>"
-    environmentRef: "<env_ref>"
-    healthSources:
-      - name: "<health_source_name>"
-        type: "<provider_type>"
-        identifier: "<health_source_id>"
-```
-
-### Step 5: Generate On-Call Handover Report (Optional)
-
-When asked for a handover report, gather:
-- Outgoing and incoming engineer names
-- Shift time window
-- Services owned by the team
-
-Then use harness_list to pull recent incidents and SLO status:
+1. Identify the affected service and environment.
+2. Pull recent executions that deployed the service.
 
 ```
 Call MCP tool: harness_list
 Parameters:
-  resource_type: "slo"
+  resource_type: "execution"
+  org_id: "<organization>"
+  project_id: "<project>"
+  # filter by service or environment as needed
+```
+
+3. Correlate incident start time with deployment timestamps.
+4. Pull the failing execution's details:
+
+```
+Call MCP tool: harness_get
+Parameters:
+  resource_type: "execution"
+  resource_id: "<execution_id>"
   org_id: "<organization>"
   project_id: "<project>"
 ```
 
-Generate a structured handover with: active incidents, SLO status, recent changes, and items requiring attention.
+5. Guide the user through structured RCA: blast radius, suspected root cause, mitigation steps, rollback candidate.
 
-### Step 6: Generate Operational Runbook (Optional)
+### Step 3: On-Call Handover Report
 
-When asked to create a runbook, gather:
-- Service name, team, tech stack
-- Dependencies and SLO targets
-- Common failure modes
+Gather from the user: outgoing/incoming engineers, shift window, owned services.
 
-Structure the runbook with sections for: service overview, health checks, common alerts with response procedures, escalation paths, rollback procedures, and dependency contacts.
+Pull recent executions and services:
 
-### Step 7: Incident Triage and RCA (Optional)
+```
+Call MCP tool: harness_list
+Parameters:
+  resource_type: "execution"
+  org_id: "<organization>"
+  project_id: "<project>"
+```
 
-When a user reports an active incident:
+```
+Call MCP tool: harness_list
+Parameters:
+  resource_type: "service"
+  org_id: "<organization>"
+  project_id: "<project>"
+```
 
-1. Check the service's current SLO burn rate
-2. List dependent services and their error rates
-3. Pull recent deployments via `harness_list` with `resource_type: "execution"`
-4. Correlate timeline: deployment time vs. incident start
-5. Guide through structured RCA: blast radius, root cause hypothesis, mitigation steps
+Generate a structured handover covering: active/recent incidents the user describes,
+deployments during the shift, services with elevated failure counts, and items
+requiring attention.
+
+> For SLO burn-rate and error-budget status, direct the user to the SRM UI —
+> the MCP server does not expose these metrics.
+
+### Step 4: Operational Runbook (LLM-Authored)
+
+Gather from the user: service name, team, tech stack, dependencies, SLO targets, common
+failure modes.
+
+Structure the runbook with:
+- Service overview (purpose, owners, tech stack)
+- Health checks (pointers to SRM monitored-service dashboard in the Harness UI)
+- Common alerts with response procedures
+- Escalation paths
+- Rollback procedures (reference relevant pipelines via `harness_list resource_type: pipeline`)
+- Dependency contacts
+
+## Defining SLOs (UI-Only Today)
+
+When the user asks to define an SLO, burn-rate alert, or monitored service, respond:
+
+1. Gather requirements (service tier, health sources, SLO targets, rolling window, SLI type).
+2. Explain that SLO CRUD is not exposed via MCP today and link the user to the Harness SRM UI.
+3. Offer to draft the SLO spec (name, target %, SLI type, burn-rate thresholds) as text the
+   user can paste into the UI.
+4. Suggested burn-rate alert windows: 14.4×/1h (page), 6×/6h (ticket), 1×/3d (log).
 
 ## Examples
 
-- "Define SLOs for our payment-gateway service" -- Create availability, latency, and error rate SLOs with error budget alerts
-- "Set up incident detection for the checkout service" -- Configure monitored service with health sources and anomaly detection
-- "Generate an on-call handover report" -- Pull SLO status, active incidents, and recent changes for shift handover
-- "Create a runbook for the auth-service" -- Generate operational runbook with health checks, alert procedures, and escalation paths
-- "Our payment service is down, help me triage" -- Check SLO burn rate, correlate with deployments, assess blast radius
-- "Configure burn-rate alerts for our SLOs" -- Set up multi-window burn-rate alerting with PagerDuty/Slack notifications
+- "Our payment service is down, help me triage" — Pull recent `execution`s for the service, correlate with incident start, suggest rollback candidate.
+- "Generate an on-call handover report" — Pull executions and services during the shift, summarize with active issues.
+- "Create a runbook for the auth-service" — Draft runbook using MCP to list pipelines/services/environments for accurate references.
+- "Define SLOs for our payment-gateway service" — Draft the SLO spec as text; point to the Harness SRM UI for creation.
+- "Configure burn-rate alerts" — Draft the alert config; point to the SRM UI.
 
 ## Performance Notes
 
-- Verify health source connectors exist before creating SLOs -- SLOs require valid metric sources.
-- Use ratio-based SLIs for request-driven services and window-based SLIs for availability-focused services.
-- For burn-rate alerts, the standard multi-window approach uses 14.4x/1h (page), 6x/6h (ticket), 1x/3d (log).
-- On-call handover reports should be generated at shift boundaries -- stale data reduces their value.
-- Runbooks should reference actual monitoring dashboards and alert names to be actionable.
+- When correlating incidents with deployments, pull a wide enough execution window (±30 min) to catch slow-burn failures.
+- For handover reports, include both successful and failed executions — a streak of successes is useful context.
 
 ## Troubleshooting
 
-### SLO Not Tracking
-- Verify the health source connector is connected and receiving data
-- Confirm the SLI metric names match the actual metric names in the monitoring tool
-- Check that the monitored service is correctly linked to the Harness service and environment
+### "SLO not found" or "Monitored service not found"
+- These resources are not exposed by the MCP server today. Manage them in the Harness UI under Service Reliability Management.
 
-### Error Budget Alerts Not Firing
-- Verify notification rules are configured with valid channels (Slack, PagerDuty, email)
-- Check burn-rate thresholds -- too high a threshold may never trigger
-- Confirm the SLO has enough data points to calculate burn rate (needs at least one full window)
-
-### Incident Detection False Positives
-- Increase the alert correlation window to group related alerts
-- Tune anomaly detection sensitivity -- ML-based detection needs 2-4 weeks of baseline data
-- Add noise reduction rules to filter low-impact alerts
+### Incident correlation missing executions
+- Confirm `org_id` and `project_id` scope the service
+- Broaden the execution filter time window
+- Check that the service's pipelines actually ran (no deploy = no execution)

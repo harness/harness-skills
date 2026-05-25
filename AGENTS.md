@@ -66,6 +66,13 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 |-------|-------------|
 | `/manage-delegates` | Monitor delegate health and manage registration tokens |
 
+### Security
+
+| Skill | Description |
+|-------|-------------|
+| `/configure-repo-scan` | Configure code scanning in pipelines with STO security scanners |
+| `/configure-secret-scan` | Add secret detection scanning to pipelines to find exposed credentials and API keys (Gitleaks, Semgrep, Snyk, and more) |
+
 ### Observability & Governance
 
 | Skill | Description |

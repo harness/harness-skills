@@ -71,6 +71,7 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | Skill | Description |
 |-------|-------------|
 | `/configure-repo-scan` | Configure code scanning in pipelines with STO security scanners |
+| `/configure-container-scan` | Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more) |
 
 ### Observability & Governance
 

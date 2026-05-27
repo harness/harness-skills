@@ -111,18 +111,75 @@ If the secret doesn't exist yet, suggest creating it first via `/create-secret` 
 
 ### Step 4: Collect Container Image Details (skip for Prisma Cloud / Wiz — they pull from registry via connector)
 
-Ask the user for the container image to scan:
+Ask the user which registry type their image is in, then collect the fields for that type:
+
+---
+
+**Option A — Harness Registry**
+
+The image is stored in the Harness internal container registry.
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| Registry Type | Yes | `Third-Party` (Docker Hub, ECR, GCR), `Harness`, or `Local` |
-| Image Name | Yes | e.g., `johnkday/nodegoat` or `myorg/myapp` |
-| Tag / Digest | Yes | e.g., `latest`, `v1.2.3`, or a SHA digest |
-| Domain | No | Defaults to `docker.io`. Set for ECR (`123456789.dkr.ecr.us-east-1.amazonaws.com`) or GCR (`gcr.io`) |
-| Access Id | No | Secret reference for private registry auth, e.g., `<+secrets.getValue("project.access_id")>` |
-| Access Token | No | Secret reference for private registry auth, e.g., `<+secrets.getValue("project.access_token")>` |
+| Registry | Yes | Harness registry connector ref (e.g., `account.account-level-test`) |
+| Image Path | Yes | e.g., `harness/todolist-sample` — maps to `image_path` in YAML |
 
-**Default:** Docker Hub (`Third-Party`, `docker_v2`) with `latest` tag if not specified.
+YAML:
+```yaml
+      image:
+        type: harness
+        registry: <harness_registry_connector_ref>
+        image_path: <image_path>
+```
+
+---
+
+**Option B — Third-Party Registry** (Docker Hub, ECR, GCR, ACR, JFrog, etc.)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| Type | Yes | Registry protocol — almost always `docker_v2` |
+| Domain | No | Defaults to `docker.io`. For ECR: `123456789.dkr.ecr.us-east-1.amazonaws.com`, for GCR: `gcr.io` |
+| Name | Yes | Image name, e.g., `harness/todolist-sample` or `myorg/myapp` |
+| Tag / Digest | Yes | e.g., `latest`, `123`, or `sha256:1234567890abcdef...` |
+| Access Id | No | Secret ref for private registry username/access key, e.g., `<+secrets.getValue("project.access_id")>` |
+| Access Token | No | Secret ref for private registry password/token, e.g., `<+secrets.getValue("project.access_token")>` |
+
+YAML:
+```yaml
+      image:
+        type: docker_v2
+        domain: <domain>              # omit if Docker Hub (docker.io)
+        name: <image_name>
+        tag: <tag>
+        access_id: <+secrets.getValue("project.access_id")>     # omit if public image
+        access_token: <+secrets.getValue("project.access_token")>  # omit if public image
+```
+
+---
+
+**Option C — Local (image built in this stage)**
+
+The image was built earlier in the same pipeline stage and is available locally on the build node.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| Name | Yes | Image name, e.g., `harness/todolist-sample` |
+| Tag / Digest | Yes | e.g., `latest`, `123`, or `sha256:1234567890abcdef...` |
+| Domain | No | Defaults to `docker.io` |
+
+YAML:
+```yaml
+      image:
+        type: local_image
+        name: <image_name>
+        tag: <tag>
+        domain: <domain>   # omit if not needed
+```
+
+---
+
+**Default:** Third-Party → Docker Hub (`docker_v2`, domain `docker.io`) with `latest` tag if the user doesn't specify.
 
 ### Step 4: Collect Infrastructure Details (if needed)
 
@@ -136,7 +193,7 @@ If a new `SecurityTests` stage is being created and infrastructure is not yet de
 
 Use the step `type` from the scanner mapping in Step 3. Examples below.
 
-**For Harness SCA — Third-Party registry (Docker Hub):**
+**For Harness SCA (default scanner):**
 
 ```yaml
 - step:
@@ -158,40 +215,10 @@ Use the step `type` from the scanner mapping in Step 3. Examples below.
           cpu: 1000m
       privileged: true
       image:
-        type: docker_v2
-        name: <image_name>
-        tag: <tag>
+        <use the image block from Step 4 based on registry type>
 ```
 
-**With private registry credentials:**
-
-```yaml
-      image:
-        type: docker_v2
-        domain: <domain>
-        name: <image_name>
-        tag: <tag>
-        access_id: <+secrets.getValue("project.access_id")>
-        access_token: <+secrets.getValue("project.access_token")>
-```
-
-**For Harness registry:**
-
-```yaml
-      image:
-        type: harness
-        name: <image_name>
-        tag: <tag>
-```
-
-**For Local image:**
-
-```yaml
-      image:
-        type: local_image
-        name: <image_name>
-        tag: <tag>
-```
+Use the `image` block generated in Step 4 (Harness / Third-Party / Local). The rest of the step spec is identical regardless of registry type.
 
 **For Aqua Trivy (open-source):**
 

@@ -68,6 +68,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/manage-iacm` | Terraform workspaces, drift detection, cost estimation, and approval workflows |
 | `/manage-cde` | Cloud development environments, workspace templates, and auto-hibernation |
 | `/manage-artifacts` | Artifact registry setup, security scanning, and cross-region replication |
+| `/create-sbom` | Add SBOM Orchestration (generation/attestation) to existing pipelines |
+| `/enforce-sbom` | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) |
 | `/manage-supply-chain` | SBOM generation, artifact signing, and supply chain policy enforcement |
 
 ### Security

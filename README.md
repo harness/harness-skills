@@ -249,6 +249,8 @@ Typical sequence:
 | Skill | Description |
 |-------|-------------|
 | [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Configure code scanning in pipelines with STO security scanners |
+| [`/create-sbom`](skills/create-sbom/SKILL.md) | Add SBOM Orchestration (generation/attestation) to existing pipelines (SSCA) |
+| [`/enforce-sbom`](skills/enforce-sbom/SKILL.md) | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) to pipelines |
 
 ### Platform Intelligence (MCP)
 

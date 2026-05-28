@@ -79,6 +79,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
 | `/template-usage` | Template dependency tracking, impact analysis, and adoption |
 | `/create-policy` | Create OPA governance policies for supply chain security |
+| `/create-sbom` | Add SBOM Orchestration (generation/attestation) to existing pipelines |
+| `/enforce-sbom` | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) |
 
 ### Agents
 

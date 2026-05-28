@@ -77,6 +77,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/configure-repo-scan` | Configure code scanning in pipelines with STO security scanners |
 | `/configure-secret-scan` | Add secret detection scanning to pipelines to find exposed credentials and API keys (Gitleaks, Semgrep, Snyk, and more) |
 | `/configure-container-scan` | Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more) |
+| `/generate-slsa` | Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines |
+| `/enforce-slsa` | Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines |
 
 ### Observability & Governance
 

@@ -249,6 +249,8 @@ Typical sequence:
 | Skill | Description |
 |-------|-------------|
 | [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Configure code scanning in pipelines with STO security scanners |
+| [`/sign-artifact`](skills/sign-artifact/SKILL.md) | Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA) |
+| [`/verify-sign`](skills/verify-sign/SKILL.md) | Add Artifact Verification (verify Cosign signature) to existing pipelines (SSCA) |
 
 ### Platform Intelligence (MCP)
 

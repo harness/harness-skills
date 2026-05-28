@@ -1,0 +1,310 @@
+---
+name: verify-sign
+description: >-
+  Add an Artifact Verification (SscaArtifactVerification) step to an existing Harness pipeline to
+  verify Cosign signatures on container or local-stage artifacts. Supports CI, Security, and CD
+  Deploy (containerized step group). Supports Third-Party registries (Docker, ECR, GCR, GAR, ACR),
+  Harness Artifact Registry (HAR), and Harness Local Stage artifacts. Only works with existing
+  pipelines. Use when asked to verify signed artifacts, verify artifact signature, verify-sign,
+  validate Cosign signature, or configure SscaArtifactVerification.
+  Trigger phrases: verify sign, verify artifact, artifact verification, verify signature, verify-sign,
+  SscaArtifactVerification, verify signed image, verify Cosign, HAR verification.
+metadata:
+  author: Harness
+  version: 1.0.0
+  mcp-server: harness-mcp-v2
+license: Apache-2.0
+compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
+---
+
+# Verify Sign
+
+Add an **Artifact Verification** (`SscaArtifactVerification`) step to an existing Harness pipeline.
+The step verifies Cosign signatures on artifacts — typically immediately after `SscaArtifactSigning`.
+
+This skill only works with **existing pipelines** — do not create standalone verification-only pipelines.
+
+**Prerequisites:** Artifact must already be signed (typically via `/sign-artifact` /
+`SscaArtifactSigning`). Key-based verify requires the Cosign **public** key file secret matching the
+signing private key (`/create-secret`). If signing did not upload `.sig` to the registry, Harness
+pulls the signature from its database during verification.
+
+**Supported stages:** CI, Security, and CD (`Deployment` in containerized step group before deploy).
+
+Guide the user through a **step-by-step interactive wizard** (same UX as `/sign-artifact`):
+
+- Wizard: `references/interactive-wizard-flow.md`
+- UI ↔ YAML: `references/artifact-verification-step.md`
+- CD containerized step groups: `references/cd-containerized-step-group.md`
+
+---
+
+## Interaction model (mandatory)
+
+1. **One question per turn** — use `AskQuestion` when available; otherwise numbered options with `(Recommended)`.
+2. **Opening message** — add Artifact Verification; mention signing prerequisite + HAR support.
+3. **Progress breadcrumb** — after pipeline fetch:
+   `Pipeline · Placement · Source · Details · Verify · Submit · Run`
+4. **Record answers** — running summary; do not re-ask unless the user changes direction.
+5. **Fetch before configure** — `harness_get` before placement/source questions.
+6. **Show pipeline structure** — highlight `SscaArtifactSigning` and connectors.
+7. **Infer source from signing** — when one `SscaArtifactSigning` step exists, reuse its source. If
+   multiple exist, ask which step to mirror.
+8. **Never guess image tags** — default from signing step; ask if ambiguous.
+9. **Confirm before write** — summary + `harness_update` only after user confirms.
+10. **Auto-run after update** — `harness_execute` + monitor; do not ask the user to run manually.
+11. **CD on CI-only pipeline** — do not reject CD verify; run Phase 3b to add Deploy stage + containerized group.
+12. **Verify method must match signing** — keyless ↔ keyless, keybased/cosign ↔ public key from same key pair.
+13. **Offer all three source tiles** — Third-Party, **HAR**, and Harness Local Stage.
+
+Full phase prompts: `references/interactive-wizard-flow.md`.
+
+---
+
+## Instructions
+
+### Wizard phases
+
+| Phase | Breadcrumb | Action |
+|-------|------------|--------|
+| 0 | Pipeline | AskQuestion: pipeline URL ready? |
+| 1 | Pipeline | Collect URL → `harness_get` |
+| 2 | Pipeline | Display structure; note missing `SscaArtifactSigning` |
+| 3 | Placement | AskQuestion: after signing, CD before deploy, etc. |
+| 3b | Placement (CD) | Service, env, infra, step group if new Deploy stage |
+| 4 | Source | Infer from signing or pick registry tile |
+| 5 | Source | Registry provider (Third-Party only) |
+| 6 | Details | Connector (skip if obvious) |
+| 7 | Details | Image / artifact fields (default from signing) |
+| 8 | Verify | AskQuestion: verify signature method |
+| 9 | Submit | AskQuestion: confirm pipeline update |
+| 10 | Run | Auto-trigger + monitor |
+
+### Supported stage types
+
+| Stage type | Step `type` | Placement notes |
+|------------|-------------|-----------------|
+| `CI` | `SscaArtifactVerification` | **After** `SscaArtifactSigning` in the same stage |
+| `Deployment` | `SscaArtifactVerification` | Containerized step group; **before** deploy |
+| `Security` | `SscaArtifactVerification` | After signing when artifact is in registry |
+
+### CD edge case
+
+If no `Deployment` stage and user chose CD verify:
+
+> No CD Deploy stage yet. We can add a **Deployment** stage with a **containerized step group** and
+> place **Artifact Verification** before deploy.
+
+Run Phase 3b (service, environment, infrastructure, `stepGroupInfra`) — see
+`references/cd-containerized-step-group.md`.
+
+**CD auto-run:** skip when new Deploy stage needs service/env/infra inputs.
+
+### After the wizard — backend steps
+
+#### Check prerequisites
+
+1. **Artifact signing** — pipeline contains `SscaArtifactSigning` (or user confirms signature exists).
+2. **Public key secret** (key-based) — file secret with Cosign public key matching signing private key.
+
+#### Extract context from pipeline YAML
+
+From `SscaArtifactSigning` (if present), copy source and map signing → verification:
+
+| Signing | Verification |
+|---------|--------------|
+| `source.type: docker` | same `source.type: docker` |
+| `source.spec.image` | same `source.spec.image` |
+| `source.spec.connector` | same `source.spec.connector` |
+| `source.type: har` | same `source.type: har` + `registry` + `image` |
+| `signing.type: keyless` | `verifySign` keyless (match OIDC provider) |
+| `signing.type: cosign` / `keybased` | `verifySign` with **public** key secret |
+
+#### Generate Artifact Verification step YAML
+
+**CI — Docker Registry, key-based verify (Harness docs):**
+
+```yaml
+- step:
+    identifier: artifactverification
+    name: Artifact Verification
+    type: SscaArtifactVerification
+    spec:
+      source:
+        type: docker
+        spec:
+          connector: lavakush07
+          image: lavakush07/easy-buggy-app:v5
+      verifySign:
+        type: cosign
+        spec:
+          public_key: account.cosign_public_key
+    timeout: 15m
+```
+
+**Keyless verify** (when signing used keyless Harness OIDC):
+
+```yaml
+      verifySign:
+        type: keyless
+        spec:
+          oidcProvider: harness
+```
+
+If API validation rejects flat `keyless`, retry nested `cosign` wrapper — see
+`references/artifact-verification-step.md`.
+
+**HAR verify:**
+
+```yaml
+      source:
+        type: har
+        spec:
+          registry: prod_har
+          image: my-service:v3
+```
+
+**CD Deploy** — same step type inside containerized `stepGroup`; use `<+artifact.image>` for `image`
+when verifying service artifacts.
+
+Full provider mapping: `references/artifact-verification-step.md`.
+
+#### Insert step into pipeline YAML
+
+- Insert at Phase 3 placement — **after** `artifactsigning` when possible.
+- Do not modify unrelated steps.
+- Step identifier: `artifactverification` (use `artifactverification_cd` in CD when CI already has one).
+- **CD:** inside containerized step group only.
+
+#### Update pipeline via MCP
+
+```
+harness_update
+  resource_type: pipeline
+  resource_id: <pipeline_identifier>
+  org_id: <organization>
+  project_id: <project>
+  body: { yamlPipeline: "<updated pipeline YAML>" }
+```
+
+On validation errors, check `verifySign` shape, `image` field, and public key secret refs.
+
+#### Auto-run pipeline
+
+```
+harness_execute
+  resource_type: pipeline
+  action: run
+  resource_id: <pipeline_identifier>
+  org_id: <organization>
+  project_id: <project>
+  inputs: <branch/tag if codebase pipeline>
+```
+
+Poll execution every 20–30s. On failure, `harness_diagnose`. Report outcome on Supply Chain tab.
+
+#### Provide summary
+
+```
+## Artifact Verification Configured
+
+**Pipeline:** <pipeline_name>
+**Step:** Artifact Verification (SscaArtifactVerification)
+**Location:** Stage "<stage_name>", <position>
+**Source:** docker — <connector> — <image>
+**Verify signature:** Keyless (Harness OIDC) — or as configured
+
+**Execution:** <id> — <Success | Failed | Running>
+**Execution URL:** <openInHarness>
+
+### Next Steps
+1. If **Failed**, confirm verify method matches signing; check public key for keybased
+2. Add signing with `/sign-artifact` if signature was missing — ensure `uploadSignature.upload: true`
+3. Add SBOM/SLSA if not present (`/manage-supply-chain` or pipeline `SscaOrchestration` / `provenance`)
+4. Automate with `/create-trigger`
+```
+
+---
+
+## Examples
+
+### Verify after Artifact Signing
+
+```
+/verify-sign
+Add artifact verification after artifactsigning — public key account.cosign_public_key
+```
+
+### CD before deploy
+
+```
+/verify-sign
+Verify signed artifact in deploy stage before K8s rolling deploy — keyless verify
+```
+
+### HAR verification
+
+```
+/verify-sign
+Verify signature for HAR image payment-service:v2 — same registry as signing step
+```
+
+### Keyless verify (matches keyless signing)
+
+```
+/verify-sign
+Verify with keyless Harness OIDC — same image as signing step
+```
+
+---
+
+## Performance Notes
+
+- Only **existing pipelines** (may append Deploy stage).
+- **Wizard UX mandatory** — one question per turn.
+- **Reuse signing source** — same lowercase `source.type` and `image` as `SscaArtifactSigning`.
+- **Field is `verifySign`** (camelCase) — not `verify_attestation` (SLSA) or `signing`.
+- **HAR is a first-class source** — `source.type: har`; offer even if UI shows only two tiles.
+- **CD verification supported** — containerized step group only; signing in Deploy is not supported.
+- Pair with `/sign-artifact` (sign) — verify method must match signing.
+
+---
+
+## Troubleshooting
+
+### No Artifact Signing Step
+- Add `/sign-artifact` first with signature upload or Harness DB signature storage.
+- Scan for `SscaArtifactSigning` or `identifier: artifactsigning`.
+
+### Signature Verification Failed
+- Verify method must match signing (`keyless` vs `keybased`/`cosign`).
+- Keybased: use **public** key secret (signing uses **private** key).
+- If `.sig` not in registry, signing step may not have set `uploadSignature.upload: true` (Harness
+  default is unchecked). Update signing step and re-run, or rely on Harness DB signature storage.
+
+### Multiple Signing Steps
+- Ask user which `SscaArtifactSigning` step to mirror for source, image, and verify method.
+
+### Vault Verify Failed
+- Confirm Vault connector and public key path match the signing `secret-manager` block.
+
+### Wrong Image
+- Use same `image` as signing step `source.spec.image`.
+- CD: prefer `<+artifact.image>` expression.
+
+### YAML Validation Errors
+- Step `type` must be `SscaArtifactVerification`.
+- Docker source requires `connector` + `image` (not `repo` or `image_path`).
+- `verifySign`: prefer flat `type: keyless`; keybased uses `type: cosign` + `public_key`.
+- `DUPLICATE_IDENTIFIER` — rename `artifactverification`.
+
+### CD Step Errors
+- Place inside `stepGroup` with `stepGroupInfra` — not top-level `execution.steps`.
+- See `references/cd-containerized-step-group.md`.
+
+### User Chose CD on CI-Only Pipeline
+- Expected — run Phase 3b; do not force CI-only unless user changes direction.
+
+### MCP Errors
+- `CONNECTOR_NOT_FOUND` — verify connector in Project Settings.
+- `ACCESS_DENIED` — PAT needs pipeline edit permission.

@@ -51,9 +51,84 @@ Harness requires SCS steps in Deploy stages to run inside a **containerized step
     timeout: 10m
 ```
 
-**CD image:** prefer `<+artifact.image>` from the service primary artifact.
+**CD image:** **default to** `<+artifact.image>` from the service primary artifact — do not copy the
+static signing tag unless user explicitly chooses it. Warn when static tag ≠ service artifact tag.
 
 **Step id:** use `artifactverification_cd` when CI already has `artifactverification`.
+
+## Full Deploy stage example (copy when appending)
+
+Includes required `failureStrategies`, `rollbackSteps`, and `spec: {}` on rollback — omitting these
+causes `harness_update` validation errors.
+
+```yaml
+    - stage:
+        name: Deploy
+        identifier: Deploy
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: buggyapp
+          environment:
+            environmentRef: prod
+            infrastructureDefinitions:
+              - identifier: prodinfra
+          execution:
+            steps:
+              - stepGroup:
+                  identifier: scs_before_deploy
+                  name: Supply Chain Security
+                  stepGroupInfra:
+                    type: KubernetesDirect
+                    spec:
+                      connectorRef: account.sscsplayacc
+                      namespace: default
+                  steps:
+                    - step:
+                        identifier: artifactverification_cd
+                        name: Artifact Verification
+                        type: SscaArtifactVerification
+                        spec:
+                          source:
+                            type: docker
+                            spec:
+                              connector: lavakush07
+                              image: <+artifact.image>
+                          verifySign:
+                            type: keyless
+                            spec:
+                              oidcProvider: harness
+                        timeout: 15m
+              - step:
+                  identifier: rolling_deployment
+                  name: Rolling Deployment
+                  type: K8sRollingDeploy
+                  spec:
+                    skipDryRun: false
+                  timeout: 10m
+            rollbackSteps:
+              - step:
+                  identifier: rollback
+                  name: Rollback
+                  type: K8sRollingRollback
+                  spec: {}
+                  timeout: 10m
+        failureStrategies:
+          - onFailure:
+              errors: [AllErrors]
+              action:
+                type: StageRollback
+```
+
+## Delegate preflight (before CD update)
+
+Containerized step groups run on a delegate via the K8s connector in `stepGroupInfra`. Before
+`harness_update`:
+
+1. `harness_get(resource_type="connector", resource_id=<k8s_connector>)` — check `delegateSelectors`.
+2. `harness_list(resource_type="delegate")` — confirm at least one **active** delegate matches.
+3. If no match, warn the user and offer infra/connectors with active delegates (e.g. `slsaconnector`).
 
 ## Phase 3b prerequisites
 

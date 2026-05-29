@@ -56,6 +56,18 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/sign-
 11. **CD on CI-only pipeline** — do not reject CD verify; run Phase 3b to add Deploy stage + containerized group.
 12. **Verify method must match signing** — keyless ↔ keyless, keybased/cosign ↔ public key from same key pair.
 13. **Offer all three source tiles** — Third-Party, **HAR**, and Harness Local Stage.
+14. **List all connectors in Phase 6** — same rules as `/sign-artifact`: `harness_list` with
+    `filters.type`, all scopes, `size: 100`, paginate; never hand-pick a subset. See wizard Phase 6.
+15. **List all infrastructure in Phase 3b** — `harness_list` per environment with
+    `filters.environment_id`; never show only the infra for one pre-selected environment.
+16. **CD image defaults to `<+artifact.image>`** — for Deploy-stage verify, recommend the service
+    artifact expression over a static tag from signing. Warn when static image ≠ service default tag.
+17. **Preflight delegates before CD update** — `harness_list(resource_type="delegate")` or
+    `harness_execute(test_connection)` on the K8s connector used in `stepGroupInfra`. Abort or warn if
+    `DELEGATE_NOT_AVAILABLE` is likely (connector has `delegateSelectors` with no active delegate).
+18. **CD Deploy stage YAML requirements** — new Deploy stages need `failureStrategies: StageRollback`,
+    `rollbackSteps` with `K8sRollingRollback` + `spec: {}`, and CI stages need `MarkAsFailure` when
+    missing. See `references/cd-containerized-step-group.md`.
 
 Full phase prompts: `references/interactive-wizard-flow.md`.
 
@@ -74,7 +86,7 @@ Full phase prompts: `references/interactive-wizard-flow.md`.
 | 3b | Placement (CD) | Service, env, infra, step group if new Deploy stage |
 | 4 | Source | Infer from signing or pick registry tile |
 | 5 | Source | Registry provider (Third-Party only) |
-| 6 | Details | Connector (skip if obvious) |
+| 6 | Details | Connector — list **all** via `harness_list` + `filters.type` (skip if obvious) |
 | 7 | Details | Image / artifact fields (default from signing) |
 | 8 | Verify | AskQuestion: verify signature method |
 | 9 | Submit | AskQuestion: confirm pipeline update |
@@ -98,9 +110,83 @@ If no `Deployment` stage and user chose CD verify:
 Run Phase 3b (service, environment, infrastructure, `stepGroupInfra`) — see
 `references/cd-containerized-step-group.md`.
 
-**CD auto-run:** skip when new Deploy stage needs service/env/infra inputs.
+**CD auto-run:** skip when new Deploy stage needs service/env/infra inputs. When running CI+CD,
+check `runtime_input_template` — service `primaryArtifactRef: <+input>` may need artifact tag/digest
+in `inputs` even when the template only shows `build`.
 
-### After the wizard — backend steps
+#### Preflight before CD stage write
+
+1. **`harness_get`** the K8s connector used in `stepGroupInfra` — note `delegateSelectors`.
+2. **`harness_list(resource_type="delegate")`** — confirm an **active** delegate matches required
+   selectors (e.g. `ssca-prod2-at`). Warn before `harness_update` if none match.
+3. **`harness_get(resource_type="service")`** — note primary artifact tag; if user chose a static
+   verify image, warn when it differs from the service default.
+
+#### CD Deploy stage YAML (append to pipeline)
+
+When adding a new Deploy stage, include **all** required blocks (API rejects incomplete YAML):
+
+```yaml
+    - stage:
+        name: Deploy
+        identifier: Deploy
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: <service_id>
+          environment:
+            environmentRef: <env_id>
+            infrastructureDefinitions:
+              - identifier: <infra_id>
+          execution:
+            steps:
+              - stepGroup:
+                  identifier: scs_before_deploy
+                  name: Supply Chain Security
+                  stepGroupInfra:
+                    type: KubernetesDirect
+                    spec:
+                      connectorRef: <k8s_connector>
+                      namespace: <namespace>
+                  steps:
+                    - step:
+                        identifier: artifactverification_cd
+                        name: Artifact Verification
+                        type: SscaArtifactVerification
+                        spec:
+                          source:
+                            type: docker
+                            spec:
+                              connector: <registry_connector>
+                              image: <+artifact.image>
+                          verifySign:
+                            type: keyless
+                            spec:
+                              oidcProvider: harness
+                        timeout: 15m
+              - step:
+                  identifier: rolling_deployment
+                  name: Rolling Deployment
+                  type: K8sRollingDeploy
+                  spec:
+                    skipDryRun: false
+                  timeout: 10m
+            rollbackSteps:
+              - step:
+                  identifier: rollback
+                  name: Rollback
+                  type: K8sRollingRollback
+                  spec: {}
+                  timeout: 10m
+        failureStrategies:
+          - onFailure:
+              errors: [AllErrors]
+              action:
+                type: StageRollback
+```
+
+Also ensure existing CI stages have `failureStrategies: MarkAsFailure` when missing.
 
 #### Check prerequisites
 
@@ -289,8 +375,20 @@ Verify with keyless Harness OIDC — same image as signing step
 - Confirm Vault connector and public key path match the signing `secret-manager` block.
 
 ### Wrong Image
-- Use same `image` as signing step `source.spec.image`.
-- CD: prefer `<+artifact.image>` expression.
+- CI: use same `image` as signing step `source.spec.image`.
+- CD: **default to** `<+artifact.image>` — static signing tag (e.g. `:v5`) may not match service
+  artifact (e.g. `:v24`) and verification will fail or verify the wrong image.
+
+### CD Deploy Failed — No Delegate (`DELEGATE_NOT_AVAILABLE`)
+- Symptom: Deploy fails immediately; message mentions missing delegate or selector mismatch
+  (e.g. `Delegate(s) don't have selectors [ssca-prod2-at]`).
+- Fix: start a delegate with matching selectors (`/manage-delegates`), or pick infra/K8s connector
+  backed by an active delegate. Re-run after delegate is healthy.
+
+### CD YAML Validation Errors (new Deploy stage)
+- `failureStrategies: is missing` — add `StageRollback` on the Deploy stage.
+- `rollbackSteps[0].step.spec: is missing` — `K8sRollingRollback` requires `spec: {}`.
+- See full template in `references/cd-containerized-step-group.md`.
 
 ### YAML Validation Errors
 - Step `type` must be `SscaArtifactVerification`.
@@ -305,6 +403,12 @@ Verify with keyless Harness OIDC — same image as signing step
 ### User Chose CD on CI-Only Pipeline
 - Expected — run Phase 3b; do not force CI-only unless user changes direction.
 
+### Incomplete connector / infrastructure list
+- Use `harness_list` + `filters: { type: "DockerRegistry" }` (not `harness_search` or
+  `params.filterType`). Query project, org, and account scopes. For infrastructure, list per
+  environment with `filters: { environment_id: "<env>" }` — see wizard Phase 3b and Phase 6.
+
 ### MCP Errors
-- `CONNECTOR_NOT_FOUND` — verify connector in Project Settings.
+- `CONNECTOR_NOT_FOUND` — verify connector in Project Settings; re-run scoped `harness_list`.
 - `ACCESS_DENIED` — PAT needs pipeline edit permission.
+- **`harness_update` timeout** — retry once; provide YAML for manual paste if MCP keeps timing out.

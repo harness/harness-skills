@@ -131,6 +131,56 @@ Skip when user chose `har` or `local`.
 
 Skip when pipeline already uses one Docker registry connector unambiguously. HAR uses `registry` id — ask in Phase 7.
 
+### Mandatory — list ALL connectors (never hand-pick 2–3)
+
+Before `AskQuestion`, fetch every connector of the provider type. **Do not** call unfiltered
+`harness_list(resource_type="connector")` and manually pick Docker entries — that misses connectors
+and mixes Git/K8s/other types.
+
+**Map Phase 5 provider → `filters.type`:**
+
+| Provider | `filters.type` |
+|----------|----------------|
+| `docker` | `DockerRegistry` |
+| `ecr` | `Aws` |
+| `gcr` / `gar` | `Gcp` |
+| `acr` | `Azure` |
+
+**Query all scopes** (merge, dedupe by identifier):
+
+```
+# 1. Project scope (required)
+harness_list(resource_type="connector", org_id=<org>, project_id=<project>,
+  filters={type: "<ConnectorType>"}, size=100)
+
+# 2. Org scope (connectors shared across projects in the org)
+harness_list(resource_type="connector", org_id=<org>,
+  filters={type: "<ConnectorType>"}, size=100)
+
+# 3. Account scope (e.g. account.sscsplayacc)
+harness_list(resource_type="connector",
+  filters={type: "<ConnectorType>"}, size=100)
+```
+
+If `total` > `size`, paginate with `page: 0, 1, …` until all items are retrieved.
+
+**Present every result** in `AskQuestion` — one option per connector:
+
+| Option id | Label pattern |
+|-----------|----------------|
+| `<identifier>` | `<identifier>` — `<name>` (<scope>, status: SUCCESS \| FAILURE) |
+
+Add a final option: `other` — I'll type an identifier (for connectors not returned by list).
+
+**Wrong patterns (never use):**
+
+- `params: { filterType: "DockerRegistry" }` — ignored by API
+- `harness_search(query="docker registry")` — returns hundreds of unrelated hits
+- Showing only connectors noticed in an unfiltered first page (default `size: 20`)
+
+If pipeline YAML already has an unambiguous `connectorRef` from build/push, pre-select that connector
+in the summary and skip `AskQuestion`.
+
 ---
 
 ## Phase 7 — Image / artifact details

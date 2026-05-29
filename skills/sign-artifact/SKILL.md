@@ -56,6 +56,14 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/verif
 14. **Existing signing step** — if `SscaArtifactSigning` already exists, ask: update in place, add a second step, or abort. If existing step has `uploadSignature.upload: false` (or block missing) and user wants `.sig` in registry, set `upload: true`.
 15. **Upload `.sig` defaults OFF in Harness** — UI checkbox **Attach signature to Artifact Registry** is unchecked by default. For container images, **always** set `uploadSignature.upload: true` unless the user explicitly opts out. Confirm this in Phase 9 and in the submit summary.
 16. **Verify `.sig` after run** — when upload is enabled, check step logs for signature push success; see Troubleshooting if registry shows no signature tag.
+17. **List all connectors before Phase 6** — never show a hand-picked subset. Call `harness_list` with
+    `filters: { type: "<ConnectorType>" }` and `size: 100` at project, org, and account scope; merge
+    and present **every** match in `AskQuestion`. See `references/interactive-wizard-flow.md` Phase 6.
+18. **Add CI `failureStrategies` on update** — when inserting signing into a CI stage, ensure the stage
+    has `failureStrategies` with `MarkAsFailure` (not `Ignore`). Missing or `Ignore` hides signing
+    failures as `IgnoreFailed` while the pipeline continues.
+19. **Warn when no build/push step** — if the pipeline has no image build/push step, warn that signing
+    will target a pre-existing registry image; confirm the tag exists and was pushed before signing.
 
 Full phase prompts: `references/interactive-wizard-flow.md`.
 
@@ -74,7 +82,7 @@ Full phase prompts: `references/interactive-wizard-flow.md`.
 | 3 | Placement | **Mandatory** AskQuestion: stage + position + anchor push step (after build/push recommended) |
 | 4 | Source | AskQuestion: Third-Party, HAR, or Local |
 | 5 | Source | AskQuestion: registry provider (Third-Party only) |
-| 6 | Details | Connector (skip if obvious) |
+| 6 | Details | Connector — list **all** matches via `harness_list` + `filters.type` (skip if obvious) |
 | 7 | Details | Image / registry fields; optional digest expression |
 | 8 | Signing | AskQuestion: keyless, keybased, vault |
 | 9 | Upload | AskQuestion: attach `.sig` to registry (container images only) |
@@ -177,9 +185,21 @@ metadata internally — but external tools and registry-side verify need `upload
 #### Insert step into pipeline YAML
 
 - Insert at Phase 3 placement — **after** build/push (or after SBOM/SLSA when present).
-- Do not modify unrelated steps, variables, or failure strategies.
+- Do not modify unrelated steps, variables, or failure strategies — **except** add CI
+  `failureStrategies` if the stage has none or uses `Ignore` (use `MarkAsFailure`).
 - Step identifier: `artifactsigning` (use `artifactsigning_2`, etc. if duplicate). CD Deploy placement
   is unsupported — do not use `_cd` suffix for signing steps.
+
+**CI stage must include `failureStrategies`** (API may accept saves without it, but runs show
+`IgnoreFailed` when signing fails):
+
+```yaml
+failureStrategies:
+  - onFailure:
+      errors: [AllErrors]
+      action:
+        type: MarkAsFailure
+```
 
 #### Update pipeline via MCP
 
@@ -308,7 +328,10 @@ Agent must inspect existing YAML for `uploadSignature`, set `upload: true`, ensu
 - Verify org/project; `harness_list` (resource_type: `pipeline`).
 
 ### Connector Not Found
-- Search build/push steps for `connectorRef`; `harness_search` for Docker registry connectors.
+- Search build/push steps for `connectorRef`.
+- List connectors with `harness_list` + `filters: { type: "DockerRegistry" }` (not `harness_search`, not
+  `params.filterType`). Query project, org, and account scopes; see Phase 6 in
+  `references/interactive-wizard-flow.md`.
 
 ### Image Not Found / Invalid Reference
 - Docker: single `image` string — e.g. `lavakush07/easy-buggy-app:v5`.
@@ -360,7 +383,15 @@ Most common cause: **`uploadSignature.upload` is missing or `false`**. Harness d
 
 ### Auto-run Failed
 - Map branch/tag into `inputs` for codebase pipelines.
+- If stage status is **`IgnoreFailed`**, signing likely failed — inspect `artifactsigning` step logs;
+  add or fix `failureStrategies: MarkAsFailure` on the CI stage.
+
+### Signing step failed but pipeline continued (`IgnoreFailed`)
+- CI stage is missing `failureStrategies` or uses `Ignore` / non-blocking failure strategy.
+- Fix: set `failureStrategies` → `MarkAsFailure` on the CI stage, then re-run.
 
 ### MCP Errors
 - `CONNECTOR_NOT_FOUND` — verify connector identifier.
 - `ACCESS_DENIED` — PAT needs pipeline edit permission.
+- **`harness_update` timeout** — retry once; if MCP bubble times out, provide YAML summary for manual
+  paste in Pipeline Studio.

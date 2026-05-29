@@ -69,6 +69,25 @@ One topic per turn: service → environment → infrastructure → step group K8
 Append Deploy stage with containerized group containing `SscaArtifactVerification` before
 `K8sRollingDeploy`.
 
+### Infrastructure — list ALL (never one environment only)
+
+`harness_list(resource_type="infrastructure")` **requires** `filters.environment_id` — a project-wide
+list without it fails. To show the complete inventory:
+
+1. `harness_list(resource_type="environment", org_id, project_id, size=100)`
+2. For **each** environment, `harness_list(resource_type="infrastructure", filters={environment_id:
+   "<env>"}, size=100, compact=false)`
+3. Present **all** env + infra pairs in `AskQuestion` (group by environment in labels)
+
+Example label: `prod / prodinfra — KubernetesDirect, account.sscsplayacc, ns default`
+
+Do not list infra for only the environment chosen in the previous turn unless the user explicitly
+asked to filter.
+
+### Step group K8s connector — list ALL K8sCluster connectors
+
+Same scoped listing as Phase 6 but `filters: { type: "K8sCluster" }` at project, org, and account scope.
+
 ---
 
 ## Phase 4 — Source
@@ -108,15 +127,25 @@ If **multiple** signing steps exist, **AskQuestion** which step to mirror:
 
 Skip if obvious from `SscaArtifactSigning` or build/push steps.
 
+When asking, follow **the same mandatory connector listing rules as `/sign-artifact` Phase 6**:
+`harness_list` + `filters.type` (map provider → `DockerRegistry`, `Aws`, `Gcp`, `Azure`), query
+project + org + account scopes, `size: 100`, paginate, present **every** connector in `AskQuestion`.
+Never use `params.filterType`, `harness_search`, or a manual subset from an unfiltered list.
+
 ---
 
 ## Phase 7 — Image / artifact
 
 Free text; default from signing step. **Never guess tags.**
 
-For CD: offer `<+artifact.image>` expression.
+For CD: **default to** `<+artifact.image>` expression. Only offer static signing image as an explicit
+alternative; warn when it differs from the service primary artifact tag.
 
----
+| Option id | Label |
+|-----------|--------|
+| `artifact_expression` | `<+artifact.image>` — from CD service artifact **(Recommended for Deploy)** |
+| `signing_image` | Same static image as signing step — warn if ≠ service default tag |
+| `custom` | Custom — I'll provide the full image reference |
 
 ## Phase 8 — Verify signature
 

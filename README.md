@@ -249,6 +249,8 @@ Typical sequence:
 | Skill | Description |
 |-------|-------------|
 | [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Configure code scanning in pipelines with STO security scanners |
+| [`/create-sbom`](skills/create-sbom/SKILL.md) | Add SBOM Orchestration (generation/attestation) to existing pipelines (SSCA) |
+| [`/enforce-sbom`](skills/enforce-sbom/SKILL.md) | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) to pipelines |
 | [`/sign-artifact`](skills/sign-artifact/SKILL.md) | Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA) |
 | [`/verify-sign`](skills/verify-sign/SKILL.md) | Add Artifact Verification (verify Cosign signature) to existing pipelines (SSCA) |
 | [`/configure-secret-scan`](skills/configure-secret-scan/SKILL.md) | Add secret detection scanning to pipelines (Gitleaks, Semgrep, Snyk, and more) |

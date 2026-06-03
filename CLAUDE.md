@@ -79,6 +79,7 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/configure-container-scan` | Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more) |
 | `/configure-dast-scan` | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
 | `/exempt-vuln` | Create STO security exemptions (waivers) for vulnerabilities; Project/Pipeline/Target scope from the Vuln tab, Project-only from the All Issues page |
+| `/configure-agent-pr-attestation` | Install and configure the Claude Code PR attestation hook for signed in-toto attestations to the Harness Evidence Vault |
 
 ### Observability & Governance
 

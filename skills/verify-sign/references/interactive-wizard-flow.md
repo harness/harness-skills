@@ -5,7 +5,7 @@ prompt) per assistant turn.
 
 ## Progress breadcrumb
 
-`Pipeline · Placement · Source · Details · Verify · Submit · Run`
+`Pipeline · Placement · Source · Details · Verify · Submit`
 
 ---
 
@@ -169,11 +169,9 @@ If **vault**, next turn: Vault connector identifier + public key path in Vault.
 
 Summary + confirm `harness_update`.
 
----
+On `confirm` → insert step, `harness_update`, then provide configuration summary.
 
-## Phase 10 — Run
-
-Auto `harness_execute` + monitor for CI-only changes. Skip CD auto-run when deploy inputs missing.
+**Do not** call `harness_execute` or monitor executions — direct the user to `/run-pipeline`.
 
 ---
 

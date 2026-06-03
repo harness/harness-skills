@@ -44,7 +44,7 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/sign-
 1. **One question per turn** — use `AskQuestion` when available; otherwise numbered options with `(Recommended)`.
 2. **Opening message** — add Artifact Verification; mention signing prerequisite + HAR support.
 3. **Progress breadcrumb** — after pipeline fetch:
-   `Pipeline · Placement · Source · Details · Verify · Submit · Run`
+   `Pipeline · Placement · Source · Details · Verify · Submit`
 4. **Record answers** — running summary; do not re-ask unless the user changes direction.
 5. **Fetch before configure** — `harness_get` before placement/source questions.
 6. **Show pipeline structure** — highlight `SscaArtifactSigning` and connectors.
@@ -52,7 +52,9 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/sign-
    multiple exist, ask which step to mirror.
 8. **Never guess image tags** — default from signing step; ask if ambiguous.
 9. **Confirm before write** — summary + `harness_update` only after user confirms.
-10. **Auto-run after update** — `harness_execute` + monitor; do not ask the user to run manually.
+10. **Stop after update** — after successful `harness_update`, provide a configuration summary and
+    point the user to `/run-pipeline` to execute. Do **not** call `harness_execute`, poll
+    executions, or run `harness_diagnose` in this skill (same pattern as `/configure-repo-scan`).
 11. **CD on CI-only pipeline** — do not reject CD verify; run Phase 3b to add Deploy stage + containerized group.
 12. **Verify method must match signing** — keyless ↔ keyless, keybased/cosign ↔ public key from same key pair.
 13. **Offer all three source tiles** — Third-Party, **HAR**, and Harness Local Stage.
@@ -90,7 +92,8 @@ Full phase prompts: `references/interactive-wizard-flow.md`.
 | 7 | Details | Image / artifact fields (default from signing) |
 | 8 | Verify | AskQuestion: verify signature method |
 | 9 | Submit | AskQuestion: confirm pipeline update |
-| 10 | Run | Auto-trigger + monitor |
+
+After Phase 9 `confirm` → insert step, `harness_update`, then provide summary (do not run the pipeline).
 
 ### Supported stage types
 
@@ -109,10 +112,6 @@ If no `Deployment` stage and user chose CD verify:
 
 Run Phase 3b (service, environment, infrastructure, `stepGroupInfra`) — see
 `references/cd-containerized-step-group.md`.
-
-**CD auto-run:** skip when new Deploy stage needs service/env/infra inputs. When running CI+CD,
-check `runtime_input_template` — service `primaryArtifactRef: <+input>` may need artifact tag/digest
-in `inputs` even when the template only shows `build`.
 
 #### Preflight before CD stage write
 
@@ -275,21 +274,9 @@ harness_update
 
 On validation errors, check `verifySign` shape, `image` field, and public key secret refs.
 
-#### Auto-run pipeline
-
-```
-harness_execute
-  resource_type: pipeline
-  action: run
-  resource_id: <pipeline_identifier>
-  org_id: <organization>
-  project_id: <project>
-  inputs: <branch/tag if codebase pipeline>
-```
-
-Poll execution every 20–30s. On failure, `harness_diagnose`. Report outcome on Supply Chain tab.
-
 #### Provide summary
+
+Report the results to the user (same pattern as `/configure-repo-scan` — do **not** execute the pipeline):
 
 ```
 ## Artifact Verification Configured
@@ -300,15 +287,24 @@ Poll execution every 20–30s. On failure, `harness_diagnose`. Report outcome on
 **Source:** docker — <connector> — <image>
 **Verify signature:** Keyless (Harness OIDC) — or as configured
 
-**Execution:** <id> — <Success | Failed | Running>
-**Execution URL:** <openInHarness>
+**Pipeline URL:** https://app.harness.io/ng/account/<account_id>/module/ci/orgs/<org_id>/projects/<project_id>/pipelines/<pipeline_id>/pipeline-studio/
+
+**Note:** Review the Artifact Verification step in Pipeline Studio to adjust Advanced settings.
 
 ### Next Steps
-1. If **Failed**, confirm verify method matches signing; check public key for keybased
-2. Add signing with `/sign-artifact` if signature was missing — ensure `uploadSignature.upload: true`
-3. Add SBOM/SLSA if not present (`/manage-supply-chain` or pipeline `SscaOrchestration` / `provenance`)
-4. Automate with `/create-trigger`
+1. Run the pipeline via `/run-pipeline` to verify artifact verification executes successfully
+2. If the run fails, diagnose with `/debug-pipeline`
+3. View verification outcome on the execution **Supply Chain** tab
+4. If **Failed**, confirm verify method matches signing; check public key for keybased
+5. Add signing with `/sign-artifact` if signature was missing — ensure `uploadSignature.upload: true`
+6. Add SBOM/SLSA if not present (`/manage-supply-chain` or pipeline `SscaOrchestration` / `provenance`)
+7. Automate with `/create-trigger`
 ```
+
+**CD pipelines:** note in the summary if runtime inputs (service artifact, environment, infrastructure,
+artifact tag/digest) will be required at run time — the user provides those via `/run-pipeline` or
+Harness UI Run. When running CI+CD, check `runtime_input_template` — service `primaryArtifactRef: <+input>`
+may need artifact tag/digest in `inputs` even when the template only shows `build`.
 
 ---
 
@@ -352,6 +348,7 @@ Verify with keyless Harness OIDC — same image as signing step
 - **Field is `verifySign`** (camelCase) — not `verify_attestation` (SLSA) or `signing`.
 - **HAR is a first-class source** — `source.type: har`; offer even if UI shows only two tiles.
 - **CD verification supported** — containerized step group only; signing in Deploy is not supported.
+- **Do not execute pipelines** in this skill — use `/run-pipeline` after configuration (same as `/configure-repo-scan`).
 - Pair with `/sign-artifact` (sign) — verify method must match signing.
 
 ---
@@ -407,6 +404,10 @@ Verify with keyless Harness OIDC — same image as signing step
 - Use `harness_list` + `filters: { type: "DockerRegistry" }` (not `harness_search` or
   `params.filterType`). Query project, org, and account scopes. For infrastructure, list per
   environment with `filters: { environment_id: "<env>" }` — see wizard Phase 3b and Phase 6.
+
+### Pipeline Run Failed
+- Use `/run-pipeline` to execute and `/debug-pipeline` to diagnose failures
+- Missing runtime inputs: provide branch/tag, artifact tag/digest, or deploy inputs via `/run-pipeline` or Harness UI Run
 
 ### MCP Errors
 - `CONNECTOR_NOT_FOUND` — verify connector in Project Settings; re-run scoped `harness_list`.

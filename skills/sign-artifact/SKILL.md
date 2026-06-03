@@ -42,20 +42,23 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/verif
 1. **One question per turn** — use `AskQuestion` when available; otherwise numbered options with `(Recommended)`.
 2. **Opening message** — add Artifact Signing after build/push; mention keyless, key-based, Vault, and HAR.
 3. **Progress breadcrumb** — after pipeline fetch:
-   `Pipeline · Placement · Source · Details · Signing · Upload · Submit · Run`
+   `Pipeline · Placement · Source · Details · Signing · Upload · Submit`
 4. **Record answers** — running summary; do not re-ask unless the user changes direction.
 5. **Fetch before configure** — `harness_get` before placement/source questions.
 6. **Show pipeline structure** — highlight build/push and existing `SscaArtifactSigning` steps.
 7. **Infer connector from build/push** — skip connector question when unambiguous from YAML.
 8. **Never guess image tags** — always ask for image in Phase 7.
 9. **Confirm before write** — summary + `harness_update` only after user confirms.
-10. **Auto-run after update** — `harness_execute` + monitor for CI-only changes when inputs inferrable.
+10. **Stop after update** — after successful `harness_update`, provide a configuration summary and
+    point the user to `/run-pipeline` to execute. Do **not** call `harness_execute`, poll
+    executions, or run `harness_diagnose` in this skill (same pattern as `/configure-repo-scan`).
 11. **Phase 3 Placement is mandatory** — always run Phase 2 then Phase 3.
 12. **Sequential with SBOM/SLSA** — if `SscaOrchestration` or `provenance` exists, place signing **after** those steps sequentially (Cosign registry race).
 13. **Offer all three source tiles** — Third-Party, **Harness Artifact Registry (HAR)**, and Harness Local Stage (HAR is supported in YAML even when the UI screenshot shows only two tiles).
 14. **Existing signing step** — if `SscaArtifactSigning` already exists, ask: update in place, add a second step, or abort. If existing step has `uploadSignature.upload: false` (or block missing) and user wants `.sig` in registry, set `upload: true`.
 15. **Upload `.sig` defaults OFF in Harness** — UI checkbox **Attach signature to Artifact Registry** is unchecked by default. For container images, **always** set `uploadSignature.upload: true` unless the user explicitly opts out. Confirm this in Phase 9 and in the submit summary.
-16. **Verify `.sig` after run** — when upload is enabled, check step logs for signature push success; see Troubleshooting if registry shows no signature tag.
+16. **Verify `.sig` after run** — when upload is enabled, after the user runs via `/run-pipeline`,
+    check step logs for signature push success; see Troubleshooting if registry shows no signature tag.
 17. **List all connectors before Phase 6** — never show a hand-picked subset. Call `harness_list` with
     `filters: { type: "<ConnectorType>" }` and `size: 100` at project, org, and account scope; merge
     and present **every** match in `AskQuestion`. See `references/interactive-wizard-flow.md` Phase 6.
@@ -87,7 +90,8 @@ Full phase prompts: `references/interactive-wizard-flow.md`.
 | 8 | Signing | AskQuestion: keyless, keybased, vault |
 | 9 | Upload | AskQuestion: attach `.sig` to registry (container images only) |
 | 10 | Submit | AskQuestion: confirm pipeline update |
-| 11 | Run | Auto-trigger + monitor |
+
+After Phase 10 `confirm` → generate YAML, insert step, `harness_update`, then provide summary (do not run the pipeline).
 
 ### Supported stage types
 
@@ -215,28 +219,9 @@ harness_update
 On validation errors, read the API message. Common fixes: `image` vs `repo`, `signing` vs `attestation`,
 `private_key` / `password` secret refs for key-based cosign.
 
-#### Auto-run pipeline (mandatory after successful update)
-
-```
-harness_execute
-  resource_type: pipeline
-  action: run
-  resource_id: <pipeline_identifier>
-  org_id: <organization>
-  project_id: <project>
-  inputs: <branch/tag if codebase pipeline>
-```
-
-Poll `harness_get` (`execution`) every 20–30s. On failure, `harness_diagnose`.
-
-**Skip auto-run** when: Security-only pipeline with missing branch inputs, manual-run pipeline, or
-user chose not to run. Otherwise auto-run is mandatory.
-
-**After successful signing with upload enabled:** confirm step logs mention signature upload. Cosign
-stores signatures as OCI artifacts or `sha256-<digest>.sig` tags — they may not appear as a literal
-`.sig` filename in the registry UI. See Troubleshooting if upload failed.
-
 #### Provide summary
+
+Report the results to the user (same pattern as `/configure-repo-scan` — do **not** execute the pipeline):
 
 ```
 ## Artifact Signing Configured
@@ -248,16 +233,19 @@ stores signatures as OCI artifacts or `sha256-<digest>.sig` tags — they may no
 **Signing:** Keyless (Harness OIDC) — or as configured
 **Upload .sig:** Yes / No
 
-**Execution:** <id> — <Success | Failed | Running>
-**Execution URL:** <openInHarness>
+**Pipeline URL:** https://app.harness.io/ng/account/<account_id>/module/ci/orgs/<org_id>/projects/<project_id>/pipelines/<pipeline_id>/pipeline-studio/
 
-**Signature:** Supply Chain tab + Chain of Custody
+**Note:** Review the Artifact Signing step in Pipeline Studio to adjust Advanced settings.
+
+**Signature:** After a successful run, view on the Supply Chain tab and Chain of Custody.
 
 ### Next Steps
-1. If **Failed** or **no `.sig` in registry**, see Troubleshooting — confirm `uploadSignature.upload: true`
-2. Add verification with `/verify-sign`
-3. Add SBOM/SLSA **before** signing if not present (`/manage-supply-chain` or `SscaOrchestration` / `provenance`)
-4. Automate with `/create-trigger`
+1. Run the pipeline via `/run-pipeline` to verify the Artifact Signing step executes successfully
+2. If the run fails, diagnose with `/debug-pipeline`
+3. If **no `.sig` in registry**, confirm `uploadSignature.upload: true` — see Troubleshooting
+4. Add verification with `/verify-sign`
+5. Add SBOM/SLSA **before** signing if not present (`/manage-supply-chain` or `SscaOrchestration` / `provenance`)
+6. Automate with `/create-trigger`
 ```
 
 ---
@@ -302,7 +290,7 @@ Signing step succeeded but no .sig in Docker Hub — update existing artifactsig
 ```
 
 Agent must inspect existing YAML for `uploadSignature`, set `upload: true`, ensure signing runs
-**after** build/push sequentially, and re-run the pipeline.
+**after** build/push sequentially, then run the pipeline via `/run-pipeline`.
 
 ---
 
@@ -318,6 +306,7 @@ Agent must inspect existing YAML for `uploadSignature`, set `upload: true`, ensu
   this to **unchecked** — missing block = no registry upload.
 - **One signing step = one image** — monorepos need multiple steps or sequential runs per image.
 - **Key-based signing** — private key + password must be Harness **file secrets** (`/create-secret`).
+- **Do not execute pipelines** in this skill — use `/run-pipeline` after configuration (same as `/configure-repo-scan`).
 - Do **not** use for dashboard-only SSCA config — use `/manage-supply-chain` instead.
 
 ---
@@ -381,10 +370,11 @@ Most common cause: **`uploadSignature.upload` is missing or `false`**. Harness d
 ### Skipped Placement
 - Re-run wizard from Phase 2; ask stage + position explicitly.
 
-### Auto-run Failed
-- Map branch/tag into `inputs` for codebase pipelines.
+### Pipeline Run Failed
+- Use `/run-pipeline` to execute and `/debug-pipeline` to diagnose failures
+- Map branch/tag into `inputs` via `/run-pipeline` for codebase pipelines
 - If stage status is **`IgnoreFailed`**, signing likely failed — inspect `artifactsigning` step logs;
-  add or fix `failureStrategies: MarkAsFailure` on the CI stage.
+  add or fix `failureStrategies: MarkAsFailure` on the CI stage
 
 ### Signing step failed but pipeline continued (`IgnoreFailed`)
 - CI stage is missing `failureStrategies` or uses `Ignore` / non-blocking failure strategy.

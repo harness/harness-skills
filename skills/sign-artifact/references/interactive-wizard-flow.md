@@ -5,7 +5,7 @@ prompt) per assistant turn.
 
 ## Progress breadcrumb
 
-`Pipeline · Placement · Source · Details · Signing · Upload · Submit · Run`
+`Pipeline · Placement · Source · Details · Signing · Upload · Submit`
 
 Highlight the active phase. Completed phases may be summarized in one line above the question.
 
@@ -259,17 +259,13 @@ uploadSignature:
 
 Summary of pipeline, placement, source, image, signing, upload. **AskQuestion:** confirm `harness_update`?
 
----
+On `confirm` → generate YAML, insert step, `harness_update`, then provide configuration summary.
 
-## Phase 11 — Run
+**Do not** call `harness_execute` or monitor executions — direct the user to `/run-pipeline`.
 
-Auto `harness_execute` + monitor when CI-only and inputs inferrable.
-
-**Skip auto-run** when: manual-run pipeline, missing branch/tag inputs, or user declines.
-
-**After success with upload enabled:** check signing step logs for signature push. Cosign may store
-signatures as `sha256-<digest>.sig` tags or OCI referrers — not always a visible `.sig` file in
-registry UI. Confirm on Harness Supply Chain tab or re-run with `/verify-sign`.
+After a successful run (via `/run-pipeline`), check signing step logs for signature push when upload
+is enabled. Cosign may store signatures as `sha256-<digest>.sig` tags or OCI referrers — confirm on
+Harness Supply Chain tab or use `/verify-sign`.
 
 ---
 

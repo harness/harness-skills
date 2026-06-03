@@ -46,14 +46,16 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/creat
 1. **One question per turn** — use `AskQuestion` when available; otherwise numbered options with `(Recommended)`.
 2. **Opening message** — add SBOM Policy Enforcement to an existing pipeline; mention SBOM + policy set prerequisites.
 3. **Progress breadcrumb** — after pipeline fetch:
-   `Pipeline · Placement · Source · Details · Verify · Policy · Submit · Run`
+   `Pipeline · Placement · Source · Details · Verify · Policy · Submit`
 4. **Record answers** — running summary; do not re-ask unless the user changes direction.
 5. **Fetch before configure** — `harness_get` before placement/source questions.
 6. **Show pipeline structure** — list stages/steps; highlight `SscaOrchestration` and connectors.
 7. **Infer source from orchestration** — when one SBOM generation step exists, reuse its `source` and image.
 8. **Never guess image tags** — default to orchestration step image; ask if ambiguous.
 9. **Confirm before write** — summary + `harness_update` only after user confirms.
-10. **Auto-run after update** — after successful `harness_update`, run `harness_execute` and monitor; do not ask the user to run manually.
+10. **Stop after update** — after successful `harness_update`, provide a configuration summary and
+    point the user to `/run-pipeline` to execute. Do **not** call `harness_execute`, poll
+    executions, or run `harness_diagnose` in this skill (same pattern as `/configure-repo-scan`).
 11. **CD placement without an existing Deploy stage** — if the user chooses CD enforcement (`cd_before_deploy`, `add_cd_stage`, or similar) on a CI-only pipeline, **do not** reject or force CI-only. Run **Phase 3b** to add a `Deployment` stage with a containerized step group and `CdSscaEnforcement` before deploy (same prerequisites as `/create-sbom`).
 12. **Never block CD on “no Deployment stage”** — warn in Phase 2, then proceed via Phase 3b when the user wants CD.
 
@@ -79,7 +81,8 @@ Full phase prompts: `references/interactive-wizard-flow.md`.
 | 8 | Verify | AskQuestion: verify attestation method |
 | 9 | Policy | AskQuestion: policy set(s) — `harness_list` `policy_set` |
 | 10 | Submit | AskQuestion: confirm pipeline update |
-| 11 | Run | Auto-trigger + monitor |
+
+After Phase 10 `confirm` → insert step, `harness_update`, then provide summary (do not run the pipeline).
 
 ### Supported stage types
 
@@ -119,14 +122,6 @@ Append a Deploy stage with containerized group containing `CdSscaEnforcement` **
 **CD image / source:** prefer `<+artifact.image>` from the service primary artifact; reuse connector from CI `SscaOrchestration` or service artifact source. **Verify attestation** must match the CI generation step (e.g. keyless Harness OIDC).
 
 **Step id:** use `enforce_sbom_cd` when CI already has `enforce_sbom`.
-
-#### CD auto-run (differs from CI-only)
-
-After `harness_update` that **adds** a Deployment stage:
-
-- **Do not** auto-run if execute fails on missing service artifact, environment, or infrastructure inputs.
-- Report required runtime fields and link to Pipeline Studio — do not invent inputs from prior sessions.
-- **May** auto-run when the change is CI-only (enforcement step only, no new CD stage) and inputs are inferrable.
 
 ### After the wizard — backend steps
 
@@ -226,22 +221,9 @@ harness_update
 
 On validation errors, read the API message, fix fields (often `verifyAttestation` shape or `policy.policySets`), retry.
 
-#### Auto-run pipeline (mandatory after successful update)
-
-```
-harness_execute
-  resource_type: pipeline
-  action: run
-  resource_id: <pipeline_identifier>
-  org_id: <organization>
-  project_id: <project>
-  inputs: <from wizard — branch/tag if repository source>
-```
-
-Poll `harness_get` (`execution`) every 20–30s. On failure, `harness_diagnose`. Report policy evaluation
-outcome and link to execution **Supply Chain** tab.
-
 #### Provide summary
+
+Report the results to the user (same pattern as `/configure-repo-scan` — do **not** execute the pipeline):
 
 ```
 ## SBOM Policy Enforcement Configured
@@ -253,17 +235,21 @@ outcome and link to execution **Supply Chain** tab.
 **Verify attestation:** Keyless (Harness OIDC) — or as configured
 **Policy sets:** <list>
 
-**Execution:** <id> — <Success | Failed | Running>
-**Execution URL:** <openInHarness>
+**Pipeline URL:** https://app.harness.io/ng/account/<account_id>/module/ci/orgs/<org_id>/projects/<project_id>/pipelines/<pipeline_id>/pipeline-studio/
 
-**Policy violations:** View on execution Supply Chain tab and Artifacts → Policy Violations
+**Note:** Review the SBOM Policy Enforcement step in Pipeline Studio to adjust Advanced settings.
 
 ### Next Steps
-1. If **Failed**, check attestation matches generation step; confirm image tag exists in registry
-2. Tune policies via `/create-policy` (entity-sbom.md)
-3. Add or adjust SBOM generation with `/create-sbom` if SBOM was missing
-4. Automate with `/create-trigger`
+1. Run the pipeline via `/run-pipeline` to verify enforcement executes successfully
+2. If the run fails, diagnose with `/debug-pipeline`
+3. View policy evaluation on the execution **Supply Chain** tab and Artifacts → **Policy Violations**
+4. If **Failed** due to policy deny, tune policies via `/create-policy` (entity-sbom.md)
+5. Add or adjust SBOM generation with `/create-sbom` if SBOM was missing
+6. Automate with `/create-trigger`
 ```
+
+**CD pipelines:** note in the summary if runtime inputs (service artifact, environment, infrastructure)
+will be required at run time — the user provides those via `/run-pipeline` or Harness UI Run.
 
 ---
 
@@ -301,7 +287,7 @@ Use defaults — same image as SBOM orchestration step, Harness OIDC verify
 - List `policy_set` via MCP before Phase 9 — do not invent policy set identifiers.
 - Enforcement **after** SBOM exists; orchestration and enforcement run **sequentially**.
 - CD: `CdSscaEnforcement` only in **containerized** step groups.
-- **Auto-run** after update; infer runtime `inputs` from wizard — do not prompt for branch/tag unnecessarily.
+- **Do not execute pipelines** in this skill — use `/run-pipeline` after configuration (same as `/configure-repo-scan`).
 - Pair with `/create-sbom` (generate) and `/create-policy` (OPA rules).
 
 ---
@@ -347,6 +333,7 @@ Use defaults — same image as SBOM orchestration step, Harness OIDC verify
 - `CONNECTOR_NOT_FOUND` — verify connector in Project Settings.
 - `ACCESS_DENIED` — PAT needs pipeline edit and policy read permissions.
 
-### Auto-run Failed After Update
-- Missing runtime inputs: map branch/tag from repository source into `inputs`.
-- Policy deny fails the step — expected when components violate rules; report violations clearly.
+### Pipeline Run Failed
+- Use `/run-pipeline` to execute and `/debug-pipeline` to diagnose failures
+- Missing runtime inputs: provide branch/tag or deploy inputs via `/run-pipeline` or Harness UI Run
+- Policy deny fails the step — expected when components violate rules; report violations clearly

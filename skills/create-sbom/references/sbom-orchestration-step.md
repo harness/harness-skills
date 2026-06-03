@@ -249,7 +249,7 @@ SBOM Orchestration (`SscaOrchestration`) is supported in **CI**, **CD** (`Deploy
 - `stepGroupInfra.type`: `KubernetesDirect` (typical) or `VM` (feature-flagged).
 - Place the step group **before** `K8sRollingDeploy`, `HelmDeploy`, etc.
 - Run SBOM and SLSA attestation **sequentially**, not in parallel (Cosign registry race).
-- After pipeline update, the skill **auto-runs** the pipeline with wizard-derived runtime inputs (no manual run prompt).
+- After pipeline update, direct the user to `/run-pipeline` to execute (same as `/configure-repo-scan`).
 
 Full CD edge cases: `references/cd-containerized-step-group.md`.
 

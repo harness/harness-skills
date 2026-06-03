@@ -12,7 +12,7 @@ description: >-
   scan for dependencies, SBOM Orchestration, add Generate SBOM step.
 metadata:
   author: Harness
-  version: 2.8.0
+  version: 1.0.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
@@ -46,18 +46,17 @@ Follow this UX for every invocation. **Do not** dump all Pipeline Studio fields 
    numbered option list with `(Recommended)` on the default choice (same pattern as container scan).
 2. **Opening message** — briefly state the goal: add SBOM Orchestration to an existing pipeline.
 3. **Progress breadcrumb** — after pipeline fetch, show on each wizard turn:
-   `Pipeline · Placement · Method · Source · Details · Attestation · Submit · Run`
+   `Pipeline · Placement · Method · Source · Details · Attestation · Submit`
 4. **Record answers** — keep a running summary of choices; do not re-ask unless the user changes direction.
 5. **Fetch before configure** — `harness_get` (URL or id) before placement/source questions.
 6. **Show pipeline structure** — list stages and steps (Phase 2) before asking placement.
 7. **Infer, don’t assume** — suggest connector/source from YAML; skip connector question if unambiguous.
 8. **Never guess image tags** — always ask for image or repo+branch in Phase 8.
 9. **Confirm before write** — Phase 10 summary + `harness_update` only after user confirms.
-10. **“Defaults” shortcut** — apply recommended wizard choices (see reference) but still ask for image/repo.
-11. **Auto-run after update** — after a successful `harness_update`, **automatically** trigger the
-    pipeline with `harness_execute` (action: `run`) for **CI-only** changes when inputs are
-    inferrable. For **CD** placement or new Deploy stages, see **CD auto-run** below — do not guess
-    service/env/infra inputs.
+10. **Stop after update** — after successful `harness_update`, provide a configuration summary and
+    point the user to `/run-pipeline` to execute. Do **not** call `harness_execute`, poll
+    executions, or run `harness_diagnose` in this skill (same pattern as `/configure-repo-scan`).
+11. **“Defaults” shortcut** — apply recommended wizard choices (see reference) but still ask for image/repo.
 12. **Phase 3 Placement is never optional** — always run Phase 2 (structure) then Phase 3
     (`AskQuestion` for stage + position) **before** method/source/attestation, even when:
     - The pipeline has only one CI stage
@@ -98,7 +97,8 @@ Run in order. **Stop after each phase** until the user answers.
 | 8 | Details | Ask: image, repo URL, or local artifact (free text) |
 | 9 | Attestation | AskQuestion: attest or not; keyless vs cosign |
 | 10 | Submit | AskQuestion: confirm pipeline update |
-| 11 | Run | Auto-trigger pipeline + monitor (no user prompt) |
+
+After Phase 10 `confirm` → generate YAML, insert step, `harness_update`, then provide summary (do not run the pipeline).
 
 ### Supported stage types
 
@@ -213,17 +213,6 @@ Full rules and examples: `references/cd-containerized-step-group.md`.
 - **CD image:** prefer `<+artifact.image>` from the service primary artifact; literal tags only if
   the user provides them in Phase 8.
 - **Registry connector:** from `service.serviceDefinition.spec.artifacts` or existing CI SBOM step.
-
-#### CD auto-run (differs from CI)
-
-After `harness_update` that adds or changes a **Deployment** stage:
-
-- **Do not** auto-run the full pipeline if execute fails on missing **service artifact**,
-  **environment**, or **infrastructure** inputs.
-- **May** auto-run when the change is **CI-only** (same pipeline, no new CD stage) and branch/tag
-  inputs are inferrable.
-- On CD input failure: report required runtime fields and link to Pipeline Studio / Run — do not
-  silently pick `aiskillstest` or any pipeline from prior sessions.
 
 ### After the wizard — backend steps
 
@@ -436,48 +425,9 @@ On validation errors, read the API message, fix the field, and retry.
 
 ---
 
-#### Auto-run pipeline (mandatory after successful update)
-
-Do **not** stop after `harness_update` or ask the user to run the pipeline. Immediately execute:
-
-```
-Call MCP tool: harness_execute
-Parameters:
-  resource_type: "pipeline"
-  action: "run"
-  resource_id: "<pipeline_identifier>"
-  org_id: "<organization>"
-  project_id: "<project>"
-  inputs: <auto-resolved from wizard — see below>
-```
-
-**Runtime input resolution (no user prompt):**
-
-| Wizard / pipeline signal | Pass to `inputs` |
-|--------------------------|------------------|
-| Repository SBOM + `variant` (branch) | `{ "branch": "<variant>" }` or `{ "build": { "type": "branch", "spec": { "branch": "<variant>" } } }` if API expects nested build |
-| Codebase `build: <+input>` on pipeline | Same branch/tag recorded in Phase 8 |
-| Container-only pipeline, no `<+input>` | Omit `inputs` or `{}` |
-| MCP `_inputResolution.matched` on prior run | Reuse same shape Harness accepted |
-
-If `harness_execute` fails on missing inputs, read the error, derive values **only** from wizard
-answers (never ask the user for run inputs), retry once. If still blocked (e.g. required deploy
-variables with no default), report the missing YAML field and the execution link — do not run an
-interactive “provide inputs” flow.
-
-**Monitor execution** (poll `harness_get` resource_type: `execution` every 20–30s until terminal
-status or ~10 minutes). On failure, use `harness_diagnose` and summarize the failing step.
-
-**Production CD pipelines:** if the target stage deploys to Production, still auto-run only when
-the user already confirmed Phase 10 for that pipeline; do not add an extra run confirmation.
-
-**CD placement or new Deploy stage added:** skip auto-run unless the user explicitly asks to run
-the full pipeline in the same turn **and** prior executions show Harness accepted the same
-`inputs` shape for service/env/infra. Otherwise summarize what to select at **Run** in the UI.
-
----
-
 #### Provide summary and next steps
+
+Report the results to the user (same pattern as `/configure-repo-scan` — do **not** execute the pipeline):
 
 ```
 ## SBOM Orchestration Configured
@@ -492,21 +442,22 @@ the full pipeline in the same turn **and** prior executions show Harness accepte
 **Tool / format:** Syft / SPDX (spdx-json)
 **Attestation:** Keyless (Harness OIDC) — or as configured
 
-**Execution:** <execution_id> — <Success | Failed | Running>
-**Execution URL:** <openInHarness from harness_execute or harness_get>
-
 **Pipeline URL:** https://app.harness.io/ng/account/<account_id>/module/ci/orgs/<org_id>/projects/<project_id>/pipelines/<pipeline_id>/pipeline-studio/
 
 **Note:** Review the SBOM Orchestration step in Pipeline Studio to adjust Advanced settings
 (resources, SBOM drift, expressions on image field).
 
 ### Next Steps
-1. If execution **Failed**, fix the reported step (connectors, credentials, image tag) and re-run
-2. View the SBOM on the **Supply Chain** tab of the execution and in SCS **Artifacts**
-3. Download SBOM via Artifacts UI or [SBOM API](https://apidocs.harness.io/sbom/downloadsbomforartifact)
-4. Enforce SBOM policies via `/enforce-sbom` (pipeline step) and `/create-policy` (OPA rules)
-5. For automatic runs on push/PR, add a trigger via `/create-trigger`
+1. Run the pipeline via `/run-pipeline` to verify the SBOM Orchestration step executes successfully
+2. If the run fails, diagnose with `/debug-pipeline`
+3. View the SBOM on the **Supply Chain** tab of the execution and in SCS **Artifacts**
+4. Download SBOM via Artifacts UI or [SBOM API](https://apidocs.harness.io/sbom/downloadsbomforartifact)
+5. Enforce SBOM policies via `/enforce-sbom` (pipeline step) and `/create-policy` (OPA rules)
+6. For automatic runs on push/PR, add a trigger via `/create-trigger`
 ```
+
+**CD pipelines:** note in the summary if runtime inputs (service artifact, environment, infrastructure)
+will be required at run time — the user provides those via `/run-pipeline` or Harness UI Run.
 
 ---
 
@@ -583,7 +534,7 @@ Agent must still run Phase 2 + Phase 3 (stage picker), not assume CI or prior se
 - YAML per provider: `references/sbom-orchestration-step.md`
 - **Supported stages:** CI, CD (`Deployment`), Security — label types in Phase 2; filter Phase 3 options
 - **CD edge case:** SBOM only inside `stepGroup` with `stepGroupInfra`; CI-only → CD needs Phase 3b — `references/cd-containerized-step-group.md`
-- **Auto-run:** CI changes → `harness_execute` + monitor when inputs inferrable; CD/new Deploy stage → report run requirements unless execute succeeds without deploy inputs
+- **Do not execute pipelines** in this skill — use `/run-pipeline` after configuration (same as `/configure-repo-scan`)
 
 ---
 
@@ -640,9 +591,10 @@ Agent must still run Phase 2 + Phase 3 (stage picker), not assume CI or prior se
 - Symptom: `infrastructureDefinitions or infrastructureDefinition should be present in stage`
 - Fix: add `environment.infrastructureDefinitions[].identifier` or create infra via `harness_create` (`/create-infrastructure`)
 
-### Auto-run Failed After Update
+### Pipeline Run Failed
+- Use `/run-pipeline` to execute and `/debug-pipeline` to diagnose failures
 - **Bad credentials (codebase-sync):** fix Git connector on CI/repository SBOM pipelines
-- **Missing runtime inputs:** map Phase 8 branch/tag into `inputs` for `properties.ci.codebase.build`
+- **Missing runtime inputs:** provide branch/tag or deploy inputs via `/run-pipeline` or Harness UI Run
 - **CD containerized:** SBOM must be under `stepGroup.steps` with `stepGroupInfra` (`KubernetesDirect` or `VM`) — not top-level `execution.steps`; see `references/cd-containerized-step-group.md`
 - **CD — no Initialize / SSCA pod:** step group missing `stepGroupInfra` or container-based execution not enabled
 - **CD — wrong image:** use `<+artifact.image>` (or expression from service artifact), not a stale literal tag

@@ -8,7 +8,7 @@ you do not need to list those in skill options.
 
 Show on every wizard turn after pipeline fetch:
 
-`Pipeline · Placement · Method · Source · Details · Attestation · Submit · Run`
+`Pipeline · Placement · Method · Source · Details · Attestation · Submit`
 
 Highlight the active phase. Completed phases may be summarized in one line above the question.
 
@@ -273,28 +273,10 @@ Show a short summary:
 | `confirm` | Yes, update the pipeline |
 | `cancel` | No, let me change something |
 
-On `confirm` → generate YAML, insert step, `harness_update`. On validation error, fix and retry
-without re-running the full wizard unless the user asks.
+On `confirm` → generate YAML, insert step, `harness_update`, then provide configuration summary.
+On validation error, fix and retry without re-running the full wizard unless the user asks.
 
----
-
-## Phase 11 — Auto-run pipeline (mandatory)
-
-**No AskQuestion.** Runs immediately after successful Phase 10 `harness_update`.
-
-1. `harness_execute` — `resource_type: pipeline`, `action: run`, same org/project/id.
-2. **Inputs** — derive from wizard; do **not** ask the user:
-   - Repository SBOM: `inputs: { "branch": "<variant>" }` (or nested `build` if pipeline uses it).
-   - Use branch/tag/commit from Phase 8 for `properties.ci.codebase.build: <+input>`.
-3. Poll `harness_get` (`execution`) until Success, Failed, or timeout (~10 min).
-4. On failure → `harness_diagnose` + short fix hint (connector, image, CD `stepGroupInfra` / placement).
-5. **CD auto-run:** if the update added/changed a **Deployment** stage or CD SBOM placement, and
-   execute fails on missing service/env/infra/artifact inputs — **stop**; list required runtime
-   fields and Pipeline Studio run link. Do not prompt for deploy inputs in chat.
-6. Include execution ID, status, and `openInHarness` in the final summary when a run was started.
-
-Skip auto-run only if the user explicitly said **not** to run in the same session, or the change
-was **CD-only** and deploy inputs are not inferrable.
+**Do not** call `harness_execute` or monitor executions — direct the user to `/run-pipeline`.
 
 ---
 
@@ -321,7 +303,7 @@ offer `<+artifact.image>` as the recommended default in the prompt text.
 |--------------|------------------|
 | Skip Phase 3 because pipeline only has `Build` (CI) | Always ask stage + position; offer `add_cd_stage` |
 | Reuse prior chat’s pipeline/stage without Phase 0/1 | Confirm URL/ID in current session |
-| Auto-run full pipeline after adding CD stage without deploy inputs | Report what to select at Run in UI |
+| Auto-run pipeline after configuration | Stop after `harness_update`; use `/run-pipeline` to execute |
 | Put `SscaOrchestration` at CD `execution.steps` top level | Use containerized `stepGroup` + `stepGroupInfra` |
 | Reuse `generate_sbom` identifier in CI and CD | Use `generate_sbom_cd` (or similar) in CD |
 | Default Placement to CI when user asked about CD | Ask explicitly; follow `cd-containerized-step-group.md` |

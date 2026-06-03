@@ -7,7 +7,7 @@ prompt) per assistant turn.
 
 Show on every wizard turn after pipeline fetch:
 
-`Pipeline · Placement · Source · Details · Verify · Policy · Submit · Run`
+`Pipeline · Placement · Source · Details · Verify · Policy · Submit`
 
 Highlight the active phase. Completed phases may be summarized in one line above the question.
 
@@ -210,20 +210,9 @@ Summary: pipeline, stage, position, source, image/repo, verify method, policy se
 | `confirm` | Yes, update the pipeline |
 | `cancel` | No, let me change something |
 
-On `confirm` → insert step, `harness_update`.
+On `confirm` → insert step, `harness_update`, then provide configuration summary.
 
----
-
-## Phase 11 — Auto-run pipeline (mandatory)
-
-**No AskQuestion** after successful update.
-
-1. `harness_execute` — `action: run`, same org/project/pipeline id.
-2. Derive `inputs` from wizard (branch/tag) — do not prompt user.
-3. Poll execution; on failure use `harness_diagnose`.
-4. Report policy pass/fail and link to **Supply Chain** / **Policy Violations** on execution.
-
-Skip auto-run only if the user explicitly declined in the same session.
+**Do not** call `harness_execute` or monitor executions — direct the user to `/run-pipeline`.
 
 ---
 

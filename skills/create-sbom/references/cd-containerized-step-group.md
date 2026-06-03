@@ -215,14 +215,13 @@ that environment.
 
 `DUPLICATE_IDENTIFIER` on update — rename the CD step.
 
-## Auto-run on CD pipelines
+## Running CD pipelines
 
-CD runs often need **service**, **environment**, and **infra** runtime inputs. After
-`harness_update`:
+CD runs often need **service**, **environment**, and **infra** runtime inputs. This skill only
+**configures** the pipeline — it does not execute it.
 
-- Pass wizard-known inputs (branch, etc.) when present
-- If `harness_execute` fails on missing deploy inputs, **do not** run an interactive input wizard —
-  report missing fields and link to execution; user runs from Harness with their input set
+After `harness_update`, direct the user to `/run-pipeline` to run the pipeline. If deploy inputs
+are required, the user provides them at run time via `/run-pipeline` or Harness UI Run.
 
 ## Troubleshooting (CD-specific)
 

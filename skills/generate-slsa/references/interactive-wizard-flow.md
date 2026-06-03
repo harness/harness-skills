@@ -5,7 +5,7 @@ prompt) per assistant turn.
 
 ## Progress breadcrumb
 
-`Pipeline · Placement · Source · Details · Attestation · Submit · Run`
+`Pipeline · Placement · Source · Details · Attestation · Submit`
 
 Highlight the active phase. Completed phases may be summarized in one line above the question.
 
@@ -159,12 +159,9 @@ If **keyless non-harness**, warn that account Connector for Keyless Signing must
 
 Summary of pipeline, placement, source, image/repo, attestation. **AskQuestion:** confirm `harness_update`?
 
----
+On `confirm` → generate YAML, insert step, `harness_update`, then provide configuration summary.
 
-## Phase 10 — Run
-
-Auto `harness_execute` + monitor when CI-only and inputs inferrable. Skip full CD auto-run when deploy
-inputs missing (same rules as CI-only SBOM + SLSA updates).
+**Do not** call `harness_execute` or monitor executions — direct the user to `/run-pipeline`.
 
 ---
 

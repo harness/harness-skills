@@ -45,14 +45,16 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/gener
 1. **One question per turn** — use `AskQuestion` when available; otherwise numbered options with `(Recommended)`.
 2. **Opening message** — add SLSA Verification; mention generation + optional policy prerequisites.
 3. **Progress breadcrumb** — after pipeline fetch:
-   `Pipeline · Placement · Source · Details · Verify · Policy · Submit · Run`
+   `Pipeline · Placement · Source · Details · Verify · Policy · Submit`
 4. **Record answers** — running summary; do not re-ask unless the user changes direction.
 5. **Fetch before configure** — `harness_get` before placement/source questions.
 6. **Show pipeline structure** — highlight `provenance` (SLSA Generation) and connectors.
 7. **Infer source from generation** — when one `provenance` step exists (or `identifier: slsageneration`), reuse its source (map `repo` → `image_path`, lowercase → PascalCase types).
 8. **Never guess image tags** — default from generation step; ask if ambiguous.
 9. **Confirm before write** — summary + `harness_update` only after user confirms.
-10. **Auto-run after update** — `harness_execute` + monitor; do not ask the user to run manually.
+10. **Stop after update** — after successful `harness_update`, provide a configuration summary and
+    point the user to `/run-pipeline` to execute. Do **not** call `harness_execute`, poll
+    executions, or run `harness_diagnose` in this skill (same pattern as `/configure-repo-scan`).
 11. **CD on CI-only pipeline** — do not reject CD verify; run Phase 3b to add Deploy stage + containerized group.
 12. **Verify method must match generation** — keyless ↔ keyless, keybased ↔ public key from same key pair.
 
@@ -78,7 +80,8 @@ Full phase prompts: `references/interactive-wizard-flow.md`.
 | 8 | Verify | AskQuestion: verify attestation method |
 | 9 | Policy | AskQuestion: policy set(s) or skip |
 | 10 | Submit | AskQuestion: confirm pipeline update |
-| 11 | Run | Auto-trigger + monitor |
+
+After Phase 10 `confirm` → insert step, `harness_update`, then provide summary (do not run the pipeline).
 
 ### Supported stage types
 
@@ -97,8 +100,6 @@ If no `Deployment` stage and user chose CD verify:
 
 Run Phase 3b (service, environment, infrastructure, `stepGroupInfra`) — mirror `/generate-slsa` Phase 3b.
 Use `skills/generate-slsa/references/cd-containerized-step-group.md` with `SlsaVerification`.
-
-**CD auto-run:** skip when new Deploy stage needs service/env/infra inputs.
 
 ### After the wizard — backend steps
 
@@ -189,21 +190,9 @@ harness_update
 On validation errors, check PascalCase `source.type`, `image_path` vs `repo`, and `verify_attestation`
 shape (prefer flat `keyless`; fallback nested `cosign`).
 
-#### Auto-run pipeline
-
-```
-harness_execute
-  resource_type: pipeline
-  action: run
-  resource_id: <pipeline_identifier>
-  org_id: <organization>
-  project_id: <project>
-  inputs: <branch/tag if codebase pipeline>
-```
-
-Poll execution every 20–30s. On failure, `harness_diagnose`. Report verification outcome on Supply Chain tab.
-
 #### Provide summary
+
+Report the results to the user (same pattern as `/configure-repo-scan` — do **not** execute the pipeline):
 
 ```
 ## SLSA Verification Configured
@@ -215,15 +204,21 @@ Poll execution every 20–30s. On failure, `harness_diagnose`. Report verificati
 **Verify attestation:** Keyless (Harness OIDC) — or as configured
 **Policy sets:** <list or none>
 
-**Execution:** <id> — <Success | Failed | Running>
-**Execution URL:** <openInHarness>
+**Pipeline URL:** https://app.harness.io/ng/account/<account_id>/module/ci/orgs/<org_id>/projects/<project_id>/pipelines/<pipeline_id>/pipeline-studio/
+
+**Note:** Review the SLSA Verification step in Pipeline Studio to adjust Advanced settings.
 
 ### Next Steps
-1. If **Failed**, confirm verify method matches generation attestation; check public key for keybased
-2. Tune policies via `/create-policy`
-3. Add generation with `/generate-slsa` if provenance was missing
-4. Automate with `/create-trigger`
+1. Run the pipeline via `/run-pipeline` to verify SLSA verification executes successfully
+2. If the run fails, diagnose with `/debug-pipeline`
+3. View verification outcome on the execution **Supply Chain** tab
+4. If **Failed** due to policy deny, tune policies via `/create-policy`
+5. Add generation with `/generate-slsa` if provenance was missing
+6. Automate with `/create-trigger`
 ```
+
+**CD pipelines:** note in the summary if runtime inputs (service artifact, environment, infrastructure)
+will be required at run time — the user provides those via `/run-pipeline` or Harness UI Run.
 
 ---
 
@@ -262,6 +257,7 @@ Verify SLSA with public key account.cosign_public_key — same image as generati
 - Policy sets on step **`enforce.policySets`** — not `spec.policy` like SBOM enforcement.
 - List `policy_set` via MCP — do not invent identifiers.
 - **CD:** containerized step group only; see `skills/generate-slsa/references/cd-containerized-step-group.md`.
+- **Do not execute pipelines** in this skill — use `/run-pipeline` after configuration (same as `/configure-repo-scan`).
 - Pair with `/generate-slsa` (generate) and `/create-policy` (OPA rules).
 
 ---
@@ -298,6 +294,11 @@ Verify SLSA with public key account.cosign_public_key — same image as generati
 
 ### User Chose CD on CI-Only Pipeline
 - Expected — run Phase 3b; do not force CI-only unless user changes direction.
+
+### Pipeline Run Failed
+- Use `/run-pipeline` to execute and `/debug-pipeline` to diagnose failures
+- Confirm verify method matches generation attestation; check public key for keybased
+- Missing runtime inputs: provide branch/tag or deploy inputs via `/run-pipeline` or Harness UI Run
 
 ### MCP Errors
 - `CONNECTOR_NOT_FOUND` — verify connector in Project Settings.

@@ -42,14 +42,16 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/confi
 1. **One question per turn** — use `AskQuestion` when available; otherwise numbered options with `(Recommended)`.
 2. **Opening message** — add SLSA Generation after image build/push; mention attestation options.
 3. **Progress breadcrumb** — after pipeline fetch:
-   `Pipeline · Placement · Source · Details · Attestation · Submit · Run`
+   `Pipeline · Placement · Source · Details · Attestation · Submit`
 4. **Record answers** — running summary; do not re-ask unless the user changes direction.
 5. **Fetch before configure** — `harness_get` before placement/source questions.
 6. **Show pipeline structure** — highlight build/push steps and existing `provenance` / `SscaOrchestration` steps (UI: SLSA Generation).
 7. **Infer connector from build/push** — skip connector question when unambiguous from YAML.
 8. **Never guess image tags** — always ask for image/repo in Phase 7.
 9. **Confirm before write** — summary + `harness_update` only after user confirms.
-10. **Auto-run after update** — `harness_execute` + monitor for CI-only changes when inputs inferrable.
+10. **Stop after update** — after successful `harness_update`, provide a configuration summary and
+    point the user to `/run-pipeline` to execute. Do **not** call `harness_execute`, poll
+    executions, or run `harness_diagnose` in this skill (same pattern as `/configure-repo-scan`).
 11. **Phase 3 Placement is mandatory** — always run Phase 2 then Phase 3, even with one CI stage or prior session context.
 12. **Sequential with SBOM** — if `SscaOrchestration` exists, place SLSA **after** it; never parallel (Cosign race).
 13. **CD path** — Deploy stage steps go inside containerized `stepGroup` only — see CD reference.
@@ -75,7 +77,8 @@ Full phase prompts: `references/interactive-wizard-flow.md`.
 | 7 | Details | Image/repo; optional digest expression |
 | 8 | Attestation | AskQuestion: keyless, keybased, vault, or none |
 | 9 | Submit | AskQuestion: confirm pipeline update |
-| 10 | Run | Auto-trigger + monitor |
+
+After Phase 9 `confirm` → generate YAML, insert step, `harness_update`, then provide summary (do not run the pipeline).
 
 ### Supported stage types
 
@@ -173,23 +176,9 @@ harness_update
 
 On validation errors, read the API message, fix fields (often `repo` vs `image`, attestation spec), retry.
 
-#### Auto-run pipeline (mandatory after successful update)
-
-```
-harness_execute
-  resource_type: pipeline
-  action: run
-  resource_id: <pipeline_identifier>
-  org_id: <organization>
-  project_id: <project>
-  inputs: <branch/tag if codebase pipeline>
-```
-
-Poll `harness_get` (`execution`) every 20–30s. On failure, `harness_diagnose`.
-
-Skip auto-run for new CD Deploy stages when service/env/infra inputs are missing.
-
 #### Provide summary
+
+Report the results to the user (same pattern as `/configure-repo-scan` — do **not** execute the pipeline):
 
 ```
 ## SLSA Generation Configured
@@ -200,17 +189,22 @@ Skip auto-run for new CD Deploy stages when service/env/infra inputs are missing
 **Source:** docker — <connector> — <repo/image>
 **Attestation:** Key-based (account.cosign_private_key) — or as configured
 
-**Execution:** <id> — <Success | Failed | Running>
-**Execution URL:** <openInHarness>
+**Pipeline URL:** https://app.harness.io/ng/account/<account_id>/module/ci/orgs/<org_id>/projects/<project_id>/pipelines/<pipeline_id>/pipeline-studio/
 
-**Provenance:** Supply Chain tab + SCS Artifacts
+**Note:** Review the SLSA Generation step in Pipeline Studio to adjust Advanced settings.
+
+**Provenance:** After a successful run, view on the Supply Chain tab and in SCS Artifacts.
 
 ### Next Steps
-1. If **Failed**, verify image exists in registry and Cosign secrets are valid file secrets
-2. Add SLSA verification with `/enforce-slsa`
-3. Pair with `SscaOrchestration` (Generate SBOM) — run SBOM then SLSA sequentially
-4. Automate with `/create-trigger`
+1. Run the pipeline via `/run-pipeline` to verify the SLSA Generation step executes successfully
+2. If the run fails, diagnose with `/debug-pipeline`
+3. Add SLSA verification with `/enforce-slsa`
+4. Pair with `SscaOrchestration` (Generate SBOM) — run SBOM then SLSA sequentially
+5. Automate with `/create-trigger`
 ```
+
+**CD pipelines:** note in the summary if runtime inputs (service artifact, environment, infrastructure)
+will be required at run time — the user provides those via `/run-pipeline` or Harness UI Run.
 
 ---
 
@@ -258,7 +252,7 @@ Agent must still run Phase 2 + Phase 3 — do not assume stage or skip placement
 - Docker UI **Image** field → YAML `source.spec.repo` (not `image`; SBOM `SscaOrchestration` uses `image` for docker).
 - **Key-based attestation** — private key + password must be Harness **file secrets** (`/create-secret`).
 - **CD generation is rare** — prefer CI generation + CD `/enforce-slsa`; see CD reference.
-- **Auto-run** after CI-only update when inputs inferrable.
+- **Do not execute pipelines** in this skill — use `/run-pipeline` after configuration (same as `/configure-repo-scan`).
 - Do **not** use for dashboard-only SSCA config — use `/manage-supply-chain` instead.
 
 ---
@@ -298,9 +292,10 @@ Agent must still run Phase 2 + Phase 3 — do not assume stage or skip placement
 ### Skipped Placement
 - Re-run wizard from Phase 2; ask stage + position explicitly.
 
-### Auto-run Failed
-- Map branch/tag into `inputs` for codebase pipelines.
-- CD: report missing service/env/infra — do not guess runtime inputs.
+### Pipeline Run Failed
+- Use `/run-pipeline` to execute and `/debug-pipeline` to diagnose failures
+- Verify image exists in registry and Cosign secrets are valid file secrets
+- CD: provide service/env/infra inputs via `/run-pipeline` or Harness UI Run — do not guess runtime inputs
 
 ### MCP Errors
 - `CONNECTOR_NOT_FOUND` — verify connector identifier.

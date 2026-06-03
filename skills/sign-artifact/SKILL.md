@@ -67,6 +67,11 @@ Guide the user through a **step-by-step interactive wizard** (same UX as `/verif
     failures as `IgnoreFailed` while the pipeline continues.
 19. **Warn when no build/push step** — if the pipeline has no image build/push step, warn that signing
     will target a pre-existing registry image; confirm the tag exists and was pushed before signing.
+20. **Surgical YAML only** — `harness_update` must start from the **exact** `yamlPipeline` returned by
+    `harness_get` in this session. Insert or update **only** the `SscaArtifactSigning` step (and CI
+    `failureStrategies` if required). **Never** add, remove, or reorder other steps. **Never** add
+    `HarnessSAST`, `HarnessSCA`, STO scanners, or `/configure-repo-scan` steps — use those skills only
+    when the user explicitly asks for code/container scanning.
 
 Full phase prompts: `references/interactive-wizard-flow.md`.
 
@@ -188,9 +193,16 @@ metadata internally — but external tools and registry-side verify need `upload
 
 #### Insert step into pipeline YAML
 
+**Critical:** Parse `yamlPipeline` from `harness_get` and treat it as the only source of truth. Do not
+rebuild the pipeline from examples, templates, or assumptions (e.g. `cloneCodebase: true` does **not**
+imply a Harness Code Scan step).
+
 - Insert at Phase 3 placement — **after** build/push (or after SBOM/SLSA when present).
 - Do not modify unrelated steps, variables, or failure strategies — **except** add CI
   `failureStrategies` if the stage has none or uses `Ignore` (use `MarkAsFailure`).
+- Before `harness_update`, diff mentally: step count must increase by **at most one** (or zero if
+  updating an existing `SscaArtifactSigning`). If any new step types appear (e.g. `HarnessSAST`),
+  stop and fix the YAML — do not save.
 - Step identifier: `artifactsigning` (use `artifactsigning_2`, etc. if duplicate). CD Deploy placement
   is unsupported — do not use `_cd` suffix for signing steps.
 
@@ -379,6 +391,12 @@ Most common cause: **`uploadSignature.upload` is missing or `false`**. Harness d
 ### Signing step failed but pipeline continued (`IgnoreFailed`)
 - CI stage is missing `failureStrategies` or uses `Ignore` / non-blocking failure strategy.
 - Fix: set `failureStrategies` → `MarkAsFailure` on the CI stage, then re-run.
+
+### Unexpected Harness Code Scan / STO Step After Update
+- Cause: agent sent a **reconstructed** full `yamlPipeline` instead of the fetched YAML + signing insert.
+- Fix: `harness_get` the pipeline, **delete** the unwanted `HarnessSAST` / STO step from YAML, save via
+  `harness_update`, or remove the step in Pipeline Studio.
+- Prevention: follow rule **20 (Surgical YAML only)** — never add scan steps in this skill.
 
 ### MCP Errors
 - `CONNECTOR_NOT_FOUND` — verify connector identifier.

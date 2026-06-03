@@ -259,7 +259,8 @@ uploadSignature:
 
 Summary of pipeline, placement, source, image, signing, upload. **AskQuestion:** confirm `harness_update`?
 
-On `confirm` → generate YAML, insert step, `harness_update`, then provide configuration summary.
+On `confirm` → parse the **`yamlPipeline` from `harness_get`**, insert **only** `SscaArtifactSigning`
+at the chosen anchor, then `harness_update`. Do **not** rebuild the pipeline or add `HarnessSAST`/STO steps.
 
 **Do not** call `harness_execute` or monitor executions — direct the user to `/run-pipeline`.
 

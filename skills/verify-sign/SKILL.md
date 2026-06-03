@@ -256,6 +256,10 @@ Full provider mapping: `references/artifact-verification-step.md`.
 
 #### Insert step into pipeline YAML
 
+**Critical:** Use the **exact** `yamlPipeline` from `harness_get` as the base. Insert or update **only**
+`SscaArtifactVerification` (and CD step group infra when applicable). **Never** add `HarnessSAST`, STO
+scanners, or other steps — signing/verification skills do not configure code scan.
+
 - Insert at Phase 3 placement — **after** `artifactsigning` when possible.
 - Do not modify unrelated steps.
 - Step identifier: `artifactverification` (use `artifactverification_cd` in CD when CI already has one).

@@ -249,6 +249,8 @@ Typical sequence:
 | Skill | Description |
 |-------|-------------|
 | [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Configure code scanning in pipelines with STO security scanners |
+| [`/generate-slsa`](skills/generate-slsa/SKILL.md) | Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines (SSCA) |
+| [`/enforce-slsa`](skills/enforce-slsa/SKILL.md) | Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines |
 | [`/create-sbom`](skills/create-sbom/SKILL.md) | Add SBOM Orchestration (generation/attestation) to existing pipelines (SSCA) |
 | [`/enforce-sbom`](skills/enforce-sbom/SKILL.md) | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) to pipelines |
 | [`/sign-artifact`](skills/sign-artifact/SKILL.md) | Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA) |

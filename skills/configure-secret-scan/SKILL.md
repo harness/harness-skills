@@ -3,8 +3,8 @@ name: configure-secret-scan
 description: >-
   Add secret detection scanning steps to existing Harness pipelines using STO security scanners.
   Detects exposed credentials, API keys, tokens, and sensitive data in code repositories.
-  Supports Gitleaks (default, open-source, built-in), Harness Code, Semgrep, Snyk, SonarQube,
-  Checkmarx, Fossa, Aqua Trivy, and Wiz. Only works with existing pipelines that have a codebase
+  Supports Harness Code (default, native, unified SAST/SCA/secret detection), Gitleaks (standalone
+  secret scanner, open-source), Semgrep, Snyk, SonarQube, Checkmarx, Fossa, Aqua Trivy, and Wiz. Only works with existing pipelines that have a codebase
   connector configured. Use when asked to add secret scanning, detect exposed secrets, find leaked
   API keys, configure secret detection, or scan code for credentials.
   Trigger phrases: add secret scan, detect secrets, find leaked credentials, configure secret detection,
@@ -65,11 +65,13 @@ Ask where to insert the secret scan step — before or after which step, or at t
 
 Present the available secret detection scanners supported in Harness STO:
 
-**Dedicated secret scanners:**
-- **Gitleaks** (default — open-source, no paid license, built-in scanner available)
+**Top recommendation:**
+- **Harness Code** (default — native Harness scanner, zero config, integrated SAST + SCA + secret detection in a single step)
 
-**Scanners that also detect secrets as a side effect** (findings appear under the "Secret" issue type alongside SAST/SCA results):
-- Harness Code (native)
+**Dedicated standalone secret scanner:**
+- **Gitleaks** (recommended if user wants a dedicated secret-only scanner — open-source, no paid license, built-in scanner available)
+
+**Other scanners that also detect secrets as a side effect** (findings appear under the "Secret" issue type alongside SAST/SCA results):
 - Aqua Trivy (open-source)
 - Checkmarx (commercial)
 - Checkmarx One (commercial)
@@ -79,9 +81,9 @@ Present the available secret detection scanners supported in Harness STO:
 - SonarQube (commercial)
 - Wiz (commercial)
 
-**Default recommendation:** Use **Gitleaks with the Built-in Scanner** — open-source, zero config, no license required, and purpose-built for secret detection.
+**Default recommendation:** Use **Harness Code** — the native Harness scanner that provides unified SAST, SCA, and secret detection with zero configuration and seamless STO integration. If the user explicitly wants a dedicated secret-only scanner, recommend **Gitleaks** as the standalone option.
 
-Ask the user which scanner they prefer. If they don't specify, use Gitleaks as the default.
+Ask the user which scanner they prefer. If they don't specify, use Harness Code as the default.
 
 **Scanner product auth requirements:**
 
@@ -107,25 +109,7 @@ Ask the user which scanner they prefer. If they don't specify, use Gitleaks as t
 
 ### Step 5: Generate Scanner Step Configuration
 
-**For Gitleaks (default — Built-in Scanner):**
-
-```yaml
-- step:
-    type: Gitleaks
-    name: Gitleaks_Secret_Scan
-    identifier: Gitleaks_Secret_Scan
-    spec:
-      mode: orchestration
-      config: default
-      target:
-        type: repository
-        detection: auto
-      advanced:
-        log:
-          level: info
-```
-
-**For Harness Code (also detects secrets):**
+**For Harness Code (default — unified SAST + SCA + secret detection):**
 
 ```yaml
 - step:
@@ -135,6 +119,24 @@ Ask the user which scanner they prefer. If they don't specify, use Gitleaks as t
     spec:
       mode: orchestration
       config: sast_sca
+      target:
+        type: repository
+        detection: auto
+      advanced:
+        log:
+          level: info
+```
+
+**For Gitleaks (standalone secret scanner — Built-in):**
+
+```yaml
+- step:
+    type: Gitleaks
+    name: Gitleaks_Secret_Scan
+    identifier: Gitleaks_Secret_Scan
+    spec:
+      mode: orchestration
+      config: default
       target:
         type: repository
         detection: auto
@@ -256,7 +258,7 @@ Add Gitleaks before the build step in my payment-service pipeline so we catch le
 - Only works with **existing pipelines** — do not offer to create new pipelines
 - Automatically extract the repo connector from the pipeline; do not ask the user for it
 - Place the secret scan step **before build steps** — catching secrets early prevents them from being baked into artifacts
-- Default to **Gitleaks** unless the user specifies another scanner or already has one configured
+- Default to **Harness Code** unless the user explicitly wants a dedicated secret-only scanner — in which case recommend **Gitleaks** as the standalone option
 - For commercial scanners, always ask for `auth` credentials before generating YAML — missing auth causes runtime failures
 - If required secrets don't exist, prompt the user to create them via `/create-secret` before proceeding
 - `cloneCodebase: true` is required on the CI stage — secret scanners need access to source code

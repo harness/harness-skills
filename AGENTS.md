@@ -75,6 +75,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/configure-container-scan` | Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more) |
 | `/generate-slsa` | Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines |
 | `/enforce-slsa` | Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines |
+| `/sign-artifact` | Add Artifact Signing step to existing pipelines |
+| `/verify-sign` | Add Artifact Verification step to existing pipelines |
 | `/configure-dast-scan` | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
 | `/exempt-vuln` | Create STO security exemptions (waivers) for vulnerabilities; Project/Pipeline/Target scope from the Vuln tab, Project-only from the All Issues page |
 
@@ -91,6 +93,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
 | `/template-usage` | Template dependency tracking, impact analysis, and adoption |
 | `/create-policy` | Create OPA governance policies for supply chain security |
+| `/create-sbom` | Add SBOM Orchestration (generation/attestation) to existing pipelines |
+| `/enforce-sbom` | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) |
 
 ### Agents
 

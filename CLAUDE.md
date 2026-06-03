@@ -68,6 +68,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/manage-iacm` | Terraform workspaces, drift detection, cost estimation, and approval workflows |
 | `/manage-cde` | Cloud development environments, workspace templates, and auto-hibernation |
 | `/manage-artifacts` | Artifact registry setup, security scanning, and cross-region replication |
+| `/create-sbom` | Add SBOM Orchestration (generation/attestation) to existing pipelines |
+| `/enforce-sbom` | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) |
 | `/manage-supply-chain` | SBOM generation, artifact signing, and supply chain policy enforcement |
 
 ### Security
@@ -79,6 +81,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/configure-container-scan` | Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more) |
 | `/generate-slsa` | Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines |
 | `/enforce-slsa` | Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines |
+| `/sign-artifact` | Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA) |
+| `/verify-sign` | Add Artifact Verification (verify Cosign signature) to existing pipelines (SSCA) |
 | `/configure-dast-scan` | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
 | `/exempt-vuln` | Create STO security exemptions (waivers) for vulnerabilities; Project/Pipeline/Target scope from the Vuln tab, Project-only from the All Issues page |
 

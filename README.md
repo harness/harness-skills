@@ -251,6 +251,10 @@ Typical sequence:
 | [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Configure code scanning in pipelines with STO security scanners |
 | [`/sign-artifact`](skills/sign-artifact/SKILL.md) | Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA) |
 | [`/verify-sign`](skills/verify-sign/SKILL.md) | Add Artifact Verification (verify Cosign signature) to existing pipelines (SSCA) |
+| [`/configure-secret-scan`](skills/configure-secret-scan/SKILL.md) | Add secret detection scanning to pipelines (Gitleaks, Semgrep, Snyk, and more) |
+| [`/configure-container-scan`](skills/configure-container-scan/SKILL.md) | Add container image scanning to pipelines (Trivy, Grype, Snyk, and more) |
+| [`/configure-dast-scan`](skills/configure-dast-scan/SKILL.md) | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
+| [`/exempt-vuln`](skills/exempt-vuln/SKILL.md) | Create STO security exemptions for vulnerabilities (Vuln tab & All Issues page) |
 
 ### Platform Intelligence (MCP)
 

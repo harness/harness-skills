@@ -246,26 +246,19 @@ Typical sequence:
 
 ### Security
 
-#### STO (Security Testing Orchestration)
-
 | Skill | Description |
 |-------|-------------|
-| [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Configure code scanning in pipelines with STO security scanners |
-| [`/configure-secret-scan`](skills/configure-secret-scan/SKILL.md) | Add secret detection scanning to pipelines (Gitleaks, Semgrep, Snyk, and more) |
-| [`/configure-container-scan`](skills/configure-container-scan/SKILL.md) | Add container image scanning to pipelines (Trivy, Grype, Snyk, and more) |
-| [`/configure-dast-scan`](skills/configure-dast-scan/SKILL.md) | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
-| [`/exempt-vuln`](skills/exempt-vuln/SKILL.md) | Create STO security exemptions for vulnerabilities (Vuln tab & All Issues page) |
-
-#### SCS (Supply Chain Security)
-
-| Skill | Description |
-|-------|-------------|
-| [`/generate-slsa`](skills/generate-slsa/SKILL.md) | Add SLSA generation to pipelines (provenance + attestation) |
-| [`/enforce-slsa`](skills/enforce-slsa/SKILL.md) | Add SLSA verification to pipelines (attestation verification + OPA policy sets on provenance) |
-| [`/create-sbom`](skills/create-sbom/SKILL.md) | Add SBOM orchestration to pipelines (generation + attestation) |
-| [`/enforce-sbom`](skills/enforce-sbom/SKILL.md) | Add SBOM policy enforcement to pipelines (attestation verification + OPA policy sets) |
-| [`/sign-artifact`](skills/sign-artifact/SKILL.md) | Add artifact signing to pipelines (signature upload) |
-| [`/verify-sign`](skills/verify-sign/SKILL.md) | Add artifact verification to pipelines (signature verification) |
+| [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Scan your code repositories for SAST and SCA vulnerabilities |
+| [`/configure-secret-scan`](skills/configure-secret-scan/SKILL.md) | Detect exposed secrets and credentials in your code repositories |
+| [`/configure-container-scan`](skills/configure-container-scan/SKILL.md) | Scan your container images for vulnerabilities |
+| [`/configure-dast-scan`](skills/configure-dast-scan/SKILL.md) | Test your running applications for security vulnerabilities with DAST |
+| [`/exempt-vuln`](skills/exempt-vuln/SKILL.md) | Exempt vulnerabilities with security waivers at Target, project or pipeline scope |
+| [`/generate-slsa`](skills/generate-slsa/SKILL.md) | Generate and attest SLSA provenance for your artifacts |
+| [`/enforce-slsa`](skills/enforce-slsa/SKILL.md) | Verify SLSA provenance attestations and enforce OPA policies on your artifacts |
+| [`/create-sbom`](skills/create-sbom/SKILL.md) | Generate and attest SBOM for your artifacts and code repositories |
+| [`/enforce-sbom`](skills/enforce-sbom/SKILL.md) | Verify SBOM attestations and enforce OPA policies on your artifacts and code repositories |
+| [`/sign-artifact`](skills/sign-artifact/SKILL.md) | Sign your artifacts to ensure integrity and authenticity in your supply chain |
+| [`/verify-sign`](skills/verify-sign/SKILL.md) | Verify artifact integrity and authenticity before deployment |
 
 ### Platform Intelligence (MCP)
 

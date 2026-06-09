@@ -122,15 +122,33 @@ After showing the table, always include:
 
 1. **`total`** pending count (project-wide, not just this page).
 2. **How to pick** — by row number from the table you just rendered.
-3. **How to see more** — "next" / "next page" (pagination) or a search term to narrow.
+3. **Sample inputs** — copy-pasteable examples covering scope and comments, so the user does not
+   have to guess the syntax (this is the part users get stuck on).
+4. **How to see more** — "next" / "next page" (pagination) or a search term to narrow.
 
-Example:
+Render the prompt with a **sample-inputs block** every time. Do not paraphrase it down to "pick a
+number" — users need to see that they can mix scope and comments in one message. Template:
 
-> **12** pending exemptions. Showing 1–5 below. Which would you like to approve? Pick by number
-> (e.g. `2`, `1 and 4`). Say **next** for rows 6–10, or search e.g. `log4j` to narrow.
+> **12** pending exemptions in this project. Showing rows 1–5 below.
+>
+> **Reply with row numbers** and (optionally) the approval scope + a comment per row. Examples
+> you can adapt:
+>
+> - `1` — approve row 1 at its current scope, no comment
+> - `1 as-is` — same, more explicit
+> - `2 for project` — widen row 2 to project scope
+> - `3 for org` / `3 org-wide` — elevate row 3 to org scope
+> - `4 for account` — elevate row 4 to account scope
+> - `5 with comment "JIRA SEC-440, fix tracked"` — approve at current scope with a note
+> - `2 for org with comment "approved by AppSec review"` — scope + comment together
+> - `1, 3, 5 as-is` — approve multiple rows at current scope
+> - `1 as-is, 2 for org, 3 for account with comment "exception logged"` — mixed scopes + comment
+>
+> Say **next** for rows 6–10, or give a **search** term (CVE, requester, title) to narrow.
 
 Only add `search` to the list call when the user gives a keyword — do not require them to know
-CVE or title text upfront.
+CVE or title text upfront. If the user just replies `1, 2` with no scope, default to `CURRENT`
+(approve as-is) and ask once whether they want a comment before executing.
 
 #### When listing returns zero rows
 
@@ -145,7 +163,11 @@ later page, re-list that page (or keep page context) before mapping numbers.
 
 | How they pick | What you do |
 |---|---|
-| Row numbers (`1`, `1 and 3`, `2-4`) | Map through `_action_id_by_row` on the current page. |
+| Row numbers (`1`, `1 and 3`, `2-4`) | Map through `_action_id_by_row` on the current page. Default scope `CURRENT`. |
+| Row + scope (`2 for org`, `3 as-is`, `4 for account`) | Map row → `exemption_id`; set `body.scope` per the [Natural language → `body.scope`](#natural-language--bodyscope) table. |
+| Row + comment (`5 with comment "SEC-440"`) | Same as row pick; attach the quoted text as `body.comment`. |
+| Row + scope + comment (`2 for org with comment "AppSec approved"`) | Combine both — one entry in the plan with `scope` and `comment`. |
+| Mixed list (`1 as-is, 2 for org, 3 for account with comment "logged"`) | One plan entry per row; scopes and comments may differ per row. |
 | "Next" / "next page" | Increment `page` per `_nextPageHint`; show the new table; wait for picks. |
 | Search term (`log4j`, requester name) | Re-list with `search`, reset to `page: 0`; show filtered preview. |
 | Exemption ID (22-char Harness ID) | Accept if they paste one — but **never ask** for IDs; listing is the default. |
@@ -238,7 +260,7 @@ Optional fields (same for every row unless the user specifies otherwise):
 
 | Field | Notes |
 |---|---|
-| `comment` | Optional approval note. Ask if they want one; do not invent text. |
+| `comment` | Optional approval note. Users can attach it inline in their selection (`5 with comment "JIRA SEC-440"`) — capture the quoted text verbatim. If they pick a row with no comment phrasing, ask once before executing; never invent text. |
 | `approver_id` | Auto-derived from the PAT — never ask the user. |
 
 Do **not** use `harness_execute` with `action='promote'`. The `approve` action accepts
@@ -351,6 +373,16 @@ User: *"Approve #1 as-is, #2 for org, and #3 for account."* (from the same page 
 
 1. Plan three rows with `CURRENT`, `ORG`, `ACCOUNT`.
 2. One confirmation table; three sequential executes.
+
+### Example 7b — Inline scope + comment in one message
+
+User: *"Approve #2 for org with comment \"AppSec reviewed, JIRA SEC-440\" and #4 as-is."*
+
+1. Row 2 → `body.scope: "ORG"`, `body.comment: "AppSec reviewed, JIRA SEC-440"`.
+2. Row 4 → `body.scope: "CURRENT"`, no comment.
+3. Confirm both lines (showing the comment column), then execute sequentially.
+
+Do not strip or rewrite the quoted comment text.
 
 ### Example 8 — Optional search narrow (user volunteers a keyword)
 

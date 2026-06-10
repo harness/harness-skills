@@ -79,6 +79,7 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/verify-sign` | Add Artifact Verification step to existing pipelines |
 | `/configure-dast-scan` | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
 | `/exempt-vuln` | Create STO security exemptions (waivers) for vulnerabilities; Project/Pipeline/Target scope from the Vuln tab, Project-only from the All Issues page |
+| `/approve-exempt` | Approve pending STO exemptions at current scope or elevate to Project/Org/Account; mixed per-row approval scopes supported |
 
 ### Observability & Governance
 

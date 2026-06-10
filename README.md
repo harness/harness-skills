@@ -253,6 +253,7 @@ Typical sequence:
 | [`/configure-container-scan`](skills/configure-container-scan/SKILL.md) | Scan your container images for vulnerabilities |
 | [`/configure-dast-scan`](skills/configure-dast-scan/SKILL.md) | Test your running applications for security vulnerabilities with DAST |
 | [`/exempt-vuln`](skills/exempt-vuln/SKILL.md) | Exempt vulnerabilities with security waivers at Target, project or pipeline scope |
+| [`/approve-exempt`](skills/approve-exempt/SKILL.md) | Approve pending STO exemptions at current scope or elevate to project/org/account; mixed scopes per batch |
 | [`/generate-slsa`](skills/generate-slsa/SKILL.md) | Generate and attest SLSA provenance for your artifacts |
 | [`/enforce-slsa`](skills/enforce-slsa/SKILL.md) | Verify SLSA provenance attestations and enforce OPA policies on your artifacts |
 | [`/create-sbom`](skills/create-sbom/SKILL.md) | Generate and attest SBOM for your artifacts and code repositories |

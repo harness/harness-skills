@@ -161,7 +161,7 @@ Use root-level `references/` and `templates/` when the material should be shared
    mkdir skills/my-new-skill/templates
    ```
 
-5. Add the skill to `CLAUDE.md` so it appears in the project's skill index.
+5. Add the skill to `AGENTS.md` so it appears in the project's skill index (`CLAUDE.md` imports `AGENTS.md` for Claude Code).
 
 6. Add the skill to `README.md` under the appropriate category.
 
@@ -227,7 +227,7 @@ The same checks run automatically via GitHub Actions on every PR to `main`.
 
 1. Run `./scripts/validate-skills.sh` and fix any errors
 2. Verify the SKILL.md frontmatter is valid YAML
-3. Update `CLAUDE.md` and `README.md` if adding a new skill
+3. Update `AGENTS.md` and `README.md` if adding a new skill
 4. Update shared `references/` or `templates/` when reusable behavior changes
 5. Write a clear PR description explaining what the skill does and which workflow it fits into
 6. Reference any related issues

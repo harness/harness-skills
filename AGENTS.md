@@ -65,6 +65,12 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | Skill | Description |
 |-------|-------------|
 | `/manage-delegates` | Monitor delegate health and manage registration tokens |
+| `/manage-iacm` | Terraform workspaces, drift detection, cost estimation, and approval workflows |
+| `/manage-cde` | Cloud development environments, workspace templates, and auto-hibernation |
+| `/manage-artifacts` | Artifact registry setup, security scanning, and cross-region replication |
+| `/create-sbom` | Add SBOM Orchestration (generation/attestation) to existing pipelines |
+| `/enforce-sbom` | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) |
+| `/manage-supply-chain` | SBOM generation, artifact signing, and supply chain policy enforcement |
 
 ### Security
 
@@ -75,11 +81,12 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/configure-container-scan` | Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more) |
 | `/generate-slsa` | Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines |
 | `/enforce-slsa` | Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines |
-| `/sign-artifact` | Add Artifact Signing step to existing pipelines |
-| `/verify-sign` | Add Artifact Verification step to existing pipelines |
+| `/sign-artifact` | Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA) |
+| `/verify-sign` | Add Artifact Verification (verify Cosign signature) to existing pipelines (SSCA) |
 | `/configure-dast-scan` | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
 | `/exempt-vuln` | Create STO security exemptions (waivers) for vulnerabilities; Project/Pipeline/Target scope from the Vuln tab, Project-only from the All Issues page |
 | `/approve-exempt` | Approve pending STO exemptions at current scope or elevate to Project/Org/Account; mixed per-row approval scopes supported |
+| `/configure-agent-pr-attestation` | Install and configure the Claude Code PR attestation hook for signed in-toto attestations to the Harness Evidence Vault |
 
 ### Observability & Governance
 
@@ -94,8 +101,14 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
 | `/template-usage` | Template dependency tracking, impact analysis, and adoption |
 | `/create-policy` | Create OPA governance policies for supply chain security |
-| `/create-sbom` | Add SBOM Orchestration (generation/attestation) to existing pipelines |
-| `/enforce-sbom` | Add SBOM Policy Enforcement (verify attestation + OPA policy sets) |
+| `/manage-idp` | Service catalog, self-service workflows, documentation, and developer onboarding (IDP) |
+| `/manage-slos` | SLO definition, error budgets, incident detection, and operational runbooks |
+| `/sei-analytics` | Sprint analytics, investment allocation, capacity forecasting, and release readiness |
+| `/ai-operations` | Predictive failure analysis and intelligent alert correlation (AIDA) |
+| `/optimize-pipeline` | Pipeline speed optimization, parallel testing, caching, and monorepo builds |
+| `/deployment-readiness` | Pre-deployment readiness checks, environment drift, and canary decisions |
+| `/incident-response` | Deployment-incident correlation, blast radius analysis, and postmortems |
+| `/pr-analysis` | PR pipeline impact, security review, and PR-to-production tracking |
 
 ### Agents
 

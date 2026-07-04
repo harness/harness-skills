@@ -2,7 +2,7 @@
 
 Claude Code skills for the [Harness.io](https://harness.io) CI/CD platform. Generate pipeline YAML, manage resources, debug failures, analyze costs, and more from natural language.
 
-This repository is designed as a workflow system, not just a folder of prompts. The top-level instructions (`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`) establish shared behavior, while individual skills specialize in creation, debugging, governance, and reporting tasks.
+This repository is designed as a workflow system, not just a folder of prompts. The top-level instructions (`AGENTS.md`, with `CLAUDE.md` importing it for Claude Code, plus `.github/copilot-instructions.md`) establish shared behavior, while individual skills specialize in creation, debugging, governance, and reporting tasks.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@ This repository is designed as a workflow system, not just a folder of prompts. 
 
 ### Claude Code
 
-Clone the repo and run Claude Code from the project directory. Skills are automatically discovered from `CLAUDE.md` and `skills/*/SKILL.md`:
+Clone the repo and run Claude Code from the project directory. Skills are automatically discovered from `skills/*/SKILL.md`; project rules load via `CLAUDE.md` → `@AGENTS.md`:
 
 ```bash
 git clone https://github.com/harness/harness-skills.git
@@ -149,7 +149,7 @@ Create a CI pipeline for my Python service
 
 The skills in this repo are plain Markdown files with YAML frontmatter. They work with any AI coding tool that supports:
 
-1. **System instructions** - Use `CLAUDE.md` as project-level context.
+1. **System instructions** - Use `AGENTS.md` as project-level context (`CLAUDE.md` imports it for Claude Code).
 2. **MCP servers** - Connect the [Harness MCP v2 server](https://github.com/harness/mcp-server) for API access.
 3. **File context** - Reference individual `skills/*/SKILL.md` files in prompts.
 
@@ -310,8 +310,8 @@ harness-skills/
 │   └── ...
 ├── .cursor/rules/harness.mdc    # Auto-loaded by Cursor
 ├── .github/copilot-instructions.md
-├── AGENTS.md                    # Auto-loaded by OpenAI Codex
-├── CLAUDE.md                    # Auto-loaded by Claude Code
+├── AGENTS.md                    # Canonical project rules (Codex, Cursor, etc.)
+├── CLAUDE.md                    # Imports AGENTS.md for Claude Code
 ├── CONTRIBUTING.md              # Contribution guidelines
 ├── LICENSE
 └── README.md

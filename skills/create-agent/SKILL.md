@@ -1,5 +1,5 @@
 ---
-name: custom-ai-agents
+name: create-agent
 description: >-
   Create and update Harness AI agent instances - standalone templates for agentic workflows in pipelines. Use when asked to create agent, update agent, modify agent spec, build autonomous systems, or work with AI agents.
 metadata:

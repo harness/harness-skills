@@ -1,0 +1,75 @@
+# Minimal CI pipeline — runs on Harness Cloud with no connectors required.
+# Use this to validate the PM_Signoff project before wiring Git and registry connectors.
+
+pipeline:
+  identifier: hello_world_ci
+  name: Hello World CI
+  orgIdentifier: default
+  projectIdentifier: PM_Signoff
+  tags:
+    app: hello-world
+    project: PM_Signoff
+  stages:
+    - stage:
+        identifier: hello_world
+        name: Hello World
+        type: CI
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  identifier: greet
+                  name: Greet
+                  type: Run
+                  spec:
+                    shell: Bash
+                    command: |
+                      echo "Hello, World from PM_Signoff!"
+                      echo "Harness project: PM_Signoff"
+                      echo "Build number: <+pipeline.sequenceId>"
+              - step:
+                  identifier: smoke_test
+                  name: Smoke Test
+                  type: Run
+                  spec:
+                    shell: Bash
+                    command: |
+                      set -euo pipefail
+                      node --version
+                      npm --version
+                      mkdir -p /tmp/hello-world
+                      cat > /tmp/hello-world/index.js <<'EOF'
+                      const http = require("http");
+                      const server = http.createServer((_req, res) => {
+                        res.end("Hello, World!\n");
+                      });
+                      server.listen(0, () => {
+                        const { port } = server.address();
+                        http.get(`http://127.0.0.1:${port}/`, (response) => {
+                          let body = "";
+                          response.on("data", (chunk) => { body += chunk; });
+                          response.on("end", () => {
+                            if (body.trim() !== "Hello, World!") {
+                              console.error("Unexpected response:", body);
+                              process.exit(1);
+                            }
+                            console.log("Smoke test passed");
+                            server.close();
+                          });
+                        });
+                      });
+                      EOF
+                      node /tmp/hello-world/index.js
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

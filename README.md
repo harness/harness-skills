@@ -222,6 +222,12 @@ Typical sequence:
 | [`/create-connector`](skills/create-connector/SKILL.md) | Create connectors (Git, cloud, registries, clusters) |
 | [`/create-secret`](skills/create-secret/SKILL.md) | Create secrets (text, file, SSH, WinRM) |
 
+### Database Operations (MCP)
+
+| Skill | Description |
+|-------|-------------|
+| [`/dbops-changeset`](skills/dbops-changeset/SKILL.md) | Generate, refine, review, and execute Liquibase changesets with Harness DBOPS |
+
 ### Access Control & Feature Flags (MCP)
 
 | Skill | Description |

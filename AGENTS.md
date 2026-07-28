@@ -60,6 +60,12 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 |-------|-------------|
 | `/manage-feature-flags` | Create, list, toggle, and delete feature flags |
 
+### Database Operations
+
+| Skill | Description |
+|-------|-------------|
+| `/dbops-changeset` | Generate, refine, review, and execute Liquibase changesets with Harness DBOPS |
+
 ### Platform Operations
 
 | Skill | Description |

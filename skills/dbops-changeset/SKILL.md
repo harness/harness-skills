@@ -363,10 +363,14 @@ the user accepted it. **Do NOT base64-encode it.**.
 
 **IMPORTANT — `conversation_id` (REQUIRED before `harness_execute`):** Always pass `conversation_id` explicitly when calling `harness_execute` for the `database_execute_llm_authoring_pipeline` resource. Resolve it from agent context in this order:
 
-1. `conversation_id`
-2. `session_id` (use the session ID as the `conversation_id` value)
+1. `conversation_id` — Harness chat / platform-injected conversation ID (preferred)
+2. `session_id` — use the session ID as the `conversation_id` value when present in agent or system context
+3. **Cursor chat / agent transcript ID** — when running in Cursor and neither of the above is injected, resolve the active chat UUID and use it as `conversation_id` without asking the user:
+   - Prefer any Cursor-injected session field if present (e.g. `session_id`, `composerId`, `chatId`).
+   - Otherwise locate this chat’s agent transcript under the project’s `agent-transcripts/<uuid>/` directory (typically `~/.cursor/projects/<project-slug>/agent-transcripts/<uuid>/<uuid>.jsonl`). Match the transcript that contains the current conversation’s recent user query (or the most recently updated transcript for this chat), and use that `<uuid>` as `conversation_id`.
+   - Do **not** invent a random UUID. The value must come from Cursor’s chat/session identity or transcript metadata for **this** conversation.
 
-It is a **hard requirement** before making the execute-pipeline tool call. Never fabricate or generate a conversation ID — it is the billing dedup key and must come from the platform. If neither `conversation_id` nor `session_id` is present in agent context, STOP — do **not** call `harness_execute`. Tell the user pipeline execution cannot proceed without a conversation/session ID.
+It is a **hard requirement** before making the execute-pipeline tool call. Prefer platform-injected IDs when both a Harness `conversation_id` and a Cursor session ID exist. Never fabricate a UUID from scratch — `conversation_id` is the billing / idempotency key. Only if steps 1–3 all fail, STOP — do **not** call `harness_execute`. Tell the user pipeline execution cannot proceed without a conversation/session ID.
 
 **IMPORTANT — chat runner gate protocol.** The user already consented via
 **Accept & Commit**, but the chat runner may render a separate permission
@@ -555,7 +559,7 @@ same pipeline-service execution endpoint that powers the `openInHarness` link.
 - Present the changeset for review in chat and always offer all three options: **Accept**, **Accept & Commit**, **Deny**.
 - Always include the full YAML in the review message.
 - Use the YAML the user accepted/edited — not your original generation if they changed it.
-- Before any `harness_execute` for `database_execute_llm_authoring_pipeline`, resolve `conversation_id` from agent context (`conversation_id`, else `session_id`). Do not execute without it.
+- Before any `harness_execute` for `database_execute_llm_authoring_pipeline`, resolve `conversation_id` from agent context (`conversation_id`, else `session_id`, else Cursor chat/transcript UUID). Do not execute without it, and do not ask the user for a Cursor chat ID when the transcript UUID can be resolved locally.
 - For `accept_commit`, post the `openInHarness` link (if present) and stop. Do NOT proactively poll — the server reconciles status asynchronously. If the user later asks for status, call `harness_get` once as described in Step F.
 - For `deny`, skip re-discovery — schema and instance are already known.
 - For error recovery, explain the fix BEFORE presenting the corrected YAML.

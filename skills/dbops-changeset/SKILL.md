@@ -18,7 +18,7 @@ compatibility: >-
   (resource types: database_schema, database_instance, database_default_authoring_instance,
   database_snapshot_object, database_execute_llm_authoring_pipeline). Connector lookup uses
   the `connectors` toolset `connector` resource. Review is done in chat (Accept / Deny /
-  Accept & Commit) because `present_for_review` is not available.
+  Accept & Commit).
 ---
 
 # DBOPS Changeset Generation

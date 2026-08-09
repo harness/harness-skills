@@ -1,0 +1,17 @@
+environment:
+  identifier: hello_world_dev
+  name: Hello World Dev
+  description: Development environment for the PM_Signoff hello world application
+  orgIdentifier: default
+  projectIdentifier: PM_Signoff
+  type: PreProduction
+  tags:
+    app: hello-world
+    tier: development
+  variables:
+    - name: LOG_LEVEL
+      type: String
+      value: debug
+    - name: REPLICA_COUNT
+      type: Number
+      value: "1"

@@ -1,0 +1,42 @@
+service:
+  identifier: hello_world_service
+  name: Hello World Service
+  description: Minimal hello world service for PM_Signoff
+  orgIdentifier: default
+  projectIdentifier: PM_Signoff
+  tags:
+    app: hello-world
+    project: PM_Signoff
+  serviceDefinition:
+    type: Kubernetes
+    spec:
+      artifacts:
+        primary:
+          primaryArtifactRef: docker_image
+          sources:
+            - identifier: docker_image
+              type: DockerRegistry
+              spec:
+                connectorRef: dockerhub_connector
+                imagePath: harness/pm-signoff-hello-world
+                tag: <+input>
+      manifests:
+        - manifest:
+            identifier: k8s_manifests
+            type: K8sManifest
+            spec:
+              store:
+                type: Github
+                spec:
+                  connectorRef: github_connector
+                  repoName: harness-skills
+                  branch: main
+                  paths:
+                    - examples/pm-signoff/hello-world/manifests/
+      variables:
+        - name: replicas
+          type: Number
+          value: "1"
+        - name: hello_message
+          type: String
+          value: Hello, World from PM_Signoff!

@@ -102,7 +102,8 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/security-report` | Security vulnerabilities, SBOMs, and compliance reports |
 | `/dora-metrics` | DORA metrics and engineering performance reports |
 | `/gitops-status` | GitOps application health, sync status, and pod logs |
-| `/chaos-experiment` | Create and run chaos engineering experiments |
+| `/chaos-experiment` | Create, edit, and reference chaos experiments (faults, probes, actions) |
+| `/chaos-dr-test` | Create and edit DR Test pipelines with chaos steps |
 | `/scorecard-review` | IDP scorecards and service maturity review |
 | `/audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
 | `/template-usage` | Template dependency tracking, impact analysis, and adoption |

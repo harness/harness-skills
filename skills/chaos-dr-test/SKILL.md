@@ -2,7 +2,7 @@
 name: chaos-dr-test
 description: >-
   Use when working with Chaos Engineering steps inside a Harness pipeline. Covers
-  ChaosFault, ChaosProbe, ChaosAction steps (DRTest stages), the Chaos step (CD
+  ChaosFault, ChaosProbe, ChaosAction steps (DRTest stages), the Chaos step (DRTest
   stages), and DRTest stage/pipeline structure. Use when the user asks to add,
   modify, or create chaos steps, fault injection, probes, or disaster recovery
   test pipelines. Do not use for standalone Chaos Experiment create or edit;

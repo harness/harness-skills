@@ -65,9 +65,9 @@ For ChaosFault / ChaosProbe / ChaosAction / Chaos steps in a pipeline or DRTest 
 ## Performance Notes
 
 - Do not guess fault, probe, or action identities, infrastructure IDs, or runtime variable names. Always call the matching `harness_list` / `harness_get` / `harness_execute(action="get_variables")` and use the returned values.
-- Re-fetch environment/infrastructure options for every new fault/probe/action added — do not reuse a prior step's selection, since each component's `infraId` is independent.
 - Validate the manifest against the YAML Validation Rules in `references/components.md` before presenting it or saving — no duplicate keys, no orphan `vertices` references, no blank lines.
 - Wait for the tool's confirmed save response before reporting success; a review/elicitation prompt is not a completed save.
+- **Not covered by this skill:** running an experiment, listing existing experiments, or inspecting run results. Use the Chaos MCP tools directly — `harness_execute(resource_type="chaos_experiment", action="run", resource_id="<experiment_id>", ...)`, `harness_list(resource_type="chaos_experiment_run", ...)`, `harness_get(resource_type="chaos_experiment_run", resource_id="<run_id>", ...)`.
 
 ## Troubleshooting
 

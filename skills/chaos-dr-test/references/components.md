@@ -178,7 +178,7 @@ Handle the variables using the **Runtime Variables Workflow** below, then build 
 
 ### `duration` field rules
 
-- **ChaosProbe** and **ChaosAction** — `duration` is ALWAYS required at the step level. Always ask the user for it. Do not rely on the runtime variable API for this value. Must match `^\d+(\.\d+)?(ms|s|m|h)$` (e.g., `"10s"`, `"1m"`). Validate before generating YAML.
+- **ChaosProbe** and **ChaosAction** — `duration` is ALWAYS required at the step level. Always ask the user for it. Do not rely on the runtime variable API for this value. The user may give a fixed value matching `^\d+(\.\d+)?(ms|s|m|h)$` (e.g., `"10s"`, `"1m"`), or mark it as runtime by using the literal `<+input>` (exempt from the regex check). Validate before generating YAML.
 - **ChaosFault** — does NOT have `duration` at the step level. Fault duration is controlled via task variables returned by the runtime variables API (e.g., `TOTAL_CHAOS_DURATION` or similar). Do not ask the user for a separate `duration` field for faults.
 
 ### `tasks` field rules

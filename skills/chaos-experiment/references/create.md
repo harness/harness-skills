@@ -241,7 +241,7 @@ Call `harness_describe(resource_type="chaos_experiment")` and read the `create` 
 
 - `id` — the experiment UUID from Step 4
 - `name` — the experiment name from Step 3
-- `identity` — auto-generate from the experiment name — lowercase, strip all characters except `a-z` and `0-9`, max 47 chars (e.g., `try-exp-creation-01` -> `tryexpcreation01`).
+- `identity` — auto-generate from the experiment name — lowercase, strip all characters except `a-z` and `0-9`, max 47 chars (e.g., `try-exp-creation-01` -> `tryexpcreation01`). If the result is empty, ask the user to provide an explicit identity instead of auto-deriving.
 - `manifest` — the full experiment YAML converted to a JSON string (Step 9a)
 - `infra_id` — the infrastructure reference from Steps 1–2: for Kubernetes, `<environmentId>/<infraId>` composite (e.g., `demo/qaauto1`); for Linux/Windows, the selected infrastructure's `infraID` UUID alone.
 - `infra_type` — the infrastructure type from Step 1 (e.g., `KubernetesV2`, `Linux`, `Windows`)

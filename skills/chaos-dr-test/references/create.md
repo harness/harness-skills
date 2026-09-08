@@ -30,6 +30,10 @@ This file drives creating a brand-new DR Test pipeline from scratch. If the user
 
    Derive the `identifier` automatically from the name: lowercase, replace spaces with underscores, strip characters not matching `[a-zA-Z0-9_$]`. Example: name `Payment DB Failover` -> identifier `payment_db_failover`. Do NOT ask the user to confirm the identifier.
 
+   After deriving, validate the result against `^[a-zA-Z_][a-zA-Z0-9_$]{0,127}$`:
+   - If it starts with a digit, prepend `_`.
+   - If it is empty (e.g., the name had no valid characters), ask the user to provide an explicit identifier instead of auto-deriving.
+
    The MCP also accepts optional fields — use them if the user provided them, but do not prompt for them:
 
    | Field | Required | Notes |

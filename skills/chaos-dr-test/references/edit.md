@@ -27,14 +27,15 @@ IMPORTANT: The existing pipeline `identifier`, `orgIdentifier`, `projectIdentifi
 
 ### Step U1: Determine if user already has a pipeline identifier
 
-If the user's original message already included a specific pipeline identifier (matches `^[A-Za-z_][A-Za-z0-9_]*$`) or name, skip asking and go directly to **Step U3** using that value.
+The DR Test's stage identity/name and its backing pipeline identifier are DIFFERENT values (pipeline identifier = `<stage_identity>_pipeline` — see `SKILL.md`'s naming convention). Never `harness_get` a pipeline using the user's raw quoted value directly — always resolve the real `spec.pipeline.identity` via **Step U2** first.
+
+If the user's original message already included a specific pipeline identifier, DR Test name, or stage identity, skip asking and go directly to **Step U2**, then match that value against each item's `name` / `identity` in the response.
 
 Otherwise, ask:
 
-> Do you already have the identifier for the DR Test pipeline you want to edit? If not, I can list all DR Tests in this project for you.
+> Do you already have the identifier or name for the DR Test pipeline you want to edit? If not, I can list all DR Tests in this project for you.
 
-- User **provides an identifier** -> go to **Step U3** (direct fetch).
-- User **does not have an identifier** (or asks to list) -> go to **Step U2** (list DR Tests).
+Either way, proceed to **Step U2** next — never skip straight to Step U3.
 
 ### Step U2: List DR Tests and let user select
 
@@ -60,6 +61,8 @@ Handle the results:
 
   If yes, switch to `references/create.md`.
 
+- **User already supplied an identifier/name in Step U1** — first try to match it (case-insensitive) against each item's `name` or `identity`. If exactly one match is found, skip the numbered-list prompt below and proceed directly to **Step U3** using that item's `spec.pipeline.identity`. If no match or the match is ambiguous, fall back to the numbered-list flow below.
+
 - **One or more results** — present them as a numbered list showing **name**, **identity**, **description**, **objective**, and **pipeline identifier** (`spec.pipeline.identity`) for each. Also include an option to create a new DR Test from scratch. Ask the user to pick one by number or choose to create new. If the user picks an existing DR Test, extract `spec.pipeline.identity` from the selected item and proceed to **Step U3**. If the user chooses to create new, switch to `references/create.md`.
 
 ### Step U3: Fetch pipeline YAML and show for confirmation
@@ -68,9 +71,7 @@ Fetch the full pipeline YAML:
 
 `harness_get(resource_type="pipeline", resource_id="<pipeline_identifier>", org_id="<org_id>", project_id="<project_id>")`, passing `org_id`/`project_id` using the active scope (see Scope Rules above).
 
-where `<pipeline_identifier>` is either:
-- the identifier the user provided directly (from Step U1), or
-- the `spec.pipeline.identity` extracted from the selected DR Test (from Step U2).
+`<pipeline_identifier>` is always the `spec.pipeline.identity` resolved via Step U2 — never the raw stage identity/name the user typed in Step U1. If this call 404s, retry once with `<resolved_identity>_pipeline` before reporting an error to the user (defends against a DR Test whose pipeline identifier does not follow the standard convention).
 
 The `yamlPipeline` field in the response contains the complete YAML — see `SKILL.md`'s `DRTest Pipeline — Created via MCP with Empty Steps` for the expected shape.
 

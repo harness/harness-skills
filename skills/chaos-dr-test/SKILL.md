@@ -88,7 +88,10 @@ pipeline:
 
 The stage-level `environment` block is NOT used by DRTest pipelines. It may appear in fetched YAML but is ignored by the backend:
 
-    environment: environmentRef: demo deployToAll: false infrastructureDefinitions:
+    environment:
+      environmentRef: demo
+      deployToAll: false
+      infrastructureDefinitions:
         - identifier: qaauto1
 
 Do not ask the user to provide stage-level environment or infrastructure — each chaos step has its own `infraReference` field instead (see `references/components.md` Step 1). If this block already exists in fetched YAML, preserve it as-is — do not remove it.

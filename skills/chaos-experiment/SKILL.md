@@ -4,8 +4,10 @@ description: >-
   Use when the user asks to create, edit, update, design, or configure a Harness Chaos
   Experiment — including faults, probes, actions, experiment YAML, fault injection,
   pod-delete, or resilience tests. Do not use for Chaos steps inside a pipeline or a
-  DRTest stage; use chaos-dr-test for those. Trigger phrases: chaos experiment, chaos
-  engineering, resilience test, fault injection, pod-delete, chaos hub template.
+  DRTest stage; use chaos-dr-test for those. Do not use to run an experiment, list past
+  runs, or inspect run results — call the Chaos MCP tools directly for those (see
+  Performance Notes). Trigger phrases: chaos experiment, chaos engineering, resilience
+  test, fault injection, pod-delete, chaos hub template.
 metadata:
   author: Harness
   version: 3.0.0
@@ -46,7 +48,7 @@ Choose the first matching entry route below. Read that entry file first; it may 
 you to read additional shared references later.
 
 - **Reference question** — the user asks how a fault, probe, action, target workload, tunable, vertex, manifest field, or YAML structure works, without asking to create or modify an experiment: Read `references/components.md`. No scaffolded YAML is required for a reference-only answer.
-- **Existing experiment** — the user explicitly asks to edit, update, modify, change, rename, fix, remove from, or add to an existing experiment, says the experiment already exists, or provides an existing experiment UUID: Read `references/edit.md`. Preserve `experimentId` and `identity`. Do not generate a new UUID.
+- **Existing experiment** — the user explicitly asks to edit, update, modify, change, rename, fix, remove from, or add to an existing experiment, says the experiment already exists, or provides an existing experiment UUID: Read `references/edit.md`. Preserve `experimentId` and `identity`. Do not generate a new UUID. Saving an edit reuses `harness_create` as an upsert — `chaos_experiment` has no separate update operation; do not call `harness_update` for this resource type.
 - **New experiment** — the user asks to create, build, set up, make, design, or launch a new experiment: Read `references/create.md`. This route still applies when the user supplies the desired name for the new experiment. Generate a new UUID; do not load an existing experiment.
 - **Unsure** — ask: "Would you like to **create** a new chaos experiment, **edit** an existing one, or ask a **reference question** about experiment YAML/components?"
 

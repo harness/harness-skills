@@ -278,7 +278,8 @@ Typical sequence:
 | [`/manage-slos`](skills/manage-slos/SKILL.md) | SLO definition, error budgets, incident detection, runbooks (SRM) |
 | [`/ai-operations`](skills/ai-operations/SKILL.md) | Predictive failure analysis and intelligent alert correlation (AIDA) |
 | [`/gitops-status`](skills/gitops-status/SKILL.md) | GitOps application health and sync status |
-| [`/chaos-experiment`](skills/chaos-experiment/SKILL.md) | Create and run chaos experiments |
+| [`/chaos-experiment`](skills/chaos-experiment/SKILL.md) | Create, edit, and reference chaos experiments (faults, probes, actions) |
+| [`/chaos-dr-test`](skills/chaos-dr-test/SKILL.md) | Create and edit DR Test pipelines with chaos steps |
 | [`/scorecard-review`](skills/scorecard-review/SKILL.md) | Service maturity scorecards (IDP) |
 | [`/manage-idp`](skills/manage-idp/SKILL.md) | Service catalog, self-service workflows, documentation, onboarding (IDP) |
 | [`/manage-iacm`](skills/manage-iacm/SKILL.md) | Terraform workspaces, drift detection, cost estimation (IaCM) |

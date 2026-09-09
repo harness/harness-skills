@@ -69,7 +69,7 @@ Do NOT reuse environment or infrastructure from a previously added step. Every p
 
    Exclude any infra where `status != "ACTIVE"` OR `isChaosEnabled == false`. Do NOT let the user select an invalid infra — the pipeline will fail. If no valid infras exist, inform the user and do not proceed.
 
-   User picks one valid infra (e.g., `qaauto1`).
+   User picks one valid infra (e.g., `qaauto1`). Capture `selected_infra_type = "KubernetesV2"` — DR Test infra listing only covers Kubernetes today (`chaos_k8s_infrastructure`), so this is currently always `KubernetesV2`, but Step 2F/2A below MUST use this captured value rather than a hardcoded literal.
 
 3. **Compose `infraReference`** — the format is `<environmentId>/<infraId>`. Example: environment `demo` + infra `qaauto1` = `demo/qaauto1`.
 
@@ -93,7 +93,7 @@ Pass `org_id`/`project_id` using the active scope. User picks one probe from the
 
 Use the `is_enterprise` value captured during the Choose Action routing (defaults to `true` if the user said just "fault").
 
-Call: `harness_list(resource_type="chaos_fault", org_id="<org_id>", project_id="<project_id>", filters={"is_enterprise": <true|false>, "infrastructure": "KubernetesV2"})`, passing `org_id`/`project_id` using the active scope.
+Call: `harness_list(resource_type="chaos_fault", org_id="<org_id>", project_id="<project_id>", filters={"is_enterprise": <true|false>, "infrastructure": "<selected_infra_type>"})` — use the `selected_infra_type` captured in Step 1 (currently always `KubernetesV2`). Pass `org_id`/`project_id` using the active scope.
 
 Present the fault names, identities, and categories. **Always state which set this is** — e.g. "Here are the **enterprise** faults available. If you want a **custom** fault from your project instead, just say so." (Or vice versa when `is_enterprise=false`.) If the user asks to switch, re-run the call with the flipped value.
 
@@ -119,11 +119,13 @@ Available filters for `harness_list(resource_type="chaos_action", filters={...})
 | `hub_identity` | Filter by chaos hub identity | hub identity string |
 | `include_all_scope` | Include actions across all orgs/projects in the account | `true` / `false` (default `false`) |
 
-If user picks a specific type: `harness_list(resource_type="chaos_action", org_id="<org_id>", project_id="<project_id>", filters={"infra_type": "KubernetesV2", "entity_type": "<value>"})`
+Use the `selected_infra_type` captured in Step 1 (currently always `KubernetesV2`) for `infra_type` in every call below — do not hardcode the literal.
 
-If user picks All (or does not specify): `harness_list(resource_type="chaos_action", org_id="<org_id>", project_id="<project_id>", filters={"infra_type": "KubernetesV2"})`
+If user picks a specific type: `harness_list(resource_type="chaos_action", org_id="<org_id>", project_id="<project_id>", filters={"infra_type": "<selected_infra_type>", "entity_type": "<value>"})`
 
-To search by name: `harness_list(resource_type="chaos_action", org_id="<org_id>", project_id="<project_id>", filters={"infra_type": "KubernetesV2", "search": "<name>"})`
+If user picks All (or does not specify): `harness_list(resource_type="chaos_action", org_id="<org_id>", project_id="<project_id>", filters={"infra_type": "<selected_infra_type>"})`
+
+To search by name: `harness_list(resource_type="chaos_action", org_id="<org_id>", project_id="<project_id>", filters={"infra_type": "<selected_infra_type>", "search": "<name>"})`
 
 Pass `org_id`/`project_id` using the active scope on all of the above.
 
@@ -305,7 +307,11 @@ After generating the steps YAML, update the DR Test pipeline with these MCP call
 
 2. **Modify the YAML** — Insert the generated steps into the `steps: []` array of the DRTest stage. Do NOT omit any existing fields from the fetched YAML.
 
-3. **Update the pipeline** — Send the full modified YAML back: `harness_update(resource_type="pipeline", resource_id="<pipeline_identifier>", org_id="<org_id>", project_id="<project_id>", body={"yamlPipeline": "<full updated YAML string>"})`
+3. **Update the pipeline** — Send the full modified YAML back. The exact call depends on the `storeType` checked in step 1:
+
+   - **INLINE** (`storeType` was `"INLINE"` or absent): `harness_update(resource_type="pipeline", resource_id="<pipeline_identifier>", org_id="<org_id>", project_id="<project_id>", body={"yamlPipeline": "<full updated YAML string>"})`
+
+   - **REMOTE** (`storeType` was `"REMOTE"`): `harness_update(resource_type="pipeline", resource_id="<pipeline_identifier>", org_id="<org_id>", project_id="<project_id>", store_type="REMOTE", connector_ref="<connectorRef from step 1's fetch>", repo_name="<repoName from step 1's fetch>", branch="<branch from step 1's fetch>", file_path="<filePath from step 1's fetch>", last_object_id="<lastObjectId from step 1's fetch>", body={"yamlPipeline": "<full updated YAML string>"})` — also include `last_commit_id` if step 1's fetch response returned one.
 
 Pass `org_id`/`project_id` using the active scope (see Scope Rules above) on both calls.
 

@@ -2,24 +2,22 @@
 
 Harness FME rollout pipelines use native FME steps (`FmeFlag*`, `FmeFlagset*`, `FmeSegment*`, `FmeMetricCheck`). Prefer these over `Run` / `ShellScript` steps that call FME APIs, and over classic **`FlagConfiguration`** steps (legacy Feature Flags).
 
-Schema source: Harness v0 step library (`FeatureFlagStageNode`, Custom `execution-wrapper-config`, FME step nodes). FME steps are allowed on **both** `FeatureFlag` and `Custom` stages.
+FME steps are allowed on **both** `FeatureFlag` and `Custom` stages. Step YAML `type:` strings must match the exact identifiers in this document — do not confuse them with UI-only registration identifiers (e.g. use `FmeFlagSetIndividualTargets` not `FmeFlagSetTargets`, `FmeFlagAddRemoveIndividualTargets` not `FmeFlagAddRemoveTargets`, `FmeSegmentAddRemoveTargets` not `FmeSegmentAddRemoveKeys`).
 
 ## Stage type
-
-Schema source: Harness v0 step library (`FeatureFlagStageNode`, Custom `execution-wrapper-config`, FME step nodes matching `StepSpecTypeConstants.java`). Step YAML `type:` strings must match the exact constants in this document — do not confuse them with UI-only registration identifiers (e.g. use `FmeFlagSetIndividualTargets` not `FmeFlagSetTargets`, `FmeFlagAddRemoveIndividualTargets` not `FmeFlagAddRemoveTargets`, `FmeSegmentAddRemoveTargets` not `FmeSegmentAddRemoveKeys`).
 
 | Stage `type` | Use for |
 |--------------|---------|
 | `FeatureFlag` | Dedicated FME flag/segment steps (default for this skill) |
-| `Approval` | Human gate before promoting to the next environment or percentage |
-| `Custom` | Mix `FmeFlag*` with Wait, tests, or other non-FME work; UI Step Library often lists FME here |
+| `Approval` | Human gate before promoting to the next environment or percentage (`type: HarnessApproval`) |
+| `Custom` | Mix `FmeFlag*` with `Wait` soak timers, tests, or other non-FME work |
 | `Pipeline` | Chain an existing pipeline (e.g. CD deploy then FME rollout) |
 
 ## Flag lifecycle steps
 
 | Step `type` | Purpose | Typical rollout use |
 |-------------|---------|---------------------|
-| `FmeFlagCreate` | Create flag metadata + treatments | Bootstrap a new guarded flag (usually killed/off in all envs first) |
+| `FmeFlagCreate` | Create flag metadata + treatments | Bootstrap a new flag (usually off/killed in all envs first) |
 | `FmeFlagUpdate` | Update flag metadata (description, tags, owners, rollout status) | Bookkeeping between phases |
 | `FmeFlagDelete` | Delete flag | Avoid in rollout skills — prefer kill + archive |
 | `FmeFlagArchive` | Archive launched flag | Post-launch cleanup — use `/cleanup-feature-flags`, not rollout |
@@ -34,7 +32,7 @@ Schema source: Harness v0 step library (`FeatureFlagStageNode`, Custom `executio
 | `FmeFlagLimitExposure` | Cap exposure to a treatment (0–100) | Alternative to allocation for simple % caps |
 | `FmeFlagSetTreatments` | Define treatment list + defaults | When treatments are not yet defined in the env |
 | `FmeFlagSetTargetingRules` | Replace targeting rules | Beta cohorts, segment rules, prerequisites |
-| `FmeFlagAddRemoveIndividualTargets` | Add/remove individual targets | Internal testers before percentage rollout |
+| `FmeFlagAddRemoveIndividualTargets` | Add/remove individual targets | Target specific users before percentage rollout |
 | `FmeFlagSetIndividualTargets` | Replace individual target list | Same as above when replacing the full list |
 | `FmeFlagPatchDefinition` | JSON Patch operations on a definition | Promote config between envs, surgical edits |
 | `FmeFlagReallocateTraffic` | Re-bucket traffic after definition change | After large targeting edits |
@@ -101,6 +99,8 @@ Implications:
 | `FmeSegmentAddRemoveTargets` | `name`, `environment`, `add` / `remove` (arrays of keys; either may be empty) |
 | `FmeSegmentSetTargetingRules` | `name`, `environment`, `rules` |
 | `FmeFlagDefinitionInstructions` | `flagName`, `environment`, `instructions` (ordered array; each entry has `type` + `value`; each `type` at most once per step) |
+| `HarnessApproval` | `approvers` (array of `userGroups` or `users`, `minimumCount`, and `disallowPipelineExecutor: true`) |
+| `Wait` | `duration` (e.g. `45m`, `1h`) |
 
 **`FmeFlagDefinitionInstructions` instruction types** (each appears at most once per step):
 
@@ -134,6 +134,6 @@ Every `FeatureFlag` stage should include `failureStrategies`. For rollout:
 
 ## What Harness pipelines do NOT provide
 
-- No LaunchDarkly-style **guarded rollout** that auto-rolls back the flag on metric regression. `FmeMetricCheck` fails the step; pair it with an explicit `FmeFlagKill` if the user wants rollback.
+- No automatic **metric rollback** that auto-rolls back the flag on metric regression. `FmeMetricCheck` fails the step; pair it with an explicit `FmeFlagKill` if the user wants rollback.
 - No MCP tool to start a progressive rollout — compose pipeline YAML from the steps above.
 - Do not use other FME MCP resource types in this skill. Live kill/allocation/rules come from `fme_feature_flag_definition`.

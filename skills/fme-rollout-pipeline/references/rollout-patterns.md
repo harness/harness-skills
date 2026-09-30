@@ -2,15 +2,6 @@
 
 Pick a pattern based on user intent, then wire `FeatureFlag` / `Approval` / `Custom` stages. These are **composable mix-ins**, not a single required pipeline. Mix freely (e.g. progressive % in staging, then approval, then full launch in prod).
 
-LaunchDarkly guarded-rollout inspiration maps as follows — do not invent LD MCP tools:
-
-| LD idea | Harness composition |
-|---------|---------------------|
-| `start-guarded-rollout` stages + weights | Sequential `FmeFlagDefaultAllocation` stages |
-| Monitoring window | `Wait`, `Approval`, Custom tests, or `FmeMetricCheck` |
-| Auto rollback on regression | Explicit `FmeFlagKill` (metric check only fails the step) |
-| Flag must be on | `FmeFlagRestore` before allocation |
-
 ## Pattern selection
 
 | User intent | Pattern | Primary steps |

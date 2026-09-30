@@ -10,7 +10,7 @@ description: >-
   (manage-feature-flags), code cleanup (cleanup-feature-flags), or generic CI/CD
   without FME steps (create-pipeline). Trigger phrases: FME pipeline, flag
   rollout pipeline, progressive rollout, environment promotion, approval before
-  prod, feature flag stage, guarded rollout, FME rollout.
+  prod, feature flag stage, canary rollout, FME rollout.
 metadata:
   author: Harness
   version: 1.0.0
@@ -37,13 +37,11 @@ Load references on demand:
 
 **Allowed resource types only:** `pipeline`, `fme_environment`, `fme_feature_flag`, `fme_feature_flag_definition`, and `project` (pre-create existence check only — do not create projects).
 
-**Do not invent MCP tools.** There is no `start-guarded-rollout`, `copy-flag-config`, or `match-release-policies`.
-
 **Prefer `org_id` + `project_id`.** Do not require deprecated `workspace_id`.
 
 **Stop before mutating.** Do not `harness_create` / `harness_update` a pipeline until the user confirms the rollout plan.
 
-**Not LD guarded rollout.** Harness does not auto-rollback a flag on metric regression. Use `Approval`, `Wait`, `Custom` verification, or `FmeMetricCheck` (fails the **step**). Rollback is an explicit `FmeFlagKill` stage or failure path.
+**No automatic metric rollback.** Harness does not auto-rollback a flag on metric regression. Use `Approval`, `Wait`, `Custom` verification, or `FmeMetricCheck` (fails the **step**). Rollback is an explicit `FmeFlagKill` stage or failure path.
 
 ### Phase 1: Establish scope
 
@@ -261,10 +259,9 @@ Summarize following `templates/operation-summary.md`:
 ## What NOT to do
 
 - Ship one canned pipeline for every request — compose from patterns
-- Invent MCP tools (`start-guarded-rollout`, `copy-flag-config`, etc.)
 - Call MCP tools other than `harness_list` / `harness_get` / `harness_create` / `harness_update`
 - **Wire rollouts via direct flag MCP** — do not use `harness_update` on `fme_feature_flag_definition`, `harness_execute` (kill/restore/reallocate), or `harness_delete` for rollout wiring; use pipeline `FmeFlag*` stages (one-off ops → `/manage-feature-flags`)
-- Assume guarded metric **auto-rollback** exists — `FmeMetricCheck` fails a step; it does not kill the flag
+- Assume automatic metric **auto-rollback** exists — `FmeMetricCheck` fails a step; it does not kill the flag
 - Push pipeline YAML or call `harness_create` / `harness_update` before the user confirms the plan (including on "create pipeline" first turn)
 - Use `Run` steps to call FME APIs when a native `FmeFlag*` step exists
 - Use classic `FlagConfiguration` steps for FME
@@ -281,7 +278,7 @@ Summarize following `templates/operation-summary.md`:
 - "What FME steps should we use for a canary rollout?" — Design mode only.
 - "Add a FeatureFlag stage to pipeline `payments_deploy` to restore the flag in prod" — Update mode.
 - "Kill the flag if the pipeline fails" — Rollback stage with `FmeFlagKill`.
-- "Guarded rollout like LaunchDarkly" — Design Approval + Wait/`FmeMetricCheck` + `FmeFlagKill`; explain no auto-rollback.
+- "Canary rollout with metric checks" — Design Approval + Wait/`FmeMetricCheck` + `FmeFlagKill`; explain no auto-rollback.
 - "Create a dark mode flag" — Use `/manage-feature-flags`, not this skill.
 - "Remove the flag from code" — Use `/cleanup-feature-flags`.
 
@@ -324,7 +321,7 @@ FME environment names are case-sensitive and distinct from Harness CD environmen
 
 ### Step type naming traps
 
-Backend YAML `type:` strings match `StepSpecTypeConstants.java` exactly, which differs from colloquial names or UI registration identifiers. Always use the exact step `type:` strings from [fme-pipeline-steps.md](references/fme-pipeline-steps.md) (e.g. `FmeFlagSetIndividualTargets` not `FmeFlagSetTargets`, `FmeFlagAddRemoveIndividualTargets` not `FmeFlagAddRemoveTargets`, `FmeSegmentAddRemoveTargets` not `FmeSegmentAddRemoveKeys`). Do not "correct" these to UI-only or shorthand names.
+Step YAML `type:` strings are strict and can differ from colloquial names or UI display labels. Always use the exact step `type:` strings from [fme-pipeline-steps.md](references/fme-pipeline-steps.md) (e.g. `FmeFlagSetIndividualTargets` not `FmeFlagSetTargets`, `FmeFlagAddRemoveIndividualTargets` not `FmeFlagAddRemoveTargets`, `FmeSegmentAddRemoveTargets` not `FmeSegmentAddRemoveKeys`). Do not "correct" these to UI-only or shorthand names.
 
 ## References
 

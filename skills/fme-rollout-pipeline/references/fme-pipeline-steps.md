@@ -1,8 +1,8 @@
 # FME pipeline step catalog
 
-Harness FME rollout pipelines use native **`FmeFlag*`** steps. Prefer these over `Run` / `ShellScript` steps that call FME APIs, and over classic **`FlagConfiguration`** steps (legacy Feature Flags).
+Harness FME rollout pipelines use native FME steps (`FmeFlag*`, `FmeFlagset*`, `FmeSegment*`, `FmeMetricCheck`). Prefer these over `Run` / `ShellScript` steps that call FME APIs, and over classic **`FlagConfiguration`** steps (legacy Feature Flags).
 
-Schema source: Harness v0 (`FeatureFlagStageNode`, Custom `execution-wrapper-config`, `FmeFlag*StepNode`). `FmeFlag*` is allowed on **both** `FeatureFlag` and `Custom` stages.
+Schema source: Harness v0 step library (`FeatureFlagStageNode`, Custom `execution-wrapper-config`, FME step nodes). FME steps are allowed on **both** `FeatureFlag` and `Custom` stages.
 
 ## Stage type
 
@@ -38,7 +38,18 @@ Schema source: Harness v0 (`FeatureFlagStageNode`, Custom `execution-wrapper-con
 | `FmeFlagReallocateTraffic` | Re-bucket traffic after definition change | After large targeting edits |
 | `FmeFlagSetDynamicConfigurations` | Attach dynamic config per treatment | Config-driven rollouts |
 | `FmeFlagSetImpressionTracking` | Enable/disable impression tracking | Observability before progressive rollout |
+| `FmeFlagDefinitionInstructions` | Apply multiple definition mutations atomically in one step | Batch restore + allocation + rules; env promotion when several fields change together |
 | `FmeMetricCheck` | Evaluate FME metrics over a lookback window; fail the **step** if JEXL `failureCriteria` is true | Soak/gate between % increases — **not** auto-rollback |
+
+## Flagset steps (when rollout uses flagsets)
+
+Flagsets group related flags for governance and coordinated rollout. Create flagsets before associating them with flags.
+
+| Step `type` | Purpose | Typical rollout use |
+|-------------|---------|---------------------|
+| `FmeFlagsetCreate` | Create a flagset | Bootstrap a flagset before associating rollout flags |
+| `FmeFlagsetDelete` | Delete a flagset | Cleanup after launch — not typical mid-rollout |
+| `FmeFlagAddRemoveFlagsets` | Add/remove flagset associations on a flag definition | Attach a flag to a release flagset in an environment |
 
 ## Segment steps (when rollout uses segments)
 
@@ -79,6 +90,33 @@ Implications:
 | `FmeFlagSetIndividualTargets` | `flagName`, `environment`, `targets` (array of `{treatment, keys}`; pass `[]` to clear) |
 | `FmeFlagAddRemoveIndividualTargets` | `flagName`, `environment`, `add` / `remove` (arrays of `{treatment, keys}`) |
 | `FmeFlagSetTreatments` | `flagName`, `treatments` (array of `{name, configurations?}`), `defaultTreatment` |
+| `FmeFlagsetCreate` | `name`; optional `description` |
+| `FmeFlagsetDelete` | `name` |
+| `FmeFlagAddRemoveFlagsets` | `flagName`, `environment`, `addFlagsets` / `removeFlagsets` (arrays of flagset names; either may be empty) |
+| `FmeSegmentCreate` | `name`, `environment`, `trafficType` |
+| `FmeSegmentUpdate` | `name`, `environment` |
+| `FmeSegmentDelete` | `name`, `environment` |
+| `FmeSegmentAddRemoveTargets` | `name`, `environment`, `add` / `remove` (arrays of keys; either may be empty) |
+| `FmeSegmentSetTargetingRules` | `name`, `environment`, `rules` |
+| `FmeFlagDefinitionInstructions` | `flagName`, `environment`, `instructions` (ordered array; each entry has `type` + `value`; each `type` at most once per step) |
+
+**`FmeFlagDefinitionInstructions` instruction types** (each appears at most once per step):
+
+| Instruction `type` | `value` shape | Notes |
+|--------------------|---------------|-------|
+| `SetDefaultTreatment` | treatment name (string) | Quote `"on"` / `"off"` when YAML treats them as booleans |
+| `SetBaselineTreatment` | treatment name (string) | |
+| `SetTrackImpression` | boolean | |
+| `SetLimitExposure` | integer 0–100 | |
+| `UpdateIndividualTargets` | array of `{treatment, actions: [{action: AddKeys\|RemoveKeys\|AddSegments\|RemoveSegments, value: [...]}]}` | |
+| `UpdateDynamicConfiguration` | array of `{treatment, configuration}` | JSON string per treatment |
+| `SetTargetingRules` | rule array (pass `[]` to clear) | Same shape as `FmeFlagSetTargetingRules` |
+| `SetDefaultAllocations` | array of `{treatment, amount}` summing to 100 | Same shape as `FmeFlagDefaultAllocation` |
+| `SetTreatments` | treatments array (min 2) | |
+| `SetRolloutStatus` | rollout status string | Flag-level metadata |
+| `SetFlagKilled` | boolean | `true` = kill, `false` = restore in that environment |
+
+Prefer dedicated single-purpose steps (`FmeFlagRestore`, `FmeFlagDefaultAllocation`, etc.) for simple rollouts. Use `FmeFlagDefinitionInstructions` when several definition fields must change atomically (for example env promotion copying multiple fields at once).
 
 `environment` is FME environment **name or ID** (case-sensitive), not the Harness CD environment identifier unless they were named the same on purpose.
 
@@ -92,7 +130,7 @@ Every `FeatureFlag` stage should include `failureStrategies`. For rollout:
 - **Production FME stages:** consider `StageRollback` **and** a documented manual `FmeFlagKill` rollback path.
 - Pair critical prod stages with an explicit **rollback stage** (kill flag) the team can run independently.
 
-## What Harness pipelines do NOT provide (v1)
+## What Harness pipelines do NOT provide
 
 - No LaunchDarkly-style **guarded rollout** that auto-rolls back the flag on metric regression. `FmeMetricCheck` fails the step; pair it with an explicit `FmeFlagKill` if the user wants rollback.
 - No MCP tool to start a progressive rollout — compose pipeline YAML from the steps above.

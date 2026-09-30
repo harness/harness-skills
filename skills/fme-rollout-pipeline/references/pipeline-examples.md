@@ -351,7 +351,7 @@ Parameters:
   org_id: "<org>"
   project_id: "<project>"
   body:
-    yamlPipeline: "<full pipeline YAML string>"
+    yamlPipeline: "<full pipeline YAML string, including 'pipeline:' root key>"
 ```
 
 To append FME stages to an existing pipeline:
@@ -378,4 +378,5 @@ Parameters:
     yamlPipeline: "<full updated pipeline YAML string>"
 ```
 
-Verify the project with `harness_list` (`resource_type: "project"`, `org_id` only — allowed for pre-create existence check; do not create projects) before create.
+Verify the project exists (`harness_list` with `resource_type: "project"` and `org_id` only) before creating.
+

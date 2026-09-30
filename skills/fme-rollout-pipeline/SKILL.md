@@ -13,7 +13,7 @@ description: >-
   prod, feature flag stage, guarded rollout, FME rollout.
 metadata:
   author: Harness
-  version: 1.0.3
+  version: 1.0.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
@@ -150,6 +150,8 @@ Do **not** use classic `FlagConfiguration` steps (legacy Feature Flags). Prefer 
 | Emergency off | `FmeFlagKill` |
 | Beta cohort | `FmeFlagAddRemoveIndividualTargets` or `FmeFlagSetTargetingRules` |
 | Sync targeting across envs | `FmeFlagPatchDefinition` or replay allocation/rules steps |
+| Attach flag to a flagset | `FmeFlagsetCreate` (if needed) + `FmeFlagAddRemoveFlagsets` |
+| Multiple definition fields in one env | `FmeFlagDefinitionInstructions` (prefer single-purpose steps when one field changes) |
 | Full launch | `FmeFlagRestore` + 100% allocation on test treatment |
 | Metric gate (no auto-kill) | `FmeMetricCheck` — fails the step when JEXL `failureCriteria` is true |
 
@@ -247,9 +249,10 @@ Do **not** run the pipeline in this skill. Point the user to `/run-pipeline`.
 
 ### Phase 9: Handoff
 
-Summarize:
+Summarize following `templates/operation-summary.md`:
 
-- Pipeline identifier and what each stage does
+- Operation, scope, pipeline identifier, and what each stage does
+- What was confirmed (environments, treatments, current definition state)
 - How to run (`/run-pipeline`)
 - How to rollback (`FmeFlagKill` stage)
 - Follow-up: further % increases may need another run or additional stages
@@ -267,7 +270,7 @@ Summarize:
 - Use classic `FlagConfiguration` steps for FME
 - Omit `disallowPipelineExecutor: true` on `HarnessApproval`
 - Create/delete flags as the main rollout mechanism — use pipeline steps or `/manage-feature-flags`
-- Require `workspace_id`
+- Require deprecated `workspace_id`
 - Put a README inside this skill folder
 
 ## Examples
@@ -324,6 +327,8 @@ FME environment names are case-sensitive and distinct from Harness CD environmen
 - [rollout-patterns.md](references/rollout-patterns.md) — pattern catalog
 - [fme-pipeline-steps.md](references/fme-pipeline-steps.md) — `FmeFlag*` step reference
 - [pipeline-examples.md](references/pipeline-examples.md) — YAML snippets
+- [scope-establishment.md](../../references/scope-establishment.md) — account, org, and project scope rules
+- [operation-summary.md](../../templates/operation-summary.md) — structured completion summary contract
 - `/manage-feature-flags` — direct MCP flag operations
 - `/cleanup-feature-flags` — post-launch code removal
 - `/create-pipeline` — CI/CD stages, `HarnessApproval` requirements

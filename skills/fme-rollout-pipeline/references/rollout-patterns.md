@@ -71,9 +71,9 @@ FeatureFlag (dev) → FeatureFlag (staging) → Approval → FeatureFlag (prod)
 3. `Approval` stage: human sign-off
 4. Production `FeatureFlag` stage: restore + allocation
 
-**Verification without a metric step:** `harness_list` `fme_feature_flag_definition` with `filters: { feature_flag_name: "..." }` (or `harness_get` with `params: { feature_flag_name, environment_id }` for staging) **before** generating prod YAML; confirm `isKilled` is false, `defaultRule` bucket `size` values sum to 100 with the test treatment at 100%, empty `rules`, and empty treatment targeting lists. Do **not** use `trafficAllocation` as proof of full rollout — it is experiment participation (0–100), not which treatment wins. Document the check in the plan. Prefer live MCP definitions over pipeline snapshot output — pipeline-built definitions may omit real `impressions` data.
+**Verification without a metric step:** `harness_list` `fme_feature_flag_definition` with `filters: { feature_flag_name: "..." }` (or `harness_get` with `params: { feature_flag_name, environment_id }` for staging) **before** generating prod YAML; confirm `isKilled` is false, `defaultRule` bucket `size` values sum to 100 with the test treatment at 100%, empty `rules`, and empty treatment targeting lists. Do **not** use `trafficAllocation` as proof of full rollout — it is experiment participation (0–100), not which treatment wins. Document the check in the plan. Prefer live MCP definitions over pipeline snapshot output.
 
-## 4. Approval / parole gate
+## 4. Approval gate
 
 **When:** Human must approve before the next percentage or environment.
 

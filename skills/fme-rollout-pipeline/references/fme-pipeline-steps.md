@@ -6,6 +6,8 @@ Schema source: Harness v0 step library (`FeatureFlagStageNode`, Custom `executio
 
 ## Stage type
 
+Schema source: Harness v0 step library (`FeatureFlagStageNode`, Custom `execution-wrapper-config`, FME step nodes matching `StepSpecTypeConstants.java`). Step YAML `type:` strings must match the exact constants in this document — do not confuse them with UI-only registration identifiers (e.g. use `FmeFlagSetIndividualTargets` not `FmeFlagSetTargets`, `FmeFlagAddRemoveIndividualTargets` not `FmeFlagAddRemoveTargets`, `FmeSegmentAddRemoveTargets` not `FmeSegmentAddRemoveKeys`).
+
 | Stage `type` | Use for |
 |--------------|---------|
 | `FeatureFlag` | Dedicated FME flag/segment steps (default for this skill) |

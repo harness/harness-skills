@@ -322,6 +322,10 @@ FME environment names are case-sensitive and distinct from Harness CD environmen
 
 `FmeFlag*` steps are valid on both `FeatureFlag` and `Custom` stages. If the UI only offers FME in Custom, use `Custom`. Do not fall back to `FlagConfiguration`.
 
+### Step type naming traps
+
+Backend YAML `type:` strings match `StepSpecTypeConstants.java` exactly, which differs from colloquial names or UI registration identifiers. Always use the exact step `type:` strings from [fme-pipeline-steps.md](references/fme-pipeline-steps.md) (e.g. `FmeFlagSetIndividualTargets` not `FmeFlagSetTargets`, `FmeFlagAddRemoveIndividualTargets` not `FmeFlagAddRemoveTargets`, `FmeSegmentAddRemoveTargets` not `FmeSegmentAddRemoveKeys`). Do not "correct" these to UI-only or shorthand names.
+
 ## References
 
 - [rollout-patterns.md](references/rollout-patterns.md) — pattern catalog

@@ -13,7 +13,7 @@ description: >-
   design an experiment, launch a test on this flag, new experiment for X.
 metadata:
   author: Harness
-  version: 1.0.2
+  version: 1.1.0
   mcp-server: harness-mcp-v2
 license: Apache-2.0
 compatibility: >-
@@ -89,7 +89,11 @@ Parameters:
   params: { feature_flag_name: "<flag_name>", environment_id: "<environment_id>" }
 ```
 
-Read `treatments[].name`. If the definition already has a `baselineTreatment`
+Read `treatments[].name`. A 404 here means the flag has no definition in
+that environment; if every environment 404s, the flag was created but never
+configured anywhere, so there are no treatments to compare and this skill
+can't proceed - say so and point to `/manage-feature-flags` to configure the
+flag first. If the definition already has a `baselineTreatment`
 set, treat it as the default answer for control, but still confirm - the
 experiment's own `baselineTreatment` is a separate field and can disagree with
 the definition's.

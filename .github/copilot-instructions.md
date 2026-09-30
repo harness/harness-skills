@@ -59,6 +59,7 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | Skill | Description |
 |-------|-------------|
 | `/manage-feature-flags` | Create, list, toggle, and delete feature flags |
+| `/fme-rollout-pipeline` | Compose FeatureFlag stages and FmeFlag* steps for flag rollouts |
 
 ### Platform Operations
 

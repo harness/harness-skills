@@ -21,7 +21,7 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 # FME Rollout Pipeline
 
-Help users **pick and wire** Harness FME pipeline steps for rollout use cases. Compose `FeatureFlag` stages, native `FmeFlag*` steps, `Approval` gates, and optional `Custom` / `Wait` stages. Do **not** ship one fixed pipeline shape.
+Help users **pick and wire** Harness FME pipeline steps for rollout use cases. Compose `FeatureFlag` stages, native `FmeFlag*` steps, `Approval` gates, and optional `Custom` / `Wait` stages tailored to the user's rollout scenario, rather than outputting a single fixed template.
 
 Direct flag kill/restore/create via MCP is `/manage-feature-flags`. Post-launch code removal is `/cleanup-feature-flags`. General CI/CD structure is `/create-pipeline`.
 

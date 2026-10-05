@@ -1,0 +1,163 @@
+# R3: Beta Cohort First, Then Everyone
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: beta_then_everyone
+  name: Beta Cohort First - Then Ramp
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  stages:
+    - stage:
+        identifier: beta_targeting
+        name: Target Beta Cohort
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: restore_flag
+                  name: Restore Flag
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: new_search
+                    environment: production
+              - step:
+                  identifier: add_beta_users
+                  name: Add Beta Users
+                  type: FmeFlagAddRemoveIndividualTargets
+                  spec:
+                    flagName: new_search
+                    environment: production
+                    treatments:
+                      - treatment: "on"
+                        addKeys:
+                          - beta-user-1
+                          - beta-user-2
+                          - beta-user-3
+              - step:
+                  identifier: set_default_0
+                  name: Set Default to 0 Percent
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: new_search
+                    environment: production
+                    allocation:
+                      - treatment: "on"
+                        amount: 0
+                      - treatment: "off"
+                        amount: 100
+              - step:
+                  identifier: wait_beta_soak
+                  name: Beta Soak 24h
+                  type: Wait
+                  spec:
+                    duration: 24h
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: ramp_10_percent
+        name: Ramp to 10 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: set_10_percent
+                  name: Set 10 Percent Allocation
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: new_search
+                    environment: production
+                    allocation:
+                      - treatment: "on"
+                        amount: 10
+                      - treatment: "off"
+                        amount: 90
+              - step:
+                  identifier: wait_after_10
+                  name: Soak 12h
+                  type: Wait
+                  spec:
+                    duration: 12h
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: ramp_50_percent
+        name: Ramp to 50 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: set_50_percent
+                  name: Set 50 Percent Allocation
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: new_search
+                    environment: production
+                    allocation:
+                      - treatment: "on"
+                        amount: 50
+                      - treatment: "off"
+                        amount: 50
+              - step:
+                  identifier: wait_after_50
+                  name: Soak 12h
+                  type: Wait
+                  spec:
+                    duration: 12h
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: ramp_100_percent
+        name: Ramp to 100 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: set_100_percent
+                  name: Set 100 Percent Allocation
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: new_search
+                    environment: production
+                    allocation:
+                      - treatment: "on"
+                        amount: 100
+                      - treatment: "off"
+                        amount: 0
+              - step:
+                  identifier: clear_beta_targets
+                  name: Clear Beta Individual Targets
+                  type: FmeFlagAddRemoveIndividualTargets
+                  spec:
+                    flagName: new_search
+                    environment: production
+                    treatments:
+                      - treatment: "on"
+                        removeKeys:
+                          - beta-user-1
+                          - beta-user-2
+                          - beta-user-3
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

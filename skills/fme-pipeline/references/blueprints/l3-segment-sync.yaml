@@ -1,0 +1,52 @@
+# L3: Segment Sync from External System
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: segment_sync_external
+  name: Sync Segment from External System
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  stages:
+    - stage:
+        identifier: sync_segment
+        name: Sync Premium Users Segment
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: fetch_keys
+                  name: Fetch Keys from Database
+                  type: ShellScript
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          # Fetch user keys from external system (example: database query)
+                          # Replace with your actual query/API call
+                          KEYS=$(curl -s https://api.example.com/premium-users | jq -r '.users | map(.id) | tostring')
+                          echo "Fetched keys: $KEYS"
+                    outputVariables:
+                      - name: KEYS
+                        type: String
+                        value: KEYS
+              - step:
+                  identifier: add_keys_to_segment
+                  name: Add Keys to Segment
+                  type: FmeSegmentAddRemoveTargets
+                  spec:
+                    segmentName: premium_users
+                    environment: production
+                    addKeys: <+pipeline.stages.sync_segment.spec.execution.steps.fetch_keys.output.outputVariables.KEYS>
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

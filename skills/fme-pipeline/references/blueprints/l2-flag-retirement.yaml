@@ -1,0 +1,73 @@
+# L2: Flag Retirement
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: flag_retirement
+  name: Retire and Archive Flag
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  stages:
+    - stage:
+        identifier: mark_completed
+        name: Mark Flag as Completed
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: update_status
+                  name: Update Rollout Status
+                  type: FmeFlagUpdate
+                  spec:
+                    name: old_checkout_flow
+                    rolloutStatus: Completed
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: remove_from_flagsets
+        name: Remove from Flagsets
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: remove_flagsets
+                  name: Remove from Release Flagset
+                  type: FmeFlagAddRemoveFlagsets
+                  spec:
+                    flagName: old_checkout_flow
+                    environment: production
+                    removeFlagsets:
+                      - q4_release
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: archive_flag
+        name: Archive Flag
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: archive_step
+                  name: Archive Feature Flag
+                  type: FmeFlagArchive
+                  spec:
+                    name: old_checkout_flow
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

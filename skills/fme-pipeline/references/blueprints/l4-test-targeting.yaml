@@ -1,0 +1,64 @@
+# L4: Test-User Targeting for End-to-End Tests
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: e2e_test_with_targeting
+  name: E2E Tests with Flag Targeting
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  stages:
+    - stage:
+        identifier: test_with_targeting
+        name: Test with Flag Targeting
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: add_keys
+                  name: Add Test Keys
+                  type: FmeFlagAddRemoveIndividualTargets
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: qa
+                    treatments:
+                      - treatment: "on"
+                        addKeys:
+                          - test-user-1
+                          - test-user-2
+              - step:
+                  identifier: run_tests
+                  name: Run E2E Tests
+                  type: ShellScript
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          # Run your E2E tests here
+                          npm run test:e2e
+              - step:
+                  identifier: remove_keys
+                  name: Remove Test Keys
+                  type: FmeFlagAddRemoveIndividualTargets
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: qa
+                    treatments:
+                      - treatment: "on"
+                        removeKeys:
+                          - test-user-1
+                          - test-user-2
+                  when:
+                    stageStatus: All
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

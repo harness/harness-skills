@@ -172,7 +172,7 @@ These repo-level playbooks live in:
 
 | Workflow mode | Representative skills | Use when |
 |---------------|-----------------------|----------|
-| Create and scaffold | `/create-pipeline`, `/create-service`, `/create-connector`, `/create-template`, `/fme-rollout-pipeline` | You need to define or generate new Harness resources and their YAML or MCP payloads. |
+| Create and scaffold | `/create-pipeline`, `/create-service`, `/create-connector`, `/create-template`, `/fme-pipeline` | You need to define or generate new Harness resources and their YAML or MCP payloads. |
 | Run and debug | `/run-pipeline`, `/debug-pipeline`, `/migrate-pipeline`, `/manage-delegates` | You already have resources and need to execute, diagnose, or repair behavior. |
 | Govern and secure | `/manage-roles`, `/manage-users`, `/create-policy`, `/security-report`, `/audit-report` | You need RBAC, policy, compliance, or security workflows with blast-radius awareness. |
 | Analyze and report | `/dora-metrics`, `/analyze-costs`, `/scorecard-review`, `/template-usage` | You need structured reports, summaries, recommendations, or adoption analysis. |
@@ -242,7 +242,7 @@ Typical sequence:
 | [`/create-metric`](skills/create-metric/SKILL.md) | Create an FME metric definition (traffic type, aggregation, event types, cap, owners) |
 | [`/instrument-metric`](skills/instrument-metric/SKILL.md) | Wire up a track() call for a metric's event and verify it arrives |
 | [`/cleanup-feature-flags`](skills/cleanup-feature-flags/SKILL.md) | Audit stale FME flags and safely remove a launched flag from code |
-| [`/fme-rollout-pipeline`](skills/fme-rollout-pipeline/SKILL.md) | Compose FeatureFlag stages and FmeFlag* steps for progressive rollout, env promotion, and approval gates |
+| [`/fme-pipeline`](skills/fme-pipeline/SKILL.md) | Generate FME pipelines for rollout scenarios (progressive ramp, multi-env promotion, beta cohorts, config promotion, bootstrap, retirement, segment sync, test targeting) with gates and lifecycle automation |
 
 ### Operations & Debugging (MCP)
 

@@ -1,0 +1,474 @@
+# R2: Multi-Environment Promotion (THE HEADLINE)
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: multi_env_promotion
+  name: Multi-Environment Flag Promotion
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  variables:
+    - name: flagName
+      type: String
+      description: "Feature flag name"
+      value: <+input>
+    - name: onTreatment
+      type: String
+      value: "on"
+    - name: offTreatment
+      type: String
+      value: "off"
+  stages:
+    - stage:
+        identifier: create_jira_ticket
+        name: Create Rollout Ticket
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: jira_create
+                  name: Create Jira Ticket
+                  type: JiraCreate
+                  spec:
+                    connectorRef: jira_connector
+                    projectKey: PROJ
+                    issueType: Task
+                    fields:
+                      - name: Summary
+                        value: "Feature Flag Rollout: <+pipeline.variables.flagName>"
+                      - name: Description
+                        value: "Rolling out flag <+pipeline.variables.flagName> across dev/qa/staging/prod"
+              - step:
+                  identifier: jira_in_progress
+                  name: Transition to In Progress
+                  type: JiraUpdate
+                  spec:
+                    connectorRef: jira_connector
+                    issueKey: <+pipeline.stages.create_jira_ticket.spec.execution.steps.jira_create.issue.key>
+                    transitionTo:
+                      transitionName: In Progress
+                      status: In Progress
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: dev_environment
+        name: Dev - 100 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: restore_dev
+                  name: Restore Flag in Dev
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: dev
+              - step:
+                  identifier: dev_100
+                  name: Set Dev to 100 Percent
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: dev
+                    allocation:
+                      - treatment: <+pipeline.variables.onTreatment>
+                        amount: 100
+                      - treatment: <+pipeline.variables.offTreatment>
+                        amount: 0
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: qa_environment
+        name: QA - 50 Then 100 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: restore_qa
+                  name: Restore Flag in QA
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: qa
+              - step:
+                  identifier: qa_50
+                  name: Set QA to 50 Percent
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: qa
+                    allocation:
+                      - treatment: <+pipeline.variables.onTreatment>
+                        amount: 50
+                      - treatment: <+pipeline.variables.offTreatment>
+                        amount: 50
+              - step:
+                  identifier: wait_qa
+                  name: Soak 30 Minutes
+                  type: Wait
+                  spec:
+                    duration: 30m
+              - step:
+                  identifier: qa_100
+                  name: Set QA to 100 Percent
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: qa
+                    allocation:
+                      - treatment: <+pipeline.variables.onTreatment>
+                        amount: 100
+                      - treatment: <+pipeline.variables.offTreatment>
+                        amount: 0
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: staging_environment
+        name: Staging - 100 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: restore_staging
+                  name: Restore Flag in Staging
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: staging
+              - step:
+                  identifier: staging_100
+                  name: Set Staging to 100 Percent
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: staging
+                    allocation:
+                      - treatment: <+pipeline.variables.onTreatment>
+                        amount: 100
+                      - treatment: <+pipeline.variables.offTreatment>
+                        amount: 0
+              - step:
+                  identifier: wait_after_staging
+                  name: Soak 1 Hour
+                  type: Wait
+                  spec:
+                    duration: 1h
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - parallel:
+        - stage:
+            identifier: prod_us
+            name: Prod US - Progressive Ramp
+            type: Custom
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: approve_prod_us
+                      name: Approve US Production Rollout
+                      type: HarnessApproval
+                      spec:
+                        approvalMessage: "Approve to begin US production rollout for flag: <+pipeline.variables.flagName>"
+                        includePipelineExecutionHistory: true
+                        approvers:
+                          userGroups:
+                            - account.Engineering_Leads
+                          minimumCount: 1
+                          disallowPipelineExecutor: true
+                  - step:
+                      identifier: restore_prod_us
+                      name: Restore Flag in Prod US
+                      type: FmeFlagRestore
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_us
+                  - step:
+                      identifier: prod_us_1
+                      name: Set Prod US to 1 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_us
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 1
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 99
+                  - step:
+                      identifier: wait_us_1
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_us_5
+                      name: Set Prod US to 5 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_us
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 5
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 95
+                  - step:
+                      identifier: wait_us_5
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_us_25
+                      name: Set Prod US to 25 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_us
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 25
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 75
+                  - step:
+                      identifier: wait_us_25
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_us_50
+                      name: Set Prod US to 50 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_us
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 50
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 50
+                  - step:
+                      identifier: wait_us_50
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_us_100
+                      name: Set Prod US to 100 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_us
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 100
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 0
+            failureStrategies:
+              - onFailure:
+                  errors:
+                    - AllErrors
+                  action:
+                    type: MarkAsFailure
+        - stage:
+            identifier: prod_eu
+            name: Prod EU - Progressive Ramp
+            type: Custom
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: approve_prod_eu
+                      name: Approve EU Production Rollout
+                      type: HarnessApproval
+                      spec:
+                        approvalMessage: "Approve to begin EU production rollout for flag: <+pipeline.variables.flagName>"
+                        includePipelineExecutionHistory: true
+                        approvers:
+                          userGroups:
+                            - account.Engineering_Leads
+                          minimumCount: 1
+                          disallowPipelineExecutor: true
+                  - step:
+                      identifier: restore_prod_eu
+                      name: Restore Flag in Prod EU
+                      type: FmeFlagRestore
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_eu
+                  - step:
+                      identifier: prod_eu_1
+                      name: Set Prod EU to 1 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_eu
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 1
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 99
+                  - step:
+                      identifier: wait_eu_1
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_eu_5
+                      name: Set Prod EU to 5 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_eu
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 5
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 95
+                  - step:
+                      identifier: wait_eu_5
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_eu_25
+                      name: Set Prod EU to 25 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_eu
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 25
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 75
+                  - step:
+                      identifier: wait_eu_25
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_eu_50
+                      name: Set Prod EU to 50 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_eu
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 50
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 50
+                  - step:
+                      identifier: wait_eu_50
+                      name: Soak 2 Hours
+                      type: Wait
+                      spec:
+                        duration: 2h
+                  - step:
+                      identifier: prod_eu_100
+                      name: Set Prod EU to 100 Percent
+                      type: FmeFlagDefaultAllocation
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_eu
+                        allocation:
+                          - treatment: <+pipeline.variables.onTreatment>
+                            amount: 100
+                          - treatment: <+pipeline.variables.offTreatment>
+                            amount: 0
+            failureStrategies:
+              - onFailure:
+                  errors:
+                    - AllErrors
+                  action:
+                    type: MarkAsFailure
+    - stage:
+        identifier: close_jira_ticket
+        name: Close Rollout Ticket
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: jira_close
+                  name: Close Jira Ticket
+                  type: JiraUpdate
+                  spec:
+                    connectorRef: jira_connector
+                    issueKey: <+pipeline.stages.create_jira_ticket.spec.execution.steps.jira_create.issue.key>
+                    transitionTo:
+                      transitionName: Done
+                      status: Done
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: rollback_on_failure
+        name: Rollback - Kill Flag in Prod
+        type: Custom
+        when:
+          pipelineStatus: Failure
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: kill_flag_prod_us
+                  name: Kill Flag in Prod US
+                  type: FmeFlagKill
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: prod_us
+              - step:
+                  identifier: kill_flag_prod_eu
+                  name: Kill Flag in Prod EU
+                  type: FmeFlagKill
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: prod_eu
+              - step:
+                  identifier: jira_update_rollback
+                  name: Transition Jira to Failed
+                  type: JiraUpdate
+                  spec:
+                    connectorRef: jira_connector
+                    issueKey: <+pipeline.stages.create_jira_ticket.spec.execution.steps.jira_create.issue.key>
+                    transitionTo:
+                      transitionName: Failed
+                      status: Failed
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

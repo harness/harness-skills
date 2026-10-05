@@ -234,15 +234,19 @@ Typical sequence:
 |-------|-------------|
 | [`/manage-users`](skills/manage-users/SKILL.md) | Manage users, user groups, and service accounts |
 | [`/manage-roles`](skills/manage-roles/SKILL.md) | Manage role assignments and RBAC |
-| [`/manage-feature-flags`](skills/manage-feature-flags/SKILL.md) | Create, list, toggle, and delete feature flags |
-| [`/explain-flag`](skills/explain-flag/SKILL.md) | Explain a single flag's purpose, default rule, and per-environment targeting, flagging inconsistencies |
-| [`/create-experiment`](skills/create-experiment/SKILL.md) | Guide experiment design end to end - metric gap analysis, control vs. variant, hypothesis - then create the experiment; delegates metric decisions to choose-metric/create-metric/instrument-metric |
+| [`/discover-feature-flags`](skills/discover-feature-flags/SKILL.md) | Inventory, per-environment rollout report, and stale-flag audit (read-only) |
+| [`/explain-flag`](skills/explain-flag/SKILL.md) | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
+| [`/create-feature-flag`](skills/create-feature-flag/SKILL.md) | Create an FME flag that follows project conventions, with safe-default definitions |
+| [`/update-flag-targeting`](skills/update-flag-targeting/SKILL.md) | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
+| [`/manage-flag-lifecycle`](skills/manage-flag-lifecycle/SKILL.md) | Flag metadata, archive readiness, archive/unarchive, and delete |
+| [`/manage-segments`](skills/manage-segments/SKILL.md) | FME segments (STANDARD, LARGE, RULE_BASED) and per-environment keys |
+| [`/cleanup-feature-flags`](skills/cleanup-feature-flags/SKILL.md) | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
+| [`/fme-pipeline`](skills/fme-pipeline/SKILL.md) | Generate FME pipelines for rollout scenarios (progressive ramp, multi-env promotion, beta cohorts, config promotion, bootstrap, retirement, segment sync, test targeting) with gates and lifecycle automation |
+| [`/manage-experiments`](skills/manage-experiments/SKILL.md) | Design, create, update, and delete FME experiments; delegates metric selection to choose-metric |
 | [`/review-experiment-results`](skills/review-experiment-results/SKILL.md) | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
 | [`/choose-metric`](skills/choose-metric/SKILL.md) | Recommend primary/guardrail metrics for an experiment or rollout monitoring |
 | [`/create-metric`](skills/create-metric/SKILL.md) | Create an FME metric definition (traffic type, aggregation, event types, cap, owners) |
 | [`/instrument-metric`](skills/instrument-metric/SKILL.md) | Wire up a track() call for a metric's event and verify it arrives |
-| [`/cleanup-feature-flags`](skills/cleanup-feature-flags/SKILL.md) | Audit stale FME flags and safely remove a launched flag from code |
-| [`/fme-pipeline`](skills/fme-pipeline/SKILL.md) | Generate FME pipelines for rollout scenarios (progressive ramp, multi-env promotion, beta cohorts, config promotion, bootstrap, retirement, segment sync, test targeting) with gates and lifecycle automation |
 
 ### Operations & Debugging (MCP)
 

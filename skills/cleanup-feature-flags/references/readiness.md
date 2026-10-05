@@ -1,65 +1,30 @@
-# Flag removal readiness
+# Code removal readiness
 
-Use Harness MCP plus local code search. Scope with `org_id` + `project_id`.
+Rules for deciding which branch of the code to keep and whether it's safe to remove the flag from code. The source of truth is the flag's live definitions in FME — never the default or fallback written in the code. Field names are the definition fields from [concepts.md](../../../references/fme/concepts.md#definition-state-checklist).
 
-## Usage signal
+**Critical environments** default to every environment marked `isProduction`. The user may add others.
 
-Per-environment **`lastImpressionAt`** on flag definitions is the usage signal. Read it from each definition returned by:
+## Forward treatment (per environment)
 
-```
-harness_list(resource_type="fme_feature_flag_definition", compact=false, params={feature_flag_name: "..."})
-```
+Work out what each critical environment actually serves today:
 
-Compare `lastImpressionAt` against the code-change deploy date per critical environment. Default stale threshold: **no impressions in any critical env since the cleanup code deployed** (ask before using a fixed day count such as 30 days).
+| Definition state | Forward treatment |
+|---|---|
+| Flag is archived, or the environment has no definition | `control`. SDKs return `control`, so the code's fallback branch is what runs. |
+| `isKilled` is true | `defaultTreatment` |
+| Not killed, `trafficAllocation` is 100 (or absent), no `rules`, no individual targets, and `defaultRule` is a single treatment at 100 | That treatment |
+| Anything else (split buckets, rules, targets, allocation below 100) | None: the environment is still mixed |
 
-Missing `lastImpressionAt` → **caution**, not proof of zero traffic.
+If the code reads the treatment config (the `WithConfig` calls in [sdk-patterns.md](../../../references/fme/sdk-patterns.md)), the forward value is that treatment's config from `treatments`. Hardcode the config value, not just the treatment name.
 
-## What to check
-
-For each **critical environment**:
-
-- Flag is not archived (or, if archived, only report — do not auto-remove from FME)
-- Definition exists — if **no definition** in a critical env, the SDK returns **control**; do not assume the winning treatment applies there
-- Same forward treatment across all critical envs (see Forward treatment below)
-- No active targeting rules, individual targets, or segments still in play
-- `trafficAllocation` is 100% on the winning treatment (excluded traffic still gets `defaultTreatment`)
-- `lastImpressionAt` shows no recent impressions since deploy (or user accepts the risk)
-- Rollout status: permanent or “do not remove” → **blocked** or **caution**
-
-**Active experiment** on the flag → **blocked**:
-
-```
-harness_list(resource_type="fme_experiment", filters={parent_type: "FEATURE_FLAG", parent_name: "<flag>", status: "ACTIVE"})
-```
-
-**Dependent flags** — flag-dependency matchers in other flags' rules or in rule-based segments. There is no direct lookup. Either scan other flag definitions for the key or report as **caution** / **blocked** and ask the user.
-
-Also grep the application repo for the flag key (and flag-set APIs — see sdk-patterns.md) before **labeling** a flag **safe**.
-
-## Verdicts
+## Verdict
 
 | Verdict | When |
-|---------|------|
-| **blocked** | Critical envs disagree; prod-like env still targeted; active experiment; dependent flags confirmed; clearly permanent rollout |
-| **caution** | Missing or recent `lastImpressionAt`; young flag; partial rollout (`trafficAllocation` < 100); no code refs in this repo; flag-set-only usage; critical env has no definition |
-| **safe** | All critical envs agree on one forward treatment with no targeting left; `trafficAllocation` 100%; stale `lastImpressionAt` since deploy; code refs found and removable here |
+|---|---|
+| **blocked** | Critical environments resolve to different forward treatments, or any critical environment is mixed. An ACTIVE experiment runs on the flag. Dynamic flag keys were found in code. The flag's rollout status marks it as permanent (rollout status names are workspace-defined, e.g. `Permanent`, `Kill switch`, `Do not remove`; if unsure, ask). |
+| **caution** | The forward treatment is `control` (archived flag or missing definition). Non-critical environments differ. A PAUSED experiment exists. No call sites were found in this repo. The flag is only referenced through a flag set. |
+| **ready** | Every critical environment resolves to the same forward treatment, no caution applies, and all call sites are static. |
 
-## Forward treatment
+**blocked** stops the skill. **caution** needs the user's explicit acknowledgement for each reason before any code is edited.
 
-FME definitions are the source of truth — never the SDK default in code.
-
-1. **Killed everywhere** — hardcode the shared `defaultTreatment` (killing removes the new path; the default is what production receives).
-2. **Every critical env** has a definition, is not killed, `trafficAllocation` is 100%, no rules or individual targets remain, and all envs agree on one treatment — use that treatment.
-3. **Treatment configs** — if the app uses `getTreatmentWithConfig` / `getTreatmentsWithConfig`, read the config payload from the definition and hardcode the config value, not just the treatment name.
-4. **Otherwise** — **not safe**; stop and ask the user to align targeting or narrow critical envs.
-
-## Audit ranking
-
-1. Prefer **ACTIVE** flags; also surface **ARCHIVED** flags that still have code refs
-2. Prefer **safe** with code refs (remove-from-code candidates)
-3. **Caution** with reasons — do not auto-remove
-4. **Blocked** last
-
-## Pre-archive re-check
-
-Immediately before `harness_execute` archive, re-run the checks above. Impressions, experiments, or targeting may have changed since the user confirmed the plan.
+Impressions don't change the verdict. Traffic is expected until the removal deploys. Record `impressions.lastImpressionAt` per critical environment for the PR. The staleness check happens at archive time in `manage-flag-lifecycle`, and so does the dependent-flag check: other flags' IN_SPLIT rules are evaluated by FME, not by this code.

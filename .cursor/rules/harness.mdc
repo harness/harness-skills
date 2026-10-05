@@ -54,13 +54,23 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/manage-users` | Manage users, user groups, and service accounts |
 | `/manage-roles` | RBAC roles, assignments, permissions, and resource groups |
 
-### Feature Flags
+### Feature Flags & Experimentation
 
 | Skill | Description |
 |-------|-------------|
-| `/manage-feature-flags` | Create, list, toggle, and delete feature flags |
-| `/cleanup-feature-flags` | Audit stale FME flags and safely remove a launched flag from code |
+| `/discover-feature-flags` | Inventory, per-environment rollout report, and stale-flag audit (read-only) |
+| `/explain-flag` | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
+| `/create-feature-flag` | Create an FME flag that follows project conventions, with safe-default definitions |
+| `/update-flag-targeting` | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
+| `/manage-flag-lifecycle` | Flag metadata, archive readiness, archive/unarchive, and delete |
+| `/manage-segments` | FME segments (STANDARD, LARGE, RULE_BASED) and per-environment keys |
+| `/cleanup-feature-flags` | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
 | `/fme-pipeline` | Generate FME pipelines for rollout scenarios, gates, and flag lifecycle |
+| `/manage-experiments` | Design, create, update, and delete FME experiments; delegates metric selection to choose-metric |
+| `/review-experiment-results` | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
+| `/choose-metric` | Recommend primary/guardrail metrics for an experiment or rollout monitoring |
+| `/create-metric` | Create an FME metric definition (traffic type, aggregation, event types, cap, owners) |
+| `/instrument-metric` | Wire up a track() call for a metric's event and verify it arrives |
 
 ### Platform Operations
 

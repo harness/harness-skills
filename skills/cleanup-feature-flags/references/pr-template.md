@@ -11,6 +11,8 @@ Remove feature flag `<flag_key>` and hardcode treatment `<forward_treatment>`.
 
 - FME org/project: `<org>` / `<project>`
 - Critical environments checked: `<env names>`
+- `lastImpressionAt` stale in all critical envs since deploy: yes | no | unknown
+- No active experiments on this flag
 - Readiness verdict: safe | caution | blocked
 - Forward treatment confirmed from FME (not SDK default in code)
 

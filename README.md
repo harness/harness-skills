@@ -172,7 +172,7 @@ These repo-level playbooks live in:
 
 | Workflow mode | Representative skills | Use when |
 |---------------|-----------------------|----------|
-| Create and scaffold | `/create-pipeline`, `/create-service`, `/create-connector`, `/create-template` | You need to define or generate new Harness resources and their YAML or MCP payloads. |
+| Create and scaffold | `/create-pipeline`, `/create-service`, `/create-connector`, `/create-template`, `/fme-rollout-pipeline` | You need to define or generate new Harness resources and their YAML or MCP payloads. |
 | Run and debug | `/run-pipeline`, `/debug-pipeline`, `/migrate-pipeline`, `/manage-delegates` | You already have resources and need to execute, diagnose, or repair behavior. |
 | Govern and secure | `/manage-roles`, `/manage-users`, `/create-policy`, `/security-report`, `/audit-report` | You need RBAC, policy, compliance, or security workflows with blast-radius awareness. |
 | Analyze and report | `/dora-metrics`, `/analyze-costs`, `/scorecard-review`, `/template-usage` | You need structured reports, summaries, recommendations, or adoption analysis. |
@@ -236,6 +236,7 @@ Typical sequence:
 | [`/manage-roles`](skills/manage-roles/SKILL.md) | Manage role assignments and RBAC |
 | [`/manage-feature-flags`](skills/manage-feature-flags/SKILL.md) | Create, list, toggle, and delete feature flags |
 | [`/cleanup-feature-flags`](skills/cleanup-feature-flags/SKILL.md) | Audit stale FME flags and safely remove a launched flag from code |
+| [`/fme-rollout-pipeline`](skills/fme-rollout-pipeline/SKILL.md) | Compose FeatureFlag stages and FmeFlag* steps for progressive rollout, env promotion, and approval gates |
 
 ### Operations & Debugging (MCP)
 

@@ -1,23 +1,22 @@
 ---
 name: create-feature-flag
 description: >-
-  Create a new Harness FME feature flag and optionally its per-environment
-  definitions with a safe default, following the project's existing naming and
-  tagging conventions. Explore existing flags to infer patterns, then propose
-  and create the flag with treatments, traffic type, and initial targeting
-  (default: everyone gets the off/safe treatment). Use when asked to create a
-  feature flag, add a flag, set up a new FME flag, or initialize flag targeting.
-  Do not use for updating existing flag targeting (update-flag-targeting), deep
-  analysis of a single flag (explain-flag), listing/discovering flags
-  (discover-feature-flags), managing flag lifecycle operations like
-  archive/delete (manage-flag-lifecycle), managing segments (manage-segments),
-  creating experiments (manage-experiments), pipeline-driven rollouts
-  (fme-pipeline), or removing flags from code (cleanup-feature-flags).
-  Trigger phrases: create feature flag, add flag, new flag, set up flag, FME
-  flag create, initialize flag.
+  Create a new Harness FME feature flag and its per-environment definitions
+  with a safe default, following the project's naming and tagging
+  conventions. Use when asked to create a feature flag, add a flag, set up a
+  new FME flag, or initialize flag targeting. Flag/definition writes only:
+  does not gate application code (intrument-feature-flag) and is not a
+  first-time onboarding entry point (feature-flag-onboarding). Do not use for
+  updating existing flag targeting (update-flag-targeting), deep analysis of
+  a single flag (explain-flag), listing/discovering flags
+  (discover-feature-flags), flag lifecycle like archive/delete
+  (manage-flag-lifecycle), segments (manage-segments), experiments
+  (manage-experiments), pipeline rollouts (fme-pipeline), or removing flags
+  from code (cleanup-feature-flags). Trigger phrases: create feature flag,
+  add flag, new flag, set up flag, FME flag create, initialize flag.
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.2.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -53,16 +52,16 @@ Follow [scope-establishment.md](../../references/scope-establishment.md). Restat
 
 ### Phase 3: Propose
 
-Based on conventions and user's purpose, propose:
+Based on conventions and user's purpose, propose. When delegated, preserve the caller's confirmed traffic type, treatments/config/safe default, purpose and description/ticket; verify them against live prerequisites instead of replacing them with convention-derived defaults:
 - **Name:** Follow the convention (let API validate; don't invent character rules).
 - **Traffic type:** Must exist in traffic types list.
 - **Treatments:** Default `on`/`off` or user-specified. Never `control` (reserved; see [concepts.md](../../references/fme/concepts.md)).
 - **Safe default:** See [targeting-recipes.md](../update-flag-targeting/references/targeting-recipes.md#i-initialize-a-definition-where-none-exists) for the definition body.
-- **Environments to initialize:** Default = all non-production. Production only if asked.
+- **Environments to initialize:** Default = all non-production. Production only if asked. **Delegated integration:** `/intrument-feature-flag` and `/feature-flag-onboarding` must supply one confirmed environment; initialize only that environment. If selection is missing, STOP and ask—never fall back to all non-production on the caller's behalf.
 - **Tags, description:** Follow the convention. Include linked ticket if provided.
 - **Owners:** Never auto-pick from convention alone. Show the owners found on similar flags as candidates and ask the user to explicitly confirm who the owner(s) should be for this flag before including them in the plan.
 
-**Name collision check:** **Get flag** (expect 404); if it exists, route to `/update-flag-targeting`.
+**Name collision check:** **Get flag** in the confirmed scope. If the flag exists during a delegated create, return the collision and verified existing IDs/state to the caller without mutation; ask whether to reuse it or choose a different name. Do not continue into targeting changes or silently reuse it. For standalone creation, offer `/update-flag-targeting` or a newly approved name. A 404 still requires correct scope/identifier/access before creation.
 
 ### Phase 4: Plan and confirm
 
@@ -92,7 +91,9 @@ Created flag `<name>` (<trafficType>).
 - Production / other environments: no definition, SDKs return `control`.
 ```
 
-Link [sdk-patterns.md](../../references/fme/sdk-patterns.md) for adding the flag to code. Next steps: `/update-flag-targeting` (ramp), `/manage-experiments` (A/B test).
+This skill creates flag metadata and definitions only — it does not touch application code. For code gating, hand off to `/intrument-feature-flag`; for further targeting changes, `/update-flag-targeting`; for A/B tests, `/manage-experiments`.
+
+**Return to caller:** if this skill was invoked as a delegated step (e.g. by `/intrument-feature-flag` or `/feature-flag-onboarding`), return the created flag/environment/definition identifiers and this verification to that caller and stop here — do not continue into code integration or targeting changes yourself, and do not re-invoke the caller.
 
 ## Examples
 
@@ -111,7 +112,7 @@ Link [sdk-patterns.md](../../references/fme/sdk-patterns.md) for adding the flag
 
 | Problem | Solution |
 |---------|----------|
-| 409 "flag already exists" | Name collision. Route to `/update-flag-targeting` or pick a different name. |
+| 409 "flag already exists" | Re-read state. When delegated, return the collision to the caller without mutation and require a reuse/new-name decision; otherwise offer `/update-flag-targeting` or a newly approved name. |
 | 400 "invalid name" or "invalid traffic type" | Use the API message to correct. Don't invent character rules. |
 | User wants to update existing flag | STOP. Route to `/update-flag-targeting`. |
 

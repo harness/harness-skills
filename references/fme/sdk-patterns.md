@@ -18,7 +18,7 @@ Check dependencies and imports for these packages:
 | FME / Split iOS | `getTreatment`, `SplitClient` |
 | FME / Split Android | `getTreatment`, `SplitClient` |
 | OpenFeature | `getBooleanValue`, `getStringValue`, `@openfeature/` |
-| Harness FF SDK | `@harnessio/ff-`, `boolVariation`, `variation(`, `useFeatureFlag` |
+| Harness FF SDK | `@harnessio/ff-` dependencies/imports with variation calls such as `boolVariation` or the SDK's `useFeatureFlag`; a same-named app hook alone does not identify the product |
 | Custom wrapper | flag key + `isEnabled`, `getFlag`, `FeatureFlagService` |
 
 ## Evaluation Call Patterns
@@ -35,6 +35,21 @@ Check dependencies and imports for these packages:
 If a flag is only referenced via a flag set, a plain key grep returns nothing.
 
 **Classic FF vs FME:** Harness Classic FF (`@harnessio/ff-*`) is a separate system. If the repo uses only Classic FF and FME has no such flag, stop.
+
+These shapes are illustrative, not a promised per-language/version spec: before writing an evaluation call, confirm its actual arguments, synchronous/asynchronous behavior and result shape against the installed version/types and official docs. Native treatment values are names, not booleans; batch/config APIs and typed provider methods differ. See [language-guidance.md](language-guidance.md#phase-3-sdk--provider-identification) for the SDK/provider decision and [detect-before-ask workflow](language-guidance.md#phase-1-detect-before-asking).
+
+## Wrapper Detection (reuse before building)
+
+Before adding a new direct SDK call, search for an application-owned abstraction that already wraps evaluation — reuse it instead of calling the SDK a second, independent way. See [language-guidance.md](language-guidance.md#reuse-before-building-a-wrapper) for the decision to extend vs. create one.
+
+| Signal | Grep for |
+|--------|----------|
+| Wrapper by call site | Any function/method whose body contains `getTreatment`, `get_treatment`, `.Treatment(`, `getBooleanValue`, `getStringValue`, or `boolVariation`/`stringVariation`, called from elsewhere instead of the SDK directly |
+| Common naming idioms | `featureFlags.ts`/`.js`, `FlagService`, `FeatureFlagClient`, `flags/client.py`, `flags.go` |
+| React hook wrapper | A project-defined `useFeatureFlag`/`useFlags` hook (distinct from the SDK's own `useSplitTreatments`) |
+| Config/DI registration | Flag client registered once in a composition root/DI container and injected elsewhere, rather than constructed per call site |
+
+If more than one independent wrapper exists for the same SDK, ask which one is canonical before extending either. A wrapper that only reads Classic FF is not evidence an FME wrapper exists, and vice versa — confirm which contract it calls.
 
 ## Tracking Calls (`track()`)
 

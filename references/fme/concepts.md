@@ -65,8 +65,8 @@ Environments have an `isProduction` field. Treat any production environment as h
 ## Segments
 
 - Types: `STANDARD` (key list), `LARGE` (key list at a larger scale), `RULE_BASED` (membership from rules, no key list). Most operations need segment type, and the type can't be changed after creation.
-- Harness supports all three segment types. Metadata is project-wide; definitions/membership are environment-specific and must follow the selected type's model: STANDARD key operations, LARGE asynchronous bulk upload/drain, or RULE_BASED conditions/matchers/exclusions. The audited native tool routes do not expose every type-specific operation; consult [segment type capabilities](tool-map.md#segment-type-capabilities), discover installed support, and offer the appropriate administration workflow if needed. A tool gap is not lack of product support; never substitute another type's route or silently change scope contracts.
-- Flags reference segments in rule matchers and treatment-level `segments`, `largeSegments`, and `ruleBasedSegments`. Before changing/deleting a segment, finish all relevant flag/definition pages and scan both locations. Incomplete scans cannot establish that a segment is unused.
+- Harness supports all three segment types. Metadata is project-wide; definitions/membership are environment-specific and must follow the selected type's model. The [segment workflows](tool-map.md#segment-type-capabilities) cover metadata for all types, STANDARD key operations and approved RULE_BASED rule-editor changes. Preserve native scope and use STANDARD definition/key operations only for STANDARD segments.
+- Flags reference segments in rule matchers and treatment-level `segments`, `largeSegments`, and `ruleBasedSegments`. Resolve exact name **and type**, retain negated references, and follow indirect dependencies through RULE_BASED rules/exclusions. Before every segment mutation, complete the [usage gate](../../skills/manage-segments/references/usage-check.md), including all project flags and environment definition pages. Partial or unparsed inventories cannot establish that a segment is unused.
 
 ## Definition state checklist
 

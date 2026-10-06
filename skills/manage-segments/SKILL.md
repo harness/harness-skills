@@ -3,7 +3,7 @@ name: manage-segments
 description: >-
   Create, inspect, and maintain Harness FME segments (STANDARD, LARGE,
   RULE_BASED). Manage metadata, select type-specific definition and membership
-  workflows, and check usage before deletion. Use
+  workflows, and check referencing flags before every mutation. Use
   when asked to create a segment, add keys to a segment, list segments, update
   segment metadata, remove keys, replace keys, check segment usage, or delete
   segments. Do not use for making a flag USE a segment (update-flag-targeting),
@@ -13,27 +13,28 @@ description: >-
   replace segment keys, segment definition, check segment usage, delete segment.
 metadata:
   author: Harness
-  version: 1.2.1
+  version: 1.3.0
   mcp-server: harness-mcp
 license: Apache-2.0
-compatibility: Requires Harness MCP or CLI; available definition and membership operations depend on segment type and tool version
+compatibility: Requires Harness MCP or CLI; RULE_BASED rule changes use the Harness rule editor
 ---
 
 # Manage Segments
 
-Manage all three FME segment types: **STANDARD**, **LARGE**, and **RULE_BASED**. Use each type's membership model rather than treating every segment as a standard key list. Distinguish a missing operation in the current tool version from product support.
+Manage metadata for **STANDARD**, **LARGE**, and **RULE_BASED** segments, STANDARD membership, and approved RULE_BASED editor changes. Every mutation requires a complete reference-impact check and explicit approval. LARGE bulk membership operations are outside this skill's scope.
 
 ## Tools
 
-Works through Harness MCP or CLI. [tool-map.md](../../references/fme/tool-map.md#segment-type-capabilities) distinguishes metadata for all three types from type-specific operations. `STANDARD` in metadata examples is a placeholder for the selected type; the definition/key rows document the audited STANDARD routes, not a universal segment API.
+Works through Harness MCP or CLI with equivalent scope, confirmation and verification requirements. Discover exact CLI action syntax through command help; use [tool-map.md](../../references/fme/tool-map.md#segment-type-capabilities) for mappings. `STANDARD` in metadata examples stands for the selected type; definition/key rows apply only to STANDARD.
 
 | Operation | MCP | CLI |
 |-----------|-----|-----|
 | List traffic types | `harness_list` · `fme_traffic_type` · `compact: false` | `harness list traffic_type --json` |
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
 | List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `compact: false` | `harness list feature_flag --json --limit 50` |
+| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, environment_id, status: ["ACTIVE", "PAUSED"], offset: 0, limit: 100 }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --env <env-id> --status ACTIVE --json`, then PAUSED; fully paginate both |
 | List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
-| List segments | `harness_list` · `fme_segment` · `filters: { segment_type, status?, offset: 0, limit: 100 }` · `compact: false` | `harness list segment --segment-type STANDARD --json` |
+| List segments | `harness_list` · `fme_segment` · `filters: { segment_type, status?, offset: 0, limit: 100 }` · `compact: false` | `harness list segment --segment-type STANDARD --json`; safety gates list ACTIVE and ARCHIVED using declared status filters |
 | Get segment | `harness_get` · `fme_segment` · `params: { segment_name, segment_type }` | `harness get segment <name> --segment-type STANDARD --json` |
 | Create segment | `harness_create` · `fme_segment` · `body: { name, trafficType, segmentType, description?, tags?, owners? }` | `harness create segment <name> --traffic-type user --segment-type STANDARD` |
 | Update segment | `harness_update` · `fme_segment` · `params: { segment_name, segment_type }` · `body: { description?, tags?, owners? }` | `harness update segment <name> --segment-type STANDARD --set description=foo` |
@@ -43,9 +44,9 @@ Works through Harness MCP or CLI. [tool-map.md](../../references/fme/tool-map.md
 | Create definition | `harness_create` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }?` | `harness create segment:definition <name> --env <env-id>` |
 | Update definition | `harness_update` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }` | `harness update segment:definition <name> --env <env-id> --set description=foo` |
 | Delete definition | `harness_delete` · `fme_segment_definition` · `params: { segment_name, environment_id }` | `harness delete segment:definition <name> --env <env-id>` |
-| List keys | `harness_execute` · `fme_segment_definition` · `action="list_keys"` · `params: { segment_name, environment_id, offset?, limit? }` | **Not supported in the CLI** (absent from the `fme` spec) — use MCP, or stop and tell the user key listing needs the MCP server |
-| Add keys | `harness_execute` · `fme_segment_definition` · `action="add_keys"` · `params: { segment_name, environment_id, replace? }` · `body: { keys, comment?, title? }` | **Not supported in the CLI** (absent from the `fme` spec) — use MCP, or stop and tell the user key operations need the MCP server |
-| Remove keys | `harness_execute` · `fme_segment_definition` · `action="remove_keys"` · `params: { segment_name, environment_id }` · `body: { keys, comment?, title? }` | **Not supported in the CLI** (absent from the `fme` spec) — use MCP, or stop and tell the user key operations need the MCP server |
+| List keys | `harness_execute` · `fme_segment_definition` · `action="list_keys"` · `params: { segment_name, environment_id, offset?, limit? }` | Discover the key-list action and pagination arguments through CLI help |
+| Add keys | `harness_execute` · `fme_segment_definition` · `action="add_keys"` · `params: { segment_name, environment_id, replace? }` · `body: { keys, comment?, title? }` | Discover the key-add action and replacement argument through CLI help |
+| Remove keys | `harness_execute` · `fme_segment_definition` · `action="remove_keys"` · `params: { segment_name, environment_id }` · `body: { keys, comment?, title? }` | Discover the key-remove action through CLI help |
 
 ## Instructions
 
@@ -68,28 +69,28 @@ Ask only for what is missing:
 
 ### Phase 3: Execute operation
 
-Resolve type, then choose the workflow below. Discover the exact operation/schema exposed by the installed MCP/CLI before a write. If that operation is missing, offer an approved alternate tool or the corresponding administration workflow; do not call another type's endpoint, silently switch scope contracts, or declare the segment type unsupported.
+Resolve exact name **and type**, then choose the workflow below. Before **every mutation**, including metadata creation, definition provisioning and key additions, complete the [usage check](#usage-check), present its impact with the plan, and obtain [production-aware approval](../../references/fme/write-safety.md). Incomplete checks block writes; approval never waives coverage. Discover the selected operation's exact schema before execution and preserve native org/project scope.
 
 | Type | Membership model | Workflow |
 |------|------------------|----------|
-| STANDARD | Explicit key set | Definition and key flows below; audited key actions require MCP |
-| LARGE | Large key set, asynchronous bulk upload/drain | [Large-segment workflow](#large-segment-workflow); not STANDARD key batching |
-| RULE_BASED | Conditions, matchers and exclusions | [Rule-based workflow](#rule-based-workflow); not a flat key-list replacement |
+| STANDARD | Explicit key set | Metadata, environment definitions and key flows below |
+| LARGE | Large key set | Metadata and reference-impact checks only |
+| RULE_BASED | Conditions, matchers and exclusions | Metadata and [rule-editor workflow](#rule-based-workflow) |
 
 #### Find / List
 
 - **Without segment name:** fully paginate all three metadata types and merge; report actual coverage, not a fixed call count.
-- **With segment name:** resolve type and get metadata, then inspect definitions/membership through that type's workflow. Fully paginate key inventories; distinguish a completed LARGE upload from a pending job and RULE_BASED conditions from observed matching keys. If the current tool cannot inspect a part, report that part unverified. Prefer counts or redacted samples over raw user keys.
+- **With segment name:** resolve type and get metadata. For STANDARD, inspect environment definitions and fully paginate keys. For RULE_BASED, inspect authoritative rule-editor configuration, not an observed sample of matching keys. For LARGE, report metadata and references only. Prefer counts or redacted samples over raw user keys.
 - For MCP segment metadata, STANDARD segment definitions and flag definitions, `size` is ignored: explicitly set `filters.limit: 100`, advance `filters.offset`, and continue until a short page. Their `total` is page length, not inventory size. Follow [pagination](../../references/fme/tool-map.md#pagination) for the other resources; failed/skipped pages cannot establish absence or no usage.
 
 #### Create
 
 1. Explore naming conventions from existing segments. Recommend a pattern if clear.
 2. Confirm traffic type exists (**List traffic types**) and explain: "The traffic type must match the flags that will use this segment."
-3. Choose STANDARD, LARGE or RULE_BASED from the membership model above; type is immutable. Check the required type-specific operations are available before promising an end-to-end create.
-4. Plan: segment name, type, traffic type, description, environments. STOP. Ask: "Create this segment?"
-5. On confirmation: create metadata, then follow the selected type's definition/membership workflow for each environment. If tooling cannot complete a step, ask whether the user wants metadata-only creation plus a handoff **before** writing; never silently create an incomplete resource.
-6. Re-read metadata and all supported changed definitions; distinguish metadata created from membership provisioned.
+3. Choose type (immutable), check exact-name/type uniqueness, and complete the usage gate even for a new name; existing rules can contain references to it.
+4. Plan metadata and environment steps separately. LARGE creation is metadata-only; RULE_BASED includes an explicitly agreed editor step. List each environment and apply the production-aware confirmation gate before writing.
+5. Create approved metadata, then provision each approved STANDARD definition or guide the RULE_BASED editor step. Revalidate the gate before dependent writes; stop on a conflict or changed state.
+6. Re-read changed metadata/definitions. Report metadata creation separately from membership or rules saved; never imply an unfinished step succeeded.
 
 #### Add / Remove Keys (STANDARD)
 
@@ -97,7 +98,7 @@ Follow [standard-membership.md](references/standard-membership.md) for parsing, 
 
 #### Usage check
 
-Required before deleting a segment; offer it before removing/replacing keys and disclose any declined coverage. **List flags** (page through every offset), then fully paginate **List flag definitions** for each with explicit MCP `filters.limit: 100` and advancing `filters.offset`. A segment reference can appear in two places per definition — check both, not just one: (1) `rules[].condition.matchers` (segment matchers), and (2) each entry in `treatments[]`, whose `segments`/`largeSegments`/`ruleBasedSegments` membership arrays hold per-treatment segment assignments. Scanning only `rules` misses segments wired as individual-target memberships on a treatment. Cost: one paginated definition inventory per flag, potentially multiple requests; above 50 flags, ask the user to narrow by tag, name or rollout status, or to confirm. If any flag or environment couldn't be checked (declined narrowing, call failure), report "Usage: incomplete — checked N of M flags" rather than treating it as clean. Never report a segment as unused unless every flag and every definition page was actually scanned. If skipped entirely, report "Usage: unchecked." See [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
+Follow [usage-check.md](references/usage-check.md) before every mutation. Scan **all ACTIVE and ARCHIVED project flags and all environments**, including rule matchers, treatment memberships and indirect RULE_BASED dependencies. Above 50 flags, obtain cost approval **before** definition reads; do not narrow a write's safety scan. Failed, skipped or unparsed coverage blocks the write. References require an explicit impact review; deletion is blocked until dependencies are separately resolved and the gate rerun.
 
 #### Replace All Keys (STANDARD, Destructive)
 
@@ -106,68 +107,61 @@ Follow [Replace all keys](references/standard-membership.md#replace-all-keys): f
 #### Update Description / Tags
 
 - **Update segment** (metadata) or **Update definition** (per-env description).
-- Draft the before/after change, obtain explicit approval, then update and re-read. MCP metadata uses merge patch; CLI uses declared field handlers, not guessed `--set` arrays. For per-environment changes, use the selected type's definition operation/schema.
+- Complete the usage gate, draft the before/after change, obtain explicit approval, then update and re-read. Distinguish metadata-only edits from changes affecting evaluation. MCP metadata uses merge patch; CLI uses declared field handlers, not guessed `--set` arrays. STANDARD per-environment descriptions use **Update definition**.
 
 #### Delete STANDARD Definition (One Environment)
 
-1. Check if keys remain: **List keys** for one key.
-2. If keys exist, the delete will fail with 400 `hasDependents`. Offer: "Remove all keys first? This is a separate confirmed step."
-3. If confirmed, follow remove keys flow above, then retry delete.
-4. Plan and confirm per [write-safety.md](../../references/fme/write-safety.md), using production wording if the environment is production. Rules that reference this segment in that environment stop matching anyone.
-5. **Delete definition**, then confirm exact get returns 404 (not an authorization/error response). CLI-only sessions cannot verify key emptiness; stop or request approved MCP assistance first.
+1. Complete the usage gate. If any direct or indirect reference affects this environment, STOP; resolve it under separate approval with `update-flag-targeting` or the rule-editor workflow, then rerun the gate.
+2. Check if keys remain: **List keys** for one key. If keys exist, offer removal as a separate confirmed operation; fully inventory keys before constructing that removal.
+3. After any removal, rerun/revalidate the gate and verify the segment is empty. Do not bypass `hasDependents`.
+4. Present the deletion plan and obtain explicit production-aware approval.
+5. **Delete definition**, then verify exact get returns 404 (not an authorization/error response).
 
 #### Delete Segment
 
-1. Check dependencies using the selected type's workflow and run the [usage check](#usage-check). On 400 `hasDependents`, stop; do not bypass active definitions/references.
+1. Run the usage gate. For STANDARD, inspect all environment definitions with STANDARD calls. For other types, use authoritative configuration evidence and the delete operation's dependency validation, never STANDARD definition calls. **Before deletion**, STOP for any known remaining direct/indirect references or active definitions; resolve them separately, then rerun the gate. On `hasDependents`, stop and report the dependency; never bypass it.
 2. Double confirmation: "This permanently deletes <segment> in all environments. This cannot be undone. Delete?"
-3. STOP and wait for explicit confirmation.
+3. STOP and wait for explicit confirmation; revalidate state immediately before writing.
 4. **Delete segment** with the selected type; verify exact get returns 404, not an authorization/error response.
-5. If flags still reference the segment, change their targeting first with `update-flag-targeting` under separate approval.
-
-#### Large-segment workflow
-
-1. Inspect LARGE metadata and available environment definitions. Establish whether the request is create, export, upload/replace, drain or delete; read the dedicated operation schema and its upload semantics.
-2. Preview the affected environment, current/new membership counts when available, usage impact and any removals. Obtain explicit confirmation; destructive replacement/drain needs its own approval.
-3. Use the supported large-segment workflow, not STANDARD `add_keys`/`replace=true`. Track asynchronous status to completion and verify the resulting membership through the available export/read operation; acceptance is not completion.
-4. The audited native MCP/CLI exposes LARGE metadata but not this bulk workflow. If the installed tools still lack it, guide the matching Harness administration flow and report pending verification. Never silently fall back to deprecated workspace APIs.
 
 #### Rule-based workflow
 
-1. Inspect RULE_BASED metadata, environment definition, ordered rules/matchers, exclusions and referenced segments through available rule-based operations. Do not infer rules from metadata or substitute a STANDARD definition lookup.
-2. Draft the exact condition/exclusion changes, preserve unrelated configuration, verify references and run the usage check. Obtain explicit production-aware approval before updating, enabling/disabling or deleting.
-3. Apply with the type-specific schema, re-read rules/exclusions and verify enabled state. Rule-based membership is evaluated dynamically; a flat key count is not equivalent verification.
-4. The audited native MCP/CLI exposes RULE_BASED metadata but not rule editing; legacy rule-based MCP tools use a different scope contract. If no appropriate native operation is available, guide the Harness rule editor and mark verification pending; never invent commands or switch scope silently.
+1. Confirm exact RULE_BASED metadata and environment. Ask the user to open the Harness rule editor and provide current ordered rules, matchers, exclusions and enabled state, with personal keys redacted. Preserve structural identifiers needed for dependency checks; do not infer rules from metadata or use STANDARD definition/key calls.
+2. Draft the exact before/after condition or exclusion change. Preserve rule order, combiners, negation and unrelated fields; verify referenced segment names/types and traffic types. For example, excluding STANDARD `employees` changes membership, not the flag's targeting rules.
+3. Complete the usage gate and present impacted flags/environments. Obtain explicit production-aware approval for the precise rule edit or enable/disable action.
+4. Have the user apply only the approved change in that environment's rule editor. Revalidate the gate and current configuration before saving; changed state requires a revised plan and approval. Respect any governance/approval requirement.
+5. Obtain fresh saved configuration and compare rules, exclusions and enabled state with the approved plan. Record user-confirmed evidence separately from direct readback. A draft or unsaved editor view is **not** completion; report verification pending until saved state is confirmed.
 
 ### Phase 4: Output
 
-After each operation, summarize per [operation-summary.md](../../templates/operation-summary.md): Operation, segment (name, type), environments, what was confirmed, verification (STANDARD membership, LARGE upload completion/membership, RULE_BASED rules/exclusions, or confirmed deletion), usage (checked or unchecked), flags that reference this segment, warnings, recommended next step. Include a Harness UI link when available.
+Summarize per [operation-summary.md](../../templates/operation-summary.md): operation, exact name/type, environments, approved change, usage coverage and direct/indirect references, verification evidence (metadata, STANDARD membership, saved RULE_BASED configuration or confirmed deletion), and remaining work. Label incomplete checks as blocking and distinguish user-confirmed editor evidence from direct readback. Include a returned Harness UI link when available.
 
 ## Examples
 
 - "Create a segment for beta users with traffic type user" — Create flow.
-- "Add 500 keys to the beta_users segment in staging" — Add keys flow.
+- "Add 500 keys to the beta_users segment in staging" — Complete the usage gate, then approve and add keys.
 - "Replace all keys in early_access with the ones from this CSV" — Replace flow.
-- "Upload this audience to our LARGE segment" — Large-segment workflow; verify bulk completion.
-- "Change a RULE_BASED segment to exclude employees" — Rule-based workflow; preserve other rules.
+- "Update the description of our LARGE segment" — Metadata change with a usage check.
+- "Change a RULE_BASED segment to exclude employees" — Draft, approve and verify a rule-editor change; preserve other rules.
 - "Check which flags use the beta_users segment" — Usage check.
 - "Delete the old_experiment segment" — Delete segment.
 
 ## Performance Notes
 
 - One paginated metadata inventory per type; listing all types may take more than three calls.
-- STANDARD add/remove: batches ≤10,000; replacement: one call ≤10,000. LARGE uses its dedicated bulk workflow, not this limit.
-- Usage check: cost = one paginated definition inventory per flag, potentially multiple requests. Narrow the flag set first (by tag or name) per [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
+- STANDARD add/remove: batches ≤10,000; replacement: one call ≤10,000.
+- Usage check: one paginated definition inventory per project flag plus indirect-dependency evidence. Above 50 flags, obtain cost approval before definition reads. Never narrow a pre-write safety scan.
 
 ## Troubleshooting
 
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `segment_type is required` (400) | Segment type is required on get/update/delete of a segment | Specify segment type (STANDARD, LARGE, or RULE_BASED) |
-| `hasDependents` on delete segment | Definitions or flags still reference it | Run usage check; remove definitions first; prefer leaving segment instead |
-| `hasDependents` on delete definition | Keys remain in that environment | **List keys**, confirm removal, then retry delete |
-| Keys not matching flags | Traffic type mismatch, or flag rule references a different segment, or no definition in that env | Check traffic types match; verify flag rule; **Create definition** if missing |
+| `hasDependents` on delete segment | Definitions or references remain | Stop; resolve dependencies separately for the selected type, then rerun the usage gate; prefer leaving the segment intact |
+| `hasDependents` on delete definition | Keys or dependencies remain in that environment | Complete the usage gate; resolve references separately, inventory and approve any key removal, then rerun the gate before retrying deletion |
+| STANDARD keys not matching flags | Traffic type mismatch, wrong segment reference, or no STANDARD definition in that env | Verify traffic types and flag rule; if needed, create the STANDARD definition through the confirmed usage-gated flow |
 | `keys must have at least 1` on remove keys | The key list is empty | Remove operations require at least one key |
 | `keys max 10000` | Request too large | Batch additive/removal operations only; stop oversized replacements |
-| Required type-specific operation is absent | Tool/version capability gap, not an unsupported segment type | Discover an appropriate supported operation or guide the corresponding administration workflow; report exactly what remains unverified |
+| Usage coverage is incomplete or unparsed | A page, rule shape or dependency chain is unresolved | Stop the write; obtain the missing configuration/coverage and rerun the gate |
 
 Generic errors: see [tool-map.md](../../references/fme/tool-map.md#common-errors).

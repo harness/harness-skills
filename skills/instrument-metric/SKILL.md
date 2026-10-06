@@ -7,7 +7,7 @@ description: >-
   wire up tracking, verify the event arrives.
 metadata:
   author: Harness
-  version: 1.2.2
+  version: 1.2.3
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -44,7 +44,7 @@ Confirm environment, client/server mode, and the existing environment-variable o
 
 ### Phase 4: Find the right placement
 
-Locate the exact point where the tracked action actually completes (e.g. after a successful purchase confirmation from the payment provider, not the button click that starts the flow). Wrong placement produces misleading metric data with no error to catch it. Placement signals: existing analytics calls ([Segment, Amplitude, Mixpanel, gtag, PostHog](../../references/fme/sdk-patterns.md#other-analytics-calls)) for the same action, submit handlers, API route completions, mutation success callbacks, `TODO: track` comments. Identify the candidate `file:line` now; defer call approval until the full event contract is known (Phases 5–6). Ensure the event fires once per intended outcome, not again on re-renders, retries, or both client and server.
+Locate the exact point where the tracked action actually completes (e.g. after a successful purchase confirmation from the payment provider, not the button click that starts the flow). Wrong placement produces misleading metric data with no error to catch it. Placement signals: [existing application analytics calls](../../references/fme/sdk-patterns.md#other-analytics-calls) for the same action, submit handlers, API route completions, mutation success callbacks, `TODO: track` comments. Identify the candidate `file:line` now; defer call approval until the full event contract is known (Phases 5–6). Ensure the event fires once per intended outcome, not again on re-renders, retries, or both client and server.
 
 **Stop condition:** if there's more than one plausible placement (e.g. optimistic UI vs. server-confirmed success), ask the user which one matches the metric's intent rather than guessing.
 

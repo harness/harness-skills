@@ -62,7 +62,7 @@ Check existing RUM-derived metrics (name ending ` - Split Agents`) before creati
 
 These metrics are ready-made engineering guardrail candidates. Users can't toggle this auto-creation. See the [browser RUM configuration](https://developer.harness.io/docs/feature-management-experimentation/sdks-and-infrastructure/client-side-agents/browser-rum-agent/#configuration) for event-prefix settings.
 
-Events can also arrive from integrations (Segment, mParticle, Amplitude), not only `track()` calls. No local `track()` does not prove an event is missing. Unlike LaunchDarkly's automatic `pageview`/`click` metric kinds, do not assume that creating an FME metric installs URL or CSS-selector tracking: resolve a real FME event or instrument/verify its producer first.
+Events can also arrive from existing integrations, not only `track()` calls. No local `track()` does not prove an event is missing. Creating an FME metric does not itself establish URL or CSS-selector tracking: resolve a real FME event or instrument and verify its producer first.
 
 ## Suggest metrics from code
 

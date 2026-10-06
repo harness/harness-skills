@@ -77,12 +77,4 @@ The signatures below are illustrative pseudocode, not a literal per-language ref
 
 ## Other analytics calls
 
-These mark outcomes the team already measures and are placement signals for FME `track()` calls. Look for them when deciding where to add `track()`:
-
-| Tool | Pattern |
-|------|---------|
-| Segment | `analytics.track(` |
-| Mixpanel | `mixpanel.track(` |
-| Amplitude | `amplitude.track(`, `logEvent(` |
-| Google Analytics | `gtag('event'` |
-| PostHog | `posthog.capture(` |
+Existing application analytics mark outcomes the team already measures and provide placement signals for FME `track()` calls. Inspect app-owned tracking wrappers, event-logging or capture calls, mutation-success hooks and route-completion handlers for the same outcome. Follow imports and wrapper implementations to confirm the actual event contract rather than assuming a provider or call signature. Reuse a verified producer where appropriate; do not add duplicate tracking or replace the application's analytics integration.

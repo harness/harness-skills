@@ -4,6 +4,8 @@ Rules for deciding which branch of the code to keep and whether it's safe to rem
 
 **Critical environments** default to every environment marked `isProduction`. The user may add others. **The critical set must be non-empty and must be explicitly stated back to the user before any verdict is given.** If **List environments** returns no environment marked `isProduction` and the user hasn't named any critical environments, STOP: do not default to "ready" or treat an empty critical set as vacuously safe. Ask the user which environments are critical (production, or the closest equivalent) before proceeding.
 
+Before any verdict, complete the relevant environment, flag-definition and ACTIVE/PAUSED experiment inventories per [pagination](../../../references/fme/tool-map.md#pagination). Definition lists need explicit MCP `filters.limit` because `size` is ignored; experiment checks must apply the shared completeness rules, including another request when a full page has only a page-length `total`. An incomplete or failed scan stops code removal. A first-page miss is not proof a definition or experiment is absent.
+
 ## Forward treatment (per environment)
 
 Work out what each critical environment actually serves today:

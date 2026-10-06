@@ -63,7 +63,7 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/discover-feature-flags` | Inventory, per-environment rollout report, and stale-flag audit (read-only) |
 | `/explain-flag` | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
 | `/create-feature-flag` | Create an FME flag that follows project conventions, with safe-default definitions |
-| `/intrument-feature-flag` | Gate application code through an extensible flag abstraction, after stack detection and clarification |
+| `/instrument-feature-flag` | Gate application code through an extensible flag abstraction, after stack detection and clarification |
 | `/feature-flag-onboarding` | Set up and verify a first feature flag in an existing project; resume partial onboarding |
 | `/update-flag-targeting` | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
 | `/manage-flag-lifecycle` | Flag metadata, archive readiness, archive/unarchive, and delete |

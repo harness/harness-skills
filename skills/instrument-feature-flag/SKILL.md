@@ -1,5 +1,5 @@
 ---
-name: intrument-feature-flag
+name: instrument-feature-flag
 description: >-
   Gate application code behind an existing Harness FME feature flag. Detect the
   app's language, framework and any existing flag wrapper first; ask only what
@@ -17,7 +17,7 @@ description: >-
   getTreatment, add SDK evaluation call.
 metadata:
   author: Harness
-  version: 1.0.0
+  version: 1.0.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI for flag reads, plus local application code access to make edits; guidance-only (no edits) if application access is unavailable
@@ -25,7 +25,7 @@ compatibility: Requires the Harness MCP server or the Harness CLI for flag reads
 
 # Instrument Feature Flag
 
-Skill identifier: `intrument-feature-flag`. Gate application code behind an existing FME flag: inspect the real app first, prefer or design a small customer-extensible wrapper, get it approved, implement the minimal edits, and test at the wrapper and call-site boundary. Related: `/create-feature-flag` (new flag), `/update-flag-targeting` (missing/insufficient targeting), `/feature-flag-onboarding` (first-time setup, which delegates here for code).
+Skill identifier: `instrument-feature-flag`. Gate application code behind an existing FME flag: inspect the real app first, prefer or design a small customer-extensible wrapper, get it approved, implement the minimal edits, and test at the wrapper and call-site boundary. Related: `/create-feature-flag` (new flag), `/update-flag-targeting` (missing/insufficient targeting), `/feature-flag-onboarding` (first-time setup, which delegates here for code).
 
 ## Tools
 

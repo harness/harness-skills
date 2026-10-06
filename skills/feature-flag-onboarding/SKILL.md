@@ -5,7 +5,7 @@ description: >-
   an already-enabled FME account/project, then pick one verified
   non-production environment; if none exists, hand off to an admin, not
   creating one. Detect the codebase's language and framework, then delegate
-  code integration to intrument-feature-flag — never duplicating its wrapper
+  code integration to instrument-feature-flag — never duplicating its wrapper
   design or creating the same flag twice. Verify two distinct named-treatment
   outcomes live through separately approved targeting changes when needed,
   not just default/fallback responses.
@@ -13,11 +13,11 @@ description: >-
   checkpoint file; never recreates a flag from uncertain absence or reuses a
   stale approval. Use when asked to onboard FME for an app, set up feature
   flags end-to-end, or prove a flag works live. Not for flag creation alone
-  (create-feature-flag), code gating alone (intrument-feature-flag),
+  (create-feature-flag), code gating alone (instrument-feature-flag),
   targeting alone (update-flag-targeting), or metric/experiment setup.
 metadata:
   author: Harness
-  version: 1.0.0
+  version: 1.0.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI, plus local application code access and (for live proof) runtime/build access; guidance-only or partial if application/runtime access is unavailable
@@ -25,7 +25,7 @@ compatibility: Requires the Harness MCP server or the Harness CLI, plus local ap
 
 # Feature Flag Onboarding
 
-Orchestrate a new application's first end-to-end FME setup: confirm scope, pick a safe environment, detect the codebase, delegate code integration, then prove two distinct treatments actually run live. This skill sequences and verifies; it does not re-implement flag creation, code wiring, or targeting changes — those live in `/create-feature-flag`, `/intrument-feature-flag`, and `/update-flag-targeting`.
+Orchestrate a new application's first end-to-end FME setup: confirm scope, pick a safe environment, detect the codebase, delegate code integration, then prove two distinct treatments actually run live. This skill sequences and verifies; it does not re-implement flag creation, code wiring, or targeting changes — those live in `/create-feature-flag`, `/instrument-feature-flag`, and `/update-flag-targeting`.
 
 ## Tools
 
@@ -56,7 +56,7 @@ Reuse a complete **List environments** inventory and verify the explicitly selec
 
 ### Phase 4: Detect the codebase, then clarify
 
-Make this sequence visible: **detect → clarify → delegate the wrapper plan.** Do a light detection pass per [language-guidance.md](../../references/fme/language-guidance.md#phase-1-detect-before-asking) (language/framework/runtime, monorepo layout, existing FME/OpenFeature/Classic-FF usage) — enough to pick the target app and know whether `/intrument-feature-flag` will find an existing wrapper. If the installed flag system can't be identified (Classic FF only, or an unverified OpenFeature provider), stop and resolve that before delegating. Summarize what was detected, then ask only for unresolved choices: target app/service, purpose and candidate gating point, evaluation identity/traffic type, intended treatment outcomes/fallback and customer extension needs. Existing definitions constrain valid treatment names; for a new flag, propose names such as `on`/`off` only for explicit confirmation, never silently assume them. Do not design the wrapper, SDK recipe, or treatment mapping here — that belongs entirely to `/intrument-feature-flag` in Phase 6. Carry every confirmed fact forward so delegated skills never re-ask them.
+Make this sequence visible: **detect → clarify → delegate the wrapper plan.** Do a light detection pass per [language-guidance.md](../../references/fme/language-guidance.md#phase-1-detect-before-asking) (language/framework/runtime, monorepo layout, existing FME/OpenFeature/Classic-FF usage) — enough to pick the target app and know whether `/instrument-feature-flag` will find an existing wrapper. If the installed flag system can't be identified (Classic FF only, or an unverified OpenFeature provider), stop and resolve that before delegating. Summarize what was detected, then ask only for unresolved choices: target app/service, purpose and candidate gating point, evaluation identity/traffic type, intended treatment outcomes/fallback and customer extension needs. Existing definitions constrain valid treatment names; for a new flag, propose names such as `on`/`off` only for explicit confirmation, never silently assume them. Do not design the wrapper, SDK recipe, or treatment mapping here — that belongs entirely to `/instrument-feature-flag` in Phase 6. Carry every confirmed fact forward so delegated skills never re-ask them.
 
 ### Phase 5: Agree the onboarding contract
 
@@ -64,7 +64,7 @@ Confirm reuse of the identified flag or the intention to create one, one environ
 
 ### Phase 6: Delegate code integration (architecture owned by the callee)
 
-Load [intrument-feature-flag](../intrument-feature-flag/SKILL.md) with confirmed scope/transport, app/revision, detected stack/wrapper, existing flag or proposed creation intent, **one selected environment**, identity/traffic type, intended outcomes, fallback and extension needs. It validates the contract, owns the approved abstraction/code edits/tests and delegates any creation to [create-feature-flag](../create-feature-flag/SKILL.md), then returns here—no duplicate creation or recursive handoff. Carry confirmed facts; clarify only new gaps.
+Load [instrument-feature-flag](../instrument-feature-flag/SKILL.md) with confirmed scope/transport, app/revision, detected stack/wrapper, existing flag or proposed creation intent, **one selected environment**, identity/traffic type, intended outcomes, fallback and extension needs. It validates the contract, owns the approved abstraction/code edits/tests and delegates any creation to [create-feature-flag](../create-feature-flag/SKILL.md), then returns here—no duplicate creation or recursive handoff. Carry confirmed facts; clarify only new gaps.
 
 Require returned resource IDs/readback, approved treatment/identity mapping, edited revision, SDK/configuration readiness and test status. Missing SDK credentials require an authorized provisioning handoff, never a fabricated retrieval tool or admin-token substitution. If code tests fail or source/setup is incomplete, resolve or report partial and stop before live targeting changes. No runtime access means code-tested/configuration-verified at most, not completed onboarding.
 
@@ -111,7 +111,7 @@ Summarize per [operation-summary.md](../../templates/operation-summary.md): conf
 
 ## References
 
-- [language-guidance.md](../../references/fme/language-guidance.md) — detect-before-ask, wrapper reuse, SDK/provider contracts (owned by `/intrument-feature-flag`, read here for orchestration awareness only)
+- [language-guidance.md](../../references/fme/language-guidance.md) — detect-before-ask, wrapper reuse, SDK/provider contracts (owned by `/instrument-feature-flag`, read here for orchestration awareness only)
 - [write-safety.md](../../references/fme/write-safety.md) and [concepts.md](../../references/fme/concepts.md) — kill/restore ordering, experiment checks
 - [mcp-setup.md](../../references/mcp-setup.md) — MCP/CLI transport selection
 - [operation-summary.md](../../templates/operation-summary.md) — structured completion summary

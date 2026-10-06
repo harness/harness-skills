@@ -11,7 +11,7 @@ description: >-
   explain this flag, how is X configured, is X on in prod, what's targeted for X.
 metadata:
   author: Harness
-  version: 1.3.1
+  version: 1.3.2
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -27,11 +27,11 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 
 | Operation | MCP | CLI |
 |-----------|-----|-----|
-| List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
-| List flags | `harness_list` · `fme_feature_flag` · `filters: { name }` · `compact: false` | `harness list feature_flag --search <substring> --json` |
+| List environments | `harness_list` · `fme_environment` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list fme_environment --json` |
+| List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name, offset: 0 }` · `compact: false` | `harness list feature_flag --search <substring> --json` |
 | Get flag | `harness_get` · `fme_feature_flag` · `params: { feature_flag_name }` | `harness get feature_flag <name> --json` |
 | Get definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag> --env <env-id> --json` |
-| List definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
+| List definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
 
 ## Instructions
 
@@ -39,7 +39,7 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 
 Get `org_id` + `project_id` if not already known. Don't use the deprecated `workspace_id`: the Step 4 definition list is Harness-native only.
 
-**List environments** up front, since Step 4 needs every environment. Page through every offset until a page returns fewer than requested — one call is not guaranteed to return all environments, and an environment you never fetched is **unseen**, not confirmed **nonexistent**; don't diff Step 4 against a partial list. Keep the full list with each environment's `isProduction`: Step 4 diffs against it for missing definitions, and Step 6 labels production environments ("is X on" questions almost always mean "in production").
+**List environments** up front, since Step 4 needs every environment. Complete the inventory per [pagination](../../references/fme/tool-map.md#pagination), using explicit MCP `filters.limit: 100`; a full page whose `total` equals its length can be a fallback, so fetch another page — one call is not guaranteed to return all environments, and an environment you never fetched is **unseen**, not confirmed **nonexistent**; don't diff Step 4 against a partial list. Keep the full list with each environment's `isProduction`: Step 4 diffs against it for missing definitions, and Step 6 labels production environments ("is X on" questions almost always mean "in production").
 
 ### Step 2: Find the flag, disambiguating if needed
 
@@ -63,7 +63,7 @@ Read `description`, `tags`, `trafficType` (an object - use `.name`, don't print 
 
 ### Step 4: Get targeting for every environment
 
-**List definitions** for the flag.
+**List definitions** for the flag through every page, explicitly setting MCP `filters.limit: 100` and advancing `filters.offset` until a short page. `size` is ignored here, and `total` can be only the page length. Do not diff an incomplete definition inventory against the environment list or call an unseen environment unconfigured; report the missing coverage instead.
 
 For each environment's definition, read `isKilled` (per environment - a flag can be killed in one and live in another), `treatments` (including any `keys`/`segments`/`largeSegments`/`ruleBasedSegments` membership nested on individual treatments - these are the individual targets, evaluated before rules), `defaultTreatment` (served when the flag is killed or the traffic isn't allocated), `defaultRule` (buckets served when no targeting rule matches), `rules` (each with `buckets` + a `condition`), `trafficAllocation`, and `impressions.lastImpressionAt` (most recent impression; `null` = never received traffic). If `impressions` is absent, report last impression as unknown, not as unused.
 
@@ -123,7 +123,7 @@ If the question was scoped ("is X on in prod?"), answer it in that case too rath
 
 ## Performance Notes
 
-- **List environments** once (Step 1) and **List definitions** once (Step 4) - don't get per environment when the list returns all of them.
+- Build one complete paginated environment inventory (Step 1) and one complete paginated definition inventory (Step 4); each may require multiple calls.
 - Read-only: never call create/update/delete/execute. If user asks to change something, route per description.
 
 ## Troubleshooting

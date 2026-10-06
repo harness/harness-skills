@@ -14,7 +14,7 @@ description: >-
   statistical significance, guardrail metric, ship this experiment.
 metadata:
   author: Harness
-  version: 2.1.1
+  version: 2.1.2
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -35,7 +35,7 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 
 | Operation | MCP | CLI |
 |-----------|-----|-----|
-| **List experiments** | `harness_list` · `fme_experiment` · `filters: { parent_type, name?, status?: ["ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"], … }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG [--search <name>] --status ACTIVE`, then repeat with `--status PAUSED`, `--status COMPLETED`, `--status ARCHIVED` (CLI `--status` is single-value; API defaults to `ACTIVE` if omitted) |
+| **List experiments** | `harness_list` · `fme_experiment` · `filters: { parent_type, name?, match_type: "contains", status?: ["ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"], offset: 0, limit: 100 }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG [--search <name>] --status ACTIVE`, then repeat with `--status PAUSED`, `--status COMPLETED`, `--status ARCHIVED` (CLI `--status` is single-value; API defaults to `ACTIVE` if omitted) |
 | **Get experiment** | `harness_get` · `fme_experiment` · `params: { experiment_id }` | `harness get experiment <experiment-id>` |
 | **Get settings** | `harness_get` · `fme_experiment_settings` · `params: { experiment_id }` | `harness get experiment:settings <experiment-id>` |
 | **List results** | `harness_list` · `fme_experiment_result` · `filters: { experiment_id, comparisons? }` | `harness list experiment:results <experiment-id> --raw` |
@@ -48,9 +48,9 @@ Follow [scope-establishment.md](../../references/scope-establishment.md).
 
 ### Step 1: Resolve the experiment
 
-If the user gives an exact experiment ID, **Get experiment** directly - skip list. Otherwise **List experiments** for parent type FEATURE_FLAG (or AI_CONFIG if user specified), with name substring match if provided. Default parent type: FEATURE_FLAG.
+If the user gives an exact experiment ID, **Get experiment** directly - skip list. Otherwise **List experiments** for parent type FEATURE_FLAG (or AI_CONFIG if user specified), with name substring match if provided (MCP: `match_type: "contains"`). Default parent type: FEATURE_FLAG.
 
-If user didn't specify status, list ACTIVE, PAUSED, COMPLETED, **and ARCHIVED** - a finished or archived experiment is exactly the kind a results question is usually about, so never default to active-only here. More than one match or no name given → ask which experiment.
+If user didn't specify status, list ACTIVE, PAUSED, COMPLETED, **and ARCHIVED** - a finished or archived experiment is exactly the kind a results question is usually about, so never default to active-only here. Fully paginate all selected statuses per [pagination](../../references/fme/tool-map.md#pagination) before deciding uniqueness or absence; CLI needs a separate paginated query per status. More than one match or no name given → ask which experiment. If a scan is incomplete, report that instead of silently selecting a first-page match.
 
 ### Step 2: Fetch experiment definition
 
@@ -84,7 +84,7 @@ GUARDRAIL/ALERT rows aren't part of the expected set (they're workspace-wide, no
 
 ### Step 5: Resolve metric names and descriptions
 
-Resolve every distinct metric ID from returned rows **and** configured metrics missing from those rows, so gaps can be named. MCP may **List metrics** by IDs; CLI must **Get metric** separately for each ID (or one single-ID list per call). Include returned GUARDRAIL/ALERT IDs too. Descriptions help judge severity: a 2% dip on "leading indicator, noisy" reads differently from same dip on "primary revenue guardrail".
+Resolve every distinct metric ID from returned rows **and** configured metrics missing from those rows, so gaps can be named. MCP may **List metrics** by IDs, fully paginating until every requested ID is resolved or the complete inventory establishes a missing ID; alternatively get each ID directly. CLI must **Get metric** separately for each ID (or one fully paginated single-ID list per call). An unresolved ID stays unverified, not absent from a first-page miss. Include returned GUARDRAIL/ALERT IDs too. Descriptions help judge severity: a 2% dip on "leading indicator, noisy" reads differently from same dip on "primary revenue guardrail".
 
 ### Step 6: Classify each result
 

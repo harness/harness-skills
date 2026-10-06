@@ -7,7 +7,7 @@ description: >-
   wire up tracking, verify the event arrives.
 metadata:
   author: Harness
-  version: 1.2.3
+  version: 1.2.4
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -34,7 +34,7 @@ See [scope-establishment.md](../../references/scope-establishment.md). Confirm t
 
 ### Phase 2: Detect the SDK
 
-Search existing FME `track()` calls first — they give the signature, key source, traffic type and wrapper in one shot; mirror them. See [sdk-patterns.md](../../references/fme/sdk-patterns.md) for SDK detection (searching for existing `track()` calls or dependency manifests) and identifying whether it's a client-side or server-side SDK — the two have different `track()` signatures. If no flag evaluation wrapper exists yet in this app, see [language-guidance.md](../../references/fme/language-guidance.md) for version-aware SDK setup, identity, readiness and fallback guidance — this skill adds a `track()` call to the app's existing SDK/wrapper, it does not design that wrapper (that's `/intrument-feature-flag`).
+Search existing FME `track()` calls first — they give the signature, key source, traffic type and wrapper in one shot; mirror them. See [sdk-patterns.md](../../references/fme/sdk-patterns.md) for SDK detection (searching for existing `track()` calls or dependency manifests) and identifying whether it's a client-side or server-side SDK — the two have different `track()` signatures. If no flag evaluation wrapper exists yet in this app, see [language-guidance.md](../../references/fme/language-guidance.md) for version-aware SDK setup, identity, readiness and fallback guidance — this skill adds a `track()` call to the app's existing SDK/wrapper, it does not design that wrapper (that's `/instrument-feature-flag`).
 
 ### Phase 3: Install and initialize if needed
 
@@ -82,7 +82,7 @@ Summarize separately: (1) event name/traffic type and **visible in the project's
 
 - "Add tracking for checkout completion" — Phases 2-4 to place the call after payment confirmation, Phase 5 to agree the event name with `/create-metric`'s expected `checkout_completed`, Phases 6-7 to write and verify.
 - "Is the signup event actually flowing?" — skip to Phase 7 only, using the event name already in an existing metric; if absent, apply the 30-day idle caveat before calling it broken.
-- "Wire up a new SDK for this service" — metric-tracking focus only: Phases 2-3 confirm/install the SDK for an existing flag integration (no `track()` call yet). Not a first-time flag-gating setup — route code gating to `/intrument-feature-flag` and end-to-end first setup to `/feature-flag-onboarding`.
+- "Wire up a new SDK for this service" — metric-tracking focus only: Phases 2-3 confirm/install the SDK for an existing flag integration (no `track()` call yet). Not a first-time flag-gating setup — route code gating to `/instrument-feature-flag` and end-to-end first setup to `/feature-flag-onboarding`.
 
 ## Performance Notes
 

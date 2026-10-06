@@ -4,10 +4,10 @@
 
 | Operation | MCP | CLI |
 |-----------|-----|-----|
-| Update definition | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { <fields>, comment }` | `harness update feature_flag:definition <flag> --env <env-id> -f patch.json` |
+| Update definition | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { <fields>, comment }` | `harness update feature_flag:definition <flag> --env <env-id> -f patch.json --json` |
 | Create definition | `harness_create` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments, defaultTreatment, defaultRule, ... }` | `harness create feature_flag:definition <flag> --env <env-id> -f def.json` |
 
-Each recipe (except kill/restore) is a merge-patch for **Update definition**.
+Recipes (a)–(g) use merge-patch **Update definition**. Recipe (h) creates or updates according to target existence, (i) uses **Create definition**, and (j) uses execute actions.
 
 Rules for every patch:
 - Start from the live definition. Copy shapes from it. Never compose them from memory.
@@ -30,16 +30,20 @@ Plan wording: "Everyone not matched by a target or rule: 10% `on` / 90% `off`."
 
 ## (b) Ramp one rule
 
-Copy the full `rules` array and change only that rule's `buckets`:
+Resolve the selected rule in the live definition and confirm its position; stop if it is missing or ambiguous. Copy the **complete `rules` array**, preserve order and every unknown field, and change only the selected rule's `buckets`. Build the request body as follows (illustrative Python; variables come from the readback and approved plan):
 
-```json
-{ "buckets": [ { "treatment": "on", "size": 50 }, { "treatment": "off", "size": 50 } ],
-  "condition": { ...unchanged... } }
+```python
+from copy import deepcopy
+rules = deepcopy(live_definition["rules"])
+rules[selected_index]["buckets"] = approved_buckets
+patch = {"rules": rules, "comment": approved_comment}
 ```
+
+Serialize `patch` as MCP `body` or CLI `patch.json`. **Never send a standalone rule object or top-level `buckets`/`condition` as the update body.** Validate bucket totals and treatment names; the serialized `rules` array must include every retained rule, not only the changed one.
 
 ## (c) Add, edit, remove, or reorder rules
 
-A rule is `{ buckets: [{treatment, size}], condition: { combiner: "AND"|"OR", matchers: [{ type, attribute, ... }] } }`. Documented matcher types are listed in [concepts.md](../../../references/fme/concepts.md#rule-and-target-shapes-round-trip-dont-compose-from-memory).
+A rule is `{ buckets: [{treatment, size}], condition: { combiner: "AND"|"OR", matchers: [{ type, attribute, ... }] } }`. Documented matcher types are listed in [concepts.md](../../../references/fme/concepts.md#rule-and-target-shapes-round-trip-dont-compose-from-memory). The example below is **one rule entry, not a request body**: insert it at the approved position in the complete retained `rules` array and submit the top-level `rules` patch as in (b).
 
 ```json
 { "buckets": [ { "treatment": "on", "size": 100 } ],
@@ -105,7 +109,7 @@ Plan wording: "This copies the approved configuration into `<target>`, preservin
 
 ## (i) Initialize a definition where none exists
 
-Use this when the flag exists but has no definition in the environment, so SDKs there get `control`. Reuse treatment names from another environment's definition if there is one, so code checks still match. Otherwise ask, defaulting to `on`/`off`. Create it with the same call as (h) step 4:
+Use this when the flag exists but has no definition in the environment, so SDKs there get `control`. Reuse treatment names from another environment's definition if there is one, so code checks still match. Otherwise ask, defaulting to `on`/`off`. Create it with **Create definition**, as in (h) step 5; (h) step 4 is the prerequisite check, not the write:
 
 ```json
 { "treatments": [ { "name": "on" }, { "name": "off" } ],

@@ -15,7 +15,7 @@ description: >-
   removal (cleanup-feature-flags).
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.2.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -35,8 +35,8 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 | List rollout statuses | `harness_list` · `fme_rollout_status` · `compact: false` | `harness list rollout_status --json` |
 | List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name?, tags?, rollout_status_id?, offset? }` · `compact: false` | `harness list feature_flag --search <name> --status <ACTIVE\|ARCHIVED> --json` (CLI has no `--tags`/`--rollout-status-id`; filter the full JSON client-side — MCP's `tags`/`rollout_status_id` filters are server-side) |
 | Get flag | `harness_get` · `fme_feature_flag` · `params.feature_flag_name` | `harness get feature_flag <name> --json` |
-| List definitions | `harness_list` · `fme_feature_flag_definition` · `params.feature_flag_name` · `filters: { offset?, limit? }` · `compact: false` | `harness list feature_flag:definition <name> --json` |
-| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, status: ["ACTIVE", "PAUSED"] }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <name> --status ACTIVE --json`, then again with `--status PAUSED` |
+| List definitions | `harness_list` · `fme_feature_flag_definition` · `params.feature_flag_name` · `filters: { offset: 0, limit: 100 }` (advance offset through every page) · `compact: false` | `harness list feature_flag:definition <name> --json` |
+| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, status: ["ACTIVE", "PAUSED"], offset: 0, limit: 100 }` (apply [pagination completeness checks](../../references/fme/tool-map.md#pagination)) · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <name> --status ACTIVE --json`, then again with `--status PAUSED` |
 
 ## Output
 
@@ -66,9 +66,9 @@ Ask only for missing items relevant to the user's goal:
 
 ### Phase 3: List environments and rollout statuses
 
-**List environments** to build a map: ID → `{ name, isProduction }`. Sort: non-production first, production last.
+**List environments** through every page to build a map: ID → `{ name, isProduction }`. Sort: non-production first, production last.
 
-**List rollout statuses** to build a map: name → ID (for resolving rollout status by name).
+**List rollout statuses** through every page to build a map: name → ID (for resolving rollout status by name). For both, set MCP `filters.limit: 100` and advance `filters.offset` per [pagination](../../references/fme/tool-map.md#pagination); a full page whose `total` equals its length may be a fallback and needs another request. An unseen environment is not absent.
 
 ### Phase 4: List flags
 
@@ -80,17 +80,17 @@ Page through every offset until a page returns fewer than requested — a single
 
 ### Phase 5: List definitions (rollout-report / stale-audit only)
 
-For each flag (after client-side filtering), **list definitions**. Returns all environments for one flag.
+For each flag (after client-side filtering), **list definitions** with explicit MCP `filters.limit: 100` and advance `filters.offset` until a short page; `size` is ignored and `total` is only the page length. Only the complete inventory covers all environments. Failed or skipped pages make the report incomplete; do not label unseen definitions missing or declare a flag ready for cleanup.
 
-**Cost guard:** If >50 flags after filtering, STOP and warn: "This will fetch definitions for N flags (N list calls). Narrow by tag, name, rollout status, or status to reduce cost, or confirm to proceed." See [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
+**Cost guard:** If >50 flags after filtering, STOP and warn: "This will fetch N paginated definition inventories (potentially more than N requests). Narrow by tag, name, rollout status, or status to reduce cost, or confirm to proceed." See [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
 
 Classify each (flag, environment) cell per [concepts.md](../../references/fme/concepts.md): killed (isKilled), no definition, fully rolled out, ramping, targeted, limited exposure. Evaluation order: killed → no definition → trafficAllocation < 100 → rules/targets present → defaultRule shape.
 
-**Stale audit:** Buckets per [concepts.md](../../references/fme/concepts.md#staleness-and-readiness): stale / active / unknown / never evaluated. Field is `impressions.lastImpressionAt` (ISO-8601 date-time; `null` = never evaluated; absent = unknown). For flags that would otherwise be **ready** or **caution**, run the [experiment check](../../references/fme/write-safety.md#experiment-check) with **List experiments** (ACTIVE and PAUSED). Next Step column: ready / caution / blocked verdict per [concepts.md](../../references/fme/concepts.md#staleness-and-readiness) → hand off to `cleanup-feature-flags` (code) or `manage-flag-lifecycle` (archive).
+**Stale audit:** Buckets per [concepts.md](../../references/fme/concepts.md#staleness-and-readiness): stale / active / unknown / never evaluated. Field is `impressions.lastImpressionAt` (ISO-8601 date-time; `null` = never evaluated; absent = unknown). For flags that would otherwise be **ready** or **caution**, run the [experiment check](../../references/fme/write-safety.md#experiment-check) with **List experiments** (ACTIVE and PAUSED), applying the shared completeness checks before ruling out an ACTIVE experiment; a page-length `total` cannot end a full-page scan. Incomplete checks cannot produce a ready/caution clearance. Next Step column: ready / caution / blocked verdict per [concepts.md](../../references/fme/concepts.md#staleness-and-readiness) → hand off to `cleanup-feature-flags` (code) or `manage-flag-lifecycle` (archive).
 
 ### Phase 6: Output
 
-Present the fixed table for the mode. Summary counts per class or bucket. If paginated, report truncation.
+Present the fixed table for the mode. Summary counts per class or bucket. Pagination alone is not truncation: report truncation/incomplete coverage only if the inventory was not finished.
 
 **Hand-offs:** Single-flag → `explain-flag`. Cleanup candidate → `cleanup-feature-flags`. Archive → `manage-flag-lifecycle`. Update targeting → `update-flag-targeting`. Pipeline rollout → `fme-pipeline`.
 
@@ -105,9 +105,9 @@ Present the fixed table for the mode. Summary counts per class or bucket. If pag
 
 ## Performance Notes
 
-- **Inventory mode:** One list call (flags only), no definitions. Fast.
-- **Rollout-report / stale-audit:** N list calls (one per flag). Cost guard at 50 flags. Narrow first by tag, name, rollout status, or status.
-- **Stale-audit experiment check:** One or two calls per flag that's ready or caution after the impressions check. Run this check only for candidates, not every flag.
+- **Inventory mode:** One paginated flag inventory, plus paginated lookup inventories; no definitions.
+- **Rollout-report / stale-audit:** One paginated definition inventory per flag, possibly multiple requests each. Cost guard at 50 flags. Narrow first by tag, name, rollout status, or status.
+- **Stale-audit experiment check:** Complete the paginated ACTIVE/PAUSED inventory for each candidate; CLI uses a separately paginated query per status. Run this check only for candidates, not every flag.
 - **Pagination:** See [tool-map.md](../../references/fme/tool-map.md#pagination).
 - **Parallelizing definition reads:** Batch list-definitions calls if the client supports parallel calls.
 

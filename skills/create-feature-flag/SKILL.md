@@ -5,7 +5,7 @@ description: >-
   with a safe default, following the project's naming and tagging
   conventions. Use when asked to create a feature flag, add a flag, set up a
   new FME flag, or initialize flag targeting. Flag/definition writes only:
-  does not gate application code (intrument-feature-flag) and is not a
+  does not gate application code (instrument-feature-flag) and is not a
   first-time onboarding entry point (feature-flag-onboarding). Do not use for
   updating existing flag targeting (update-flag-targeting), deep analysis of
   a single flag (explain-flag), listing/discovering flags
@@ -16,7 +16,7 @@ description: >-
   add flag, new flag, set up flag, FME flag create, initialize flag.
 metadata:
   author: Harness
-  version: 1.2.1
+  version: 1.2.2
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -57,7 +57,7 @@ Based on conventions and user's purpose, propose. When delegated, preserve the c
 - **Traffic type:** Must exist in traffic types list.
 - **Treatments:** Default `on`/`off` or user-specified. Never `control` (reserved; see [concepts.md](../../references/fme/concepts.md)).
 - **Safe default:** See [targeting-recipes.md](../update-flag-targeting/references/targeting-recipes.md#i-initialize-a-definition-where-none-exists) for the definition body.
-- **Environments to initialize:** Default = all non-production. Production only if asked. **Delegated integration:** `/intrument-feature-flag` and `/feature-flag-onboarding` must supply one confirmed environment; initialize only that environment. If selection is missing, STOP and ask—never fall back to all non-production on the caller's behalf.
+- **Environments to initialize:** Default = all non-production. Production only if asked. **Delegated integration:** `/instrument-feature-flag` and `/feature-flag-onboarding` must supply one confirmed environment; initialize only that environment. If selection is missing, STOP and ask—never fall back to all non-production on the caller's behalf.
 - **Tags, description:** Follow the convention. Include linked ticket if provided.
 - **Owners:** Never auto-pick from convention alone. Show the owners found on similar flags as candidates and ask the user to explicitly confirm who the owner(s) should be for this flag before including them in the plan.
 
@@ -91,9 +91,9 @@ Created flag `<name>` (<trafficType>).
 - Production / other environments: no definition, SDKs return `control`.
 ```
 
-This skill creates flag metadata and definitions only — it does not touch application code. For code gating, hand off to `/intrument-feature-flag`; for further targeting changes, `/update-flag-targeting`; for A/B tests, `/manage-experiments`.
+This skill creates flag metadata and definitions only — it does not touch application code. For code gating, hand off to `/instrument-feature-flag`; for further targeting changes, `/update-flag-targeting`; for A/B tests, `/manage-experiments`.
 
-**Return to caller:** if this skill was invoked as a delegated step (e.g. by `/intrument-feature-flag` or `/feature-flag-onboarding`), return the created flag/environment/definition identifiers and this verification to that caller and stop here — do not continue into code integration or targeting changes yourself, and do not re-invoke the caller.
+**Return to caller:** if this skill was invoked as a delegated step (e.g. by `/instrument-feature-flag` or `/feature-flag-onboarding`), return the created flag/environment/definition identifiers and this verification to that caller and stop here — do not continue into code integration or targeting changes yourself, and do not re-invoke the caller.
 
 ## Examples
 

@@ -13,7 +13,7 @@ description: >-
   replace segment keys, segment definition, check segment usage, delete segment.
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.2.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires Harness MCP or CLI; available definition and membership operations depend on segment type and tool version
@@ -32,13 +32,13 @@ Works through Harness MCP or CLI. [tool-map.md](../../references/fme/tool-map.md
 | List traffic types | `harness_list` · `fme_traffic_type` · `compact: false` | `harness list traffic_type --json` |
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
 | List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `compact: false` | `harness list feature_flag --json --limit 50` |
-| List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
-| List segments | `harness_list` · `fme_segment` · `filters: { segment_type, status?, offset?, limit? }` · `compact: false` | `harness list segment --segment-type STANDARD --json` |
+| List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
+| List segments | `harness_list` · `fme_segment` · `filters: { segment_type, status?, offset: 0, limit: 100 }` · `compact: false` | `harness list segment --segment-type STANDARD --json` |
 | Get segment | `harness_get` · `fme_segment` · `params: { segment_name, segment_type }` | `harness get segment <name> --segment-type STANDARD --json` |
 | Create segment | `harness_create` · `fme_segment` · `body: { name, trafficType, segmentType, description?, tags?, owners? }` | `harness create segment <name> --traffic-type user --segment-type STANDARD` |
 | Update segment | `harness_update` · `fme_segment` · `params: { segment_name, segment_type }` · `body: { description?, tags?, owners? }` | `harness update segment <name> --segment-type STANDARD --set description=foo` |
 | Delete segment | `harness_delete` · `fme_segment` · `params: { segment_name, segment_type }` | `harness delete segment <name> --segment-type STANDARD` |
-| List definitions | `harness_list` · `fme_segment_definition` · `filters: { environment_id, status?, offset?, limit? }` · `compact: false` | `harness list segment:definition --env <env-id> --json` |
+| List definitions | `harness_list` · `fme_segment_definition` · `filters: { environment_id, status?, offset: 0, limit: 100 }` · `compact: false` | `harness list segment:definition --env <env-id> --json` |
 | Get definition | `harness_get` · `fme_segment_definition` · `params: { segment_name, environment_id }` | `harness get segment:definition <name> --env <env-id> --json` |
 | Create definition | `harness_create` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }?` | `harness create segment:definition <name> --env <env-id>` |
 | Update definition | `harness_update` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }` | `harness update segment:definition <name> --env <env-id> --set description=foo` |
@@ -80,7 +80,7 @@ Resolve type, then choose the workflow below. Discover the exact operation/schem
 
 - **Without segment name:** fully paginate all three metadata types and merge; report actual coverage, not a fixed call count.
 - **With segment name:** resolve type and get metadata, then inspect definitions/membership through that type's workflow. Fully paginate key inventories; distinguish a completed LARGE upload from a pending job and RULE_BASED conditions from observed matching keys. If the current tool cannot inspect a part, report that part unverified. Prefer counts or redacted samples over raw user keys.
-- Pagination: see [tool-map.md](../../references/fme/tool-map.md#pagination).
+- For MCP segment metadata, STANDARD segment definitions and flag definitions, `size` is ignored: explicitly set `filters.limit: 100`, advance `filters.offset`, and continue until a short page. Their `total` is page length, not inventory size. Follow [pagination](../../references/fme/tool-map.md#pagination) for the other resources; failed/skipped pages cannot establish absence or no usage.
 
 #### Create
 
@@ -97,7 +97,7 @@ Follow [standard-membership.md](references/standard-membership.md) for parsing, 
 
 #### Usage check
 
-Required before deleting a segment; offer it before removing/replacing keys and disclose any declined coverage. **List flags** (page through every offset), then **List flag definitions** for each. A segment reference can appear in two places per definition — check both, not just one: (1) `rules[].condition.matchers` (segment matchers), and (2) each entry in `treatments[]`, whose `segments`/`largeSegments`/`ruleBasedSegments` membership arrays hold per-treatment segment assignments. Scanning only `rules` misses segments wired as individual-target memberships on a treatment. Cost: one call per flag; above 50 flags, ask the user to narrow by tag, name or rollout status, or to confirm. If any flag or environment couldn't be checked (declined narrowing, call failure), report "Usage: incomplete — checked N of M flags" rather than treating it as clean. Never report a segment as unused unless every flag and every definition page was actually scanned. If skipped entirely, report "Usage: unchecked." See [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
+Required before deleting a segment; offer it before removing/replacing keys and disclose any declined coverage. **List flags** (page through every offset), then fully paginate **List flag definitions** for each with explicit MCP `filters.limit: 100` and advancing `filters.offset`. A segment reference can appear in two places per definition — check both, not just one: (1) `rules[].condition.matchers` (segment matchers), and (2) each entry in `treatments[]`, whose `segments`/`largeSegments`/`ruleBasedSegments` membership arrays hold per-treatment segment assignments. Scanning only `rules` misses segments wired as individual-target memberships on a treatment. Cost: one paginated definition inventory per flag, potentially multiple requests; above 50 flags, ask the user to narrow by tag, name or rollout status, or to confirm. If any flag or environment couldn't be checked (declined narrowing, call failure), report "Usage: incomplete — checked N of M flags" rather than treating it as clean. Never report a segment as unused unless every flag and every definition page was actually scanned. If skipped entirely, report "Usage: unchecked." See [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
 
 #### Replace All Keys (STANDARD, Destructive)
 
@@ -156,7 +156,7 @@ After each operation, summarize per [operation-summary.md](../../templates/opera
 
 - One paginated metadata inventory per type; listing all types may take more than three calls.
 - STANDARD add/remove: batches ≤10,000; replacement: one call ≤10,000. LARGE uses its dedicated bulk workflow, not this limit.
-- Usage check: cost = one call per flag. Narrow the flag set first (by tag or name) per [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
+- Usage check: cost = one paginated definition inventory per flag, potentially multiple requests. Narrow the flag set first (by tag or name) per [tool-map.md](../../references/fme/tool-map.md#reverse-lookup-scans).
 
 ## Troubleshooting
 

@@ -243,14 +243,14 @@ Typical sequence:
 |-------|-------------|
 | [`/manage-users`](skills/manage-users/SKILL.md) | Manage users, user groups, and service accounts |
 | [`/manage-roles`](skills/manage-roles/SKILL.md) | Manage role assignments and RBAC |
-| [`/discover-feature-flags`](skills/discover-feature-flags/SKILL.md) | Inventory, per-environment rollout report, and stale-flag audit (read-only) |
+| [`/discover-feature-flags`](skills/discover-feature-flags/SKILL.md) | Inventory, targeting-pattern search, promotion-aware rollout report, and stale-flag audit (read-only) |
 | [`/explain-flag`](skills/explain-flag/SKILL.md) | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
 | [`/create-feature-flag`](skills/create-feature-flag/SKILL.md) | Create an FME flag that follows project conventions, with safe-default definitions |
 | [`/instrument-feature-flag`](skills/instrument-feature-flag/SKILL.md) | Gate application code through an extensible flag abstraction, after stack detection and clarification |
 | [`/feature-flag-onboarding`](skills/feature-flag-onboarding/SKILL.md) | Set up and verify a first feature flag in an existing project; resume partial onboarding |
 | [`/update-flag-targeting`](skills/update-flag-targeting/SKILL.md) | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
 | [`/manage-flag-lifecycle`](skills/manage-flag-lifecycle/SKILL.md) | Flag metadata, archive readiness, archive/unarchive, and delete |
-| [`/manage-segments`](skills/manage-segments/SKILL.md) | STANDARD, LARGE and RULE_BASED segment workflows; type-aware membership and explicit CLI/MCP capabilities |
+| [`/manage-segments`](skills/manage-segments/SKILL.md) | Segment metadata, STANDARD membership, and RULE_BASED editor workflows with mandatory pre-write reference checks |
 | [`/cleanup-feature-flags`](skills/cleanup-feature-flags/SKILL.md) | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
 | [`/fme-pipeline`](skills/fme-pipeline/SKILL.md) | Generate FME pipelines for rollout scenarios (progressive ramp, multi-env promotion, beta cohorts, config promotion, bootstrap, retirement, segment sync, test targeting) with gates and lifecycle automation |
 | [`/create-experiment`](skills/create-experiment/SKILL.md) | Creation-only entry point to the manage-experiments workflow |

@@ -11,7 +11,7 @@ Follow [scope-establishment.md](../scope-establishment.md). Confirm organization
 Read everything the write will touch (see [tool-map.md](tool-map.md) for operations):
 - **Environments:** resolve each name to an ID and note `isProduction`.
 - **Definitions:** for each target environment, read the current treatments, rules, default rule, allocation and killed state.
-- **Dependents:** check experiments, dependent flags, and segments in use per the skill's protocol.
+- **Dependents:** check experiments, dependent flags, and segments in use per the skill's protocol. Every segment mutation must pass the [segment usage gate](../../skills/manage-segments/references/usage-check.md) before approval and execution; declined, partial or unparsed checks do not clear a write.
 
 Never guess treatment names, environment IDs, or current percentages.
 

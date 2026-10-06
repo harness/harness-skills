@@ -58,14 +58,14 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 
 | Skill | Description |
 |-------|-------------|
-| `/discover-feature-flags` | Inventory, per-environment rollout report, and stale-flag audit (read-only) |
+| `/discover-feature-flags` | Inventory, targeting-pattern search, promotion-aware rollout report, and stale-flag audit (read-only) |
 | `/explain-flag` | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
 | `/create-feature-flag` | Create an FME flag that follows project conventions, with safe-default definitions |
 | `/instrument-feature-flag` | Gate application code through an extensible flag abstraction, after stack detection and clarification |
 | `/feature-flag-onboarding` | Set up and verify a first feature flag in an existing project; resume partial onboarding |
 | `/update-flag-targeting` | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
 | `/manage-flag-lifecycle` | Flag metadata, archive readiness, archive/unarchive, and delete |
-| `/manage-segments` | Create, inspect, and maintain targeting segments and membership |
+| `/manage-segments` | Segment metadata, STANDARD membership, and RULE_BASED editor workflows with mandatory pre-write reference checks |
 | `/cleanup-feature-flags` | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
 | `/fme-pipeline` | Generate FME pipelines for rollout scenarios, gates, and flag lifecycle |
 | `/create-experiment` | Creation-only entry point to the manage-experiments workflow |

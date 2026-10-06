@@ -13,7 +13,7 @@ metadata:
   version: 2.0.1
   mcp-server: harness-mcp-v2
 license: Apache-2.0
-compatibility: Requires Harness MCP v2 server (harness-mcp-v2). Feature Flags are served by the FME (Split.io) backend — operations use the `fme_feature_flag` resource type and require a `workspace_id`.
+compatibility: Requires Harness MCP v2 server (harness-mcp-v2). Feature Flags are served by the FME (Split.io) backend — operations use the `fme_feature_flag` resource type. Two scoping modes are supported: Harness-native (`org_id`+`project_id`, preferred) or the deprecated legacy `workspace_id` (Split.io API).
 ---
 
 # Manage Feature Flags
@@ -25,9 +25,9 @@ To wire FeatureFlag / FmeFlag* pipeline stages for a rollout, use `/fme-rollout-
 
 ## Prerequisites
 
-FME flags are workspace-scoped (not project-scoped). You must discover the `workspace_id` and `environment_id` before most operations.
+FME flag operations support two scoping modes: Harness-native (`org_id`+`project_id`, preferred, no workspace lookup needed) or the deprecated legacy `workspace_id` (Split.io API). Kill/restore/reallocate always need an `environment_id` regardless of mode. The steps below use the legacy `workspace_id` mode — see Step 3 for the Harness-native alternative.
 
-### Step 0a: List workspaces
+### Step 0a: List workspaces (legacy mode only)
 
 ```
 Call MCP tool: harness_list
@@ -81,14 +81,30 @@ For per-environment targeting/state, use `fme_feature_flag_definition` and pass 
 
 ### Step 3: Create a Flag
 
+`workspace_id` is the deprecated legacy (Split.io API) mode — the API does not support `tags`/`owners` at create time in this mode; add them afterward with `harness_update`:
+
 ```
 Call MCP tool: harness_create
 Parameters:
   resource_type: "fme_feature_flag"
   workspace_id: "<workspace_id>"
-  traffic_type_id: "<traffic_type_id>"   # required by FME
+  traffic_type_id: "<traffic_type_id>"   # required by FME in legacy mode
   body:
     name: "dark_mode"
+    description: "Enable dark mode UI theme"
+```
+
+Prefer the Harness-native mode (`org_id`+`project_id`, no workspace lookup needed), which does support `tags`/`owners` at create time:
+
+```
+Call MCP tool: harness_create
+Parameters:
+  resource_type: "fme_feature_flag"
+  org_id: "<organization>"
+  project_id: "<project>"
+  body:
+    name: "dark_mode"
+    trafficType: "<traffic_type_name>"
     description: "Enable dark mode UI theme"
     tags: ["ui", "rollout"]
 ```
@@ -161,7 +177,7 @@ Parameters:
 |--------------|-----------|-------------|
 | `fme_workspace` | list | List FME workspaces |
 | `fme_environment` | list | List FME environments (per workspace) |
-| `fme_feature_flag` | list, get, create, update, delete, execute(kill/restore/archive/unarchive) | Flag metadata at workspace scope |
+| `fme_feature_flag` | list, get, create, update, delete, execute(kill/restore/reallocate/archive/unarchive) | Flag metadata (workspace-scoped legacy, or org/project-scoped Harness-native) |
 | `fme_feature_flag_definition` | list, get | Per-environment rollout targeting and state |
 | `fme_rollout_status` | list | Discover valid `rollout_status_id` values |
 | `fme_rule_based_segment` | list, get | Rule-based segments |

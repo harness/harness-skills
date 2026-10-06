@@ -13,16 +13,19 @@
 # - Description does not contain XML-style angle brackets
 # - No "claude" or "anthropic" in skill name
 # - No README.md inside skill folders
+# - Skills that link references/fme/tool-map.md only mention fme_* resource types listed there
 #
 # Warnings (non-blocking):
 # - Missing top-level H1 heading
 # - Missing required top-level sections outside fenced code blocks
 # - Description missing "Use when" or "Trigger phrases"
 # - SKILL.md body over 5000 words
+# - Such a skill mentions a legacy fme_* resource type from tool-map.md's "Do Not Use" table
 
 set -euo pipefail
 
 SKILLS_DIR="$(cd "$(dirname "$0")/../skills" && pwd)"
+FME_TOOL_MAP="$(cd "$(dirname "$0")/.." && pwd)/references/fme/tool-map.md"
 ERRORS=0
 WARNINGS=0
 CHECKED=0
@@ -70,6 +73,14 @@ body_without_code_fences() {
     !in_code { print }
   ' "$file"
 }
+
+# FME resource types: names before the "Do Not Use" heading are current; names only in that section are legacy.
+FME_KNOWN=""
+FME_LEGACY=""
+if [[ -f "$FME_TOOL_MAP" ]]; then
+  FME_KNOWN="$(awk '/^## Do Not Use/ { exit } { print }' "$FME_TOOL_MAP" | grep -oE 'fme_[a-z_]*[a-z]' | sort -u || true)"
+  FME_LEGACY="$(awk '/^## Do Not Use/ { f = 1 } f' "$FME_TOOL_MAP" | grep -oE 'fme_[a-z_]*[a-z]' | sort -u | grep -vxF -f <(printf '%s\n' "$FME_KNOWN") || true)"
+fi
 
 for skill_dir in "$SKILLS_DIR"/*/; do
   skill_name="$(basename "$skill_dir")"
@@ -182,6 +193,19 @@ for skill_dir in "$SKILLS_DIR"/*/; do
   fi
   if ! printf '%s\n' "$sanitized_body" | grep -q '^## Troubleshooting' && ! printf '%s\n' "$sanitized_body" | grep -q '^## Error Handling'; then
     check_warn "$skill_name: no '## Troubleshooting' or '## Error Handling' section found outside code fences"
+  fi
+
+  if [[ -n "$FME_KNOWN" ]] && grep -q 'references/fme/tool-map.md' "$skill_file"; then
+    fme_refs="$(cat "$skill_file" "$skill_dir"references/*.md 2>/dev/null | grep -oE 'fme_[a-z_]*[a-z]' | sort -u || true)"
+    for ref in $fme_refs; do
+      if printf '%s\n' "$FME_KNOWN" | grep -qxF "$ref"; then
+        continue
+      elif printf '%s\n' "$FME_LEGACY" | grep -qxF "$ref"; then
+        check_warn "$skill_name: uses legacy FME resource type '$ref' (see references/fme/tool-map.md)"
+      else
+        check_fail "$skill_name: unknown FME resource type '$ref' (not in references/fme/tool-map.md)"
+      fi
+    done
   fi
 
   body_words="$(sed -n "${body_start},\$p" "$skill_file" | wc -w | tr -d ' ')"

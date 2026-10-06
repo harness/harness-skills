@@ -2,6 +2,18 @@
 #
 # Full pipeline blueprint for the fme-pipeline skill.
 # See ../blueprints.md and ../scenarios.md for context.
+#
+# STARTER / RESUME PATH: This blueprint is designed for flags that start KILLED
+# in each environment. The verify-before-restore checkpoint in every env block
+# enforces human readback of the live flag state before FmeFlagRestore re-activates
+# it, including all prod regions. If a flag is already active and you are authoring
+# an explicitly approved live targeting change, omit FmeFlagRestore and the
+# verify-before-restore checkpoint for that env; do not auto-kill or add unrequested
+# gates.
+#
+# ORDERING NOTE: in each environment block, the first FmeFlagDefaultAllocation
+# is written BEFORE FmeFlagRestore, so a killed env never briefly resumes a
+# stale pre-kill allocation before flipping to the approved one.
 
 pipeline:
   identifier: multi_env_promotion
@@ -65,13 +77,6 @@ pipeline:
           execution:
             steps:
               - step:
-                  identifier: restore_dev
-                  name: Restore Flag in Dev
-                  type: FmeFlagRestore
-                  spec:
-                    flagName: <+pipeline.variables.flagName>
-                    environment: dev
-              - step:
                   identifier: dev_100
                   name: Set Dev to 100 Percent
                   type: FmeFlagDefaultAllocation
@@ -83,6 +88,47 @@ pipeline:
                         amount: 100
                       - treatment: <+pipeline.variables.offTreatment>
                         amount: 0
+              - step:
+                  identifier: verify_before_restore_dev
+                  name: Verify State Before Restore - Dev
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: >-
+                      HUMAN READBACK REQUIRED — do not approve without completing
+                      all checks below.
+
+                      1. Open this flag in the Harness UI or run /explain-flag
+                      for environment: dev. Confirm isKilled = true, with the
+                      approved defaultTreatment and its configuration. Check the
+                      trafficAllocation exposure limit separately from treatment allocation.
+
+                      2. Verify the full targeting state matches the approved
+                      audience exactly: defaultRule treatment allocation (100% on /
+                      0% off), every individual target key per treatment, every
+                      segment membership per treatment, all rule conditions,
+                      treatment assignments, and treatment configs.
+
+                      3. Re-check any active experiments referencing this flag
+                      and confirm no conflict with the intended restore state.
+
+                      4. Approve ONLY if every check above passes exactly.
+                      Reject if anything does not match — do not silently proceed.
+
+                      This approval is NOT automated SDK verification. A human
+                      must confirm the live flag state before restore proceeds.
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Managers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+              - step:
+                  identifier: restore_dev
+                  name: Restore Flag in Dev
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: dev
         failureStrategies:
           - onFailure:
               errors:
@@ -97,13 +143,6 @@ pipeline:
           execution:
             steps:
               - step:
-                  identifier: restore_qa
-                  name: Restore Flag in QA
-                  type: FmeFlagRestore
-                  spec:
-                    flagName: <+pipeline.variables.flagName>
-                    environment: qa
-              - step:
                   identifier: qa_50
                   name: Set QA to 50 Percent
                   type: FmeFlagDefaultAllocation
@@ -115,6 +154,47 @@ pipeline:
                         amount: 50
                       - treatment: <+pipeline.variables.offTreatment>
                         amount: 50
+              - step:
+                  identifier: verify_before_restore_qa
+                  name: Verify State Before Restore - QA
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: >-
+                      HUMAN READBACK REQUIRED — do not approve without completing
+                      all checks below.
+
+                      1. Open this flag in the Harness UI or run /explain-flag
+                      for environment: qa. Confirm isKilled = true, with the
+                      approved defaultTreatment and its configuration. Check the
+                      trafficAllocation exposure limit separately from treatment allocation.
+
+                      2. Verify the full targeting state matches the approved
+                      audience exactly: defaultRule treatment allocation (50% on /
+                      50% off), every individual target key per treatment, every
+                      segment membership per treatment, all rule conditions,
+                      treatment assignments, and treatment configs.
+
+                      3. Re-check any active experiments referencing this flag
+                      and confirm no conflict with the intended restore state.
+
+                      4. Approve ONLY if every check above passes exactly.
+                      Reject if anything does not match — do not silently proceed.
+
+                      This approval is NOT automated SDK verification. A human
+                      must confirm the live flag state before restore proceeds.
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Managers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+              - step:
+                  identifier: restore_qa
+                  name: Restore Flag in QA
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: qa
               - step:
                   identifier: wait_qa
                   name: Soak 30 Minutes
@@ -147,13 +227,6 @@ pipeline:
           execution:
             steps:
               - step:
-                  identifier: restore_staging
-                  name: Restore Flag in Staging
-                  type: FmeFlagRestore
-                  spec:
-                    flagName: <+pipeline.variables.flagName>
-                    environment: staging
-              - step:
                   identifier: staging_100
                   name: Set Staging to 100 Percent
                   type: FmeFlagDefaultAllocation
@@ -165,6 +238,47 @@ pipeline:
                         amount: 100
                       - treatment: <+pipeline.variables.offTreatment>
                         amount: 0
+              - step:
+                  identifier: verify_before_restore_staging
+                  name: Verify State Before Restore - Staging
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: >-
+                      HUMAN READBACK REQUIRED — do not approve without completing
+                      all checks below.
+
+                      1. Open this flag in the Harness UI or run /explain-flag
+                      for environment: staging. Confirm isKilled = true, with the
+                      approved defaultTreatment and its configuration. Check the
+                      trafficAllocation exposure limit separately from treatment allocation.
+
+                      2. Verify the full targeting state matches the approved
+                      audience exactly: defaultRule treatment allocation (100% on /
+                      0% off), every individual target key per treatment, every
+                      segment membership per treatment, all rule conditions,
+                      treatment assignments, and treatment configs.
+
+                      3. Re-check any active experiments referencing this flag
+                      and confirm no conflict with the intended restore state.
+
+                      4. Approve ONLY if every check above passes exactly.
+                      Reject if anything does not match — do not silently proceed.
+
+                      This approval is NOT automated SDK verification. A human
+                      must confirm the live flag state before restore proceeds.
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Managers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+              - step:
+                  identifier: restore_staging
+                  name: Restore Flag in Staging
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: <+pipeline.variables.flagName>
+                    environment: staging
               - step:
                   identifier: wait_after_staging
                   name: Soak 1 Hour
@@ -198,13 +312,6 @@ pipeline:
                           minimumCount: 1
                           disallowPipelineExecutor: true
                   - step:
-                      identifier: restore_prod_us
-                      name: Restore Flag in Prod US
-                      type: FmeFlagRestore
-                      spec:
-                        flagName: <+pipeline.variables.flagName>
-                        environment: prod_us
-                  - step:
                       identifier: prod_us_1
                       name: Set Prod US to 1 Percent
                       type: FmeFlagDefaultAllocation
@@ -216,6 +323,52 @@ pipeline:
                             amount: 1
                           - treatment: <+pipeline.variables.offTreatment>
                             amount: 99
+                  - step:
+                      identifier: verify_before_restore_prod_us
+                      name: Verify State Before Restore - Prod US
+                      type: HarnessApproval
+                      spec:
+                        approvalMessage: >-
+                          HUMAN READBACK REQUIRED — do not approve without
+                          completing all checks below.
+
+                          1. Open this flag in the Harness UI or run
+                          /explain-flag for environment: prod_us. Confirm
+                          isKilled = true, with the approved defaultTreatment
+                          and configuration. Check the trafficAllocation
+                          exposure limit separately from treatment allocation.
+
+                          2. Verify the full targeting state matches the
+                          approved audience exactly: defaultRule
+                          treatment allocation (1% on / 99% off), every
+                          individual target key per treatment, every segment
+                          membership per treatment, all rule conditions,
+                          treatment assignments, and treatment configs.
+
+                          3. Re-check any active experiments referencing
+                          this flag and confirm no conflict with the
+                          intended restore state.
+
+                          4. Approve ONLY if every check above passes
+                          exactly. Reject if anything does not match — do
+                          not silently proceed.
+
+                          This approval is NOT automated SDK verification.
+                          A human must confirm the live flag state before
+                          restore proceeds.
+                        includePipelineExecutionHistory: true
+                        approvers:
+                          userGroups:
+                            - account.Engineering_Managers
+                          minimumCount: 1
+                          disallowPipelineExecutor: true
+                  - step:
+                      identifier: restore_prod_us
+                      name: Restore Flag in Prod US
+                      type: FmeFlagRestore
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_us
                   - step:
                       identifier: wait_us_1
                       name: Soak 2 Hours
@@ -314,13 +467,6 @@ pipeline:
                           minimumCount: 1
                           disallowPipelineExecutor: true
                   - step:
-                      identifier: restore_prod_eu
-                      name: Restore Flag in Prod EU
-                      type: FmeFlagRestore
-                      spec:
-                        flagName: <+pipeline.variables.flagName>
-                        environment: prod_eu
-                  - step:
                       identifier: prod_eu_1
                       name: Set Prod EU to 1 Percent
                       type: FmeFlagDefaultAllocation
@@ -332,6 +478,52 @@ pipeline:
                             amount: 1
                           - treatment: <+pipeline.variables.offTreatment>
                             amount: 99
+                  - step:
+                      identifier: verify_before_restore_prod_eu
+                      name: Verify State Before Restore - Prod EU
+                      type: HarnessApproval
+                      spec:
+                        approvalMessage: >-
+                          HUMAN READBACK REQUIRED — do not approve without
+                          completing all checks below.
+
+                          1. Open this flag in the Harness UI or run
+                          /explain-flag for environment: prod_eu. Confirm
+                          isKilled = true, with the approved defaultTreatment
+                          and configuration. Check the trafficAllocation
+                          exposure limit separately from treatment allocation.
+
+                          2. Verify the full targeting state matches the
+                          approved audience exactly: defaultRule
+                          treatment allocation (1% on / 99% off), every
+                          individual target key per treatment, every segment
+                          membership per treatment, all rule conditions,
+                          treatment assignments, and treatment configs.
+
+                          3. Re-check any active experiments referencing
+                          this flag and confirm no conflict with the
+                          intended restore state.
+
+                          4. Approve ONLY if every check above passes
+                          exactly. Reject if anything does not match — do
+                          not silently proceed.
+
+                          This approval is NOT automated SDK verification.
+                          A human must confirm the live flag state before
+                          restore proceeds.
+                        includePipelineExecutionHistory: true
+                        approvers:
+                          userGroups:
+                            - account.Engineering_Managers
+                          minimumCount: 1
+                          disallowPipelineExecutor: true
+                  - step:
+                      identifier: restore_prod_eu
+                      name: Restore Flag in Prod EU
+                      type: FmeFlagRestore
+                      spec:
+                        flagName: <+pipeline.variables.flagName>
+                        environment: prod_eu
                   - step:
                       identifier: wait_eu_1
                       name: Soak 2 Hours

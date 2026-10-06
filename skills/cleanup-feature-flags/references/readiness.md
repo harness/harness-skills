@@ -1,65 +1,38 @@
-# Flag removal readiness
+# Code removal readiness
 
-Use Harness MCP plus local code search. Scope with `org_id` + `project_id`.
+Rules for deciding which branch of the code to keep and whether it's safe to remove the flag from code. The source of truth is the flag's live definitions in FME — never the default or fallback written in the code. Field names are the definition fields from [concepts.md](../../../references/fme/concepts.md#definition-state-checklist).
 
-## Usage signal
+**Critical environments** default to every environment marked `isProduction`. The user may add others. **The critical set must be non-empty and must be explicitly stated back to the user before any verdict is given.** If **List environments** returns no environment marked `isProduction` and the user hasn't named any critical environments, STOP: do not default to "ready" or treat an empty critical set as vacuously safe. Ask the user which environments are critical (production, or the closest equivalent) before proceeding.
 
-Per-environment **`lastImpressionAt`** on flag definitions is the usage signal. Read it from each definition returned by:
+## Forward treatment (per environment)
 
-```
-harness_list(resource_type="fme_feature_flag_definition", compact=false, params={feature_flag_name: "..."})
-```
+Work out what each critical environment actually serves today:
 
-Compare `lastImpressionAt` against the code-change deploy date per critical environment. Default stale threshold: **no impressions in any critical env since the cleanup code deployed** (ask before using a fixed day count such as 30 days).
+| Definition state | Forward treatment |
+|---|---|
+| Flag is archived, or the environment has no definition | `control`. SDKs return `control`, so the code's fallback branch is what runs. |
+| `isKilled` is true | `defaultTreatment` |
+| Not killed, `trafficAllocation` is 100 (or absent), no `rules`, no individual targets, and `defaultRule` is a single treatment at 100 | That treatment |
+| Anything else (allocation across multiple treatments, rules, targets, traffic allocation below 100) | None: the environment is still mixed |
 
-Missing `lastImpressionAt` → **caution**, not proof of zero traffic.
+If the code reads the treatment config (the `WithConfig` calls in [sdk-patterns.md](../../../references/fme/sdk-patterns.md)), resolve and compare **both** the forward treatment name **and** that treatment's `configurations` value across every critical environment. Two critical environments that agree on the treatment name but carry different `configurations` are NOT the same forward state — hardcoding one environment's config value into the code would silently change behavior in the other. Treat a name match with a configuration mismatch as **blocked** (same severity as a treatment-name mismatch), not caution. Only hardcode the config value once the name and the configuration are identical across every critical environment.
 
-## What to check
-
-For each **critical environment**:
-
-- Flag is not archived (or, if archived, only report — do not auto-remove from FME)
-- Definition exists — if **no definition** in a critical env, the SDK returns **control**; do not assume the winning treatment applies there
-- Same forward treatment across all critical envs (see Forward treatment below)
-- No active targeting rules, individual targets, or segments still in play
-- `trafficAllocation` is 100% on the winning treatment (excluded traffic still gets `defaultTreatment`)
-- `lastImpressionAt` shows no recent impressions since deploy (or user accepts the risk)
-- Rollout status: permanent or “do not remove” → **blocked** or **caution**
-
-**Active experiment** on the flag → **blocked**:
-
-```
-harness_list(resource_type="fme_experiment", filters={parent_type: "FEATURE_FLAG", parent_name: "<flag>", status: "ACTIVE"})
-```
-
-**Dependent flags** — flag-dependency matchers in other flags' rules or in rule-based segments. There is no direct lookup. Either scan other flag definitions for the key or report as **caution** / **blocked** and ask the user.
-
-Also grep the application repo for the flag key (and flag-set APIs — see sdk-patterns.md) before **labeling** a flag **safe**.
-
-## Verdicts
+## Verdict
 
 | Verdict | When |
-|---------|------|
-| **blocked** | Critical envs disagree; prod-like env still targeted; active experiment; dependent flags confirmed; clearly permanent rollout |
-| **caution** | Missing or recent `lastImpressionAt`; young flag; partial rollout (`trafficAllocation` < 100); no code refs in this repo; flag-set-only usage; critical env has no definition |
-| **safe** | All critical envs agree on one forward treatment with no targeting left; `trafficAllocation` 100%; stale `lastImpressionAt` since deploy; code refs found and removable here |
+|---|---|
+| **blocked** | Critical environments resolve to different forward treatments, or any critical environment is mixed. Critical environments agree on the treatment name but differ in that treatment's `configurations` value (when `WithConfig` is used). An ACTIVE experiment runs on the flag. Dynamic flag keys were found in code. The flag's rollout status marks it as permanent (rollout status names are workspace-defined, e.g. `Permanent`, `Kill switch`, `Do not remove`; if unsure, ask). No critical environment could be identified (empty critical set) — stop and ask rather than defaulting to ready. |
+| **caution** | The forward treatment is `control` (archived flag or missing definition). Non-critical environments differ. A PAUSED experiment exists. No call sites were found in this repo. The flag is only referenced through a flag set. |
+| **ready** | Every critical environment resolves to the same forward treatment, no caution applies, and all call sites are static. |
 
-## Forward treatment
+**blocked** stops the skill. **caution** needs the user's explicit acknowledgement for each reason before any code is edited.
 
-FME definitions are the source of truth — never the SDK default in code.
+Impressions don't change the verdict. Traffic is expected until the removal deploys. Record `impressions.lastImpressionAt` per critical environment for the PR. The staleness check happens at archive time in `manage-flag-lifecycle`, and so does the dependent-flag check: other flags' IN_SPLIT rules are evaluated by FME, not by this code.
 
-1. **Killed everywhere** — hardcode the shared `defaultTreatment` (killing removes the new path; the default is what production receives).
-2. **Every critical env** has a definition, is not killed, `trafficAllocation` is 100%, no rules or individual targets remain, and all envs agree on one treatment — use that treatment.
-3. **Treatment configs** — if the app uses `getTreatmentWithConfig` / `getTreatmentsWithConfig`, read the config payload from the definition and hardcode the config value, not just the treatment name.
-4. **Otherwise** — **not safe**; stop and ask the user to align targeting or narrow critical envs.
+## Multi-repo / multi-service coverage
 
-## Audit ranking
+A clean search in one repo only proves the flag is unused **in that repo**. It does not prove the flag is safe to archive, and it does not by itself justify a "ready" verdict for the flag as a whole:
 
-1. Prefer **ACTIVE** flags; also surface **ARCHIVED** flags that still have code refs
-2. Prefer **safe** with code refs (remove-from-code candidates)
-3. **Caution** with reasons — do not auto-remove
-4. **Blocked** last
-
-## Pre-archive re-check
-
-Immediately before `harness_execute` archive, re-run the checks above. Impressions, experiments, or targeting may have changed since the user confirmed the plan.
+- Always record, in the PR description and in the summary to the user, which repo(s)/service(s) were searched.
+- If the user doesn't confirm this is the only repo/service that evaluates the flag, treat unknown coverage as **caution** and say so explicitly — do not imply the flag is fully removed from the codebase.
+- `manage-flag-lifecycle`'s archive-time check still applies across whatever it can see; it does not substitute for confirming all repos that call this flag have had this cleanup PR merged and deployed.

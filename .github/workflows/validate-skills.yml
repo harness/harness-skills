@@ -5,11 +5,21 @@ on:
     branches: [main]
     paths:
       - 'skills/**'
+      - 'references/**'
+      - 'templates/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - '.github/workflows/validate-skills.yml'
       - 'scripts/validate-skills.sh'
   push:
     branches: [main]
     paths:
       - 'skills/**'
+      - 'references/**'
+      - 'templates/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - '.github/workflows/validate-skills.yml'
       - 'scripts/validate-skills.sh'
 
 jobs:

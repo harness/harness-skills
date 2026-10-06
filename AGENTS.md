@@ -1,10 +1,12 @@
 # Harness Skills
 
-This repository contains Claude Code skills for working with Harness.io CI/CD platform. All skills use the Harness MCP v2 server's consolidated tool interface.
+This repository contains model-agnostic workflow instructions for AI coding tools working with Harness.io. Most skills use Harness MCP; FME skills also support the Harness CLI for the operations explicitly listed in their Tools tables.
 
-## MCP v2 Server
+For FME, load the selected SKILL.md, its applicable local references, and `references/fme/tool-map.md` plus `concepts.md`; load `write-safety.md` before writes. Keep shared references accessible when installing/copying skills. Follow the tool map's capability limits and handoff contract: a slash-skill name means read its linked workflow, not assume a model-specific invocation tool. Unsupported operations stop rather than falling back to guessed commands.
 
-All skills use the [Harness MCP v2](https://github.com/thisrohangupta/harness-mcp-v2) server which provides 10 generic tools operating across 119+ resource types:
+## Harness MCP Server
+
+The [Harness MCP server](https://github.com/harness/mcp-server) provides the generic tools below. CLI-only FME sessions use the verified equivalents in `references/fme/tool-map.md`; other skills retain their declared MCP requirements:
 
 | Tool | Purpose |
 |------|---------|
@@ -58,15 +60,22 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 
 | Skill | Description |
 |-------|-------------|
-| `/manage-feature-flags` | Create, list, toggle, and delete feature flags |
-| `/explain-flag` | Explain a single flag's purpose, default rule, and per-environment targeting, flagging inconsistencies |
-| `/create-experiment` | Guide experiment design end to end - metric gap analysis, control vs. variant, hypothesis - then create the experiment; delegates metric decisions to choose-metric/create-metric/instrument-metric |
-| `/review-experiment-results` | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
-| `/choose-metric` | Recommend primary/guardrail metrics for an experiment or rollout monitoring |
-| `/create-metric` | Create an FME metric definition (traffic type, aggregation, event types, cap, owners) |
-| `/instrument-metric` | Wire up a track() call for a metric's event and verify it arrives |
-| `/cleanup-feature-flags` | Audit stale FME flags and safely remove a launched flag from code |
+| `/discover-feature-flags` | Inventory, per-environment rollout report, and stale-flag audit (read-only) |
+| `/explain-flag` | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
+| `/create-feature-flag` | Create an FME flag that follows project conventions, with safe-default definitions |
+| `/intrument-feature-flag` | Gate application code through an extensible flag abstraction, after stack detection and clarification |
+| `/feature-flag-onboarding` | Set up and verify a first feature flag in an existing project; resume partial onboarding |
+| `/update-flag-targeting` | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
+| `/manage-flag-lifecycle` | Flag metadata, archive readiness, archive/unarchive, and delete |
+| `/manage-segments` | STANDARD, LARGE and RULE_BASED segment workflows; type-aware membership and CLI/MCP capability checks |
+| `/cleanup-feature-flags` | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
 | `/fme-pipeline` | Generate FME pipelines for rollout scenarios, gates, and flag lifecycle |
+| `/create-experiment` | Creation-only entry point to the manage-experiments workflow |
+| `/manage-experiments` | Feature-flag experiment design/lifecycle; delegates metrics and states CLI update limitations |
+| `/review-experiment-results` | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
+| `/choose-metric` | Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist |
+| `/create-metric` | Design and create an FME metric: intent-to-config guidance, code-based suggestions, traffic type, events, cap, owners |
+| `/instrument-metric` | Wire up a track() call for a metric's event, placed at the real outcome, and verify it arrives |
 
 ### Database Operations
 

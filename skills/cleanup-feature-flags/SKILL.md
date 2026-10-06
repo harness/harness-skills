@@ -1,283 +1,120 @@
 ---
 name: cleanup-feature-flags
 description: >-
-  Audit Harness FME feature flags and safely remove a flag from code while
-  preserving production treatment. Use when asked to clean up stale flags,
-  remove a feature flag from the codebase, hardcode the winning treatment after
-  rollout, or archive a launched flag. Do not use for creating or killing flags
-  (use manage-feature-flags). Trigger phrases: flag cleanup, stale flags, remove
-  feature flag, archive flag, hardcode treatment, flag debt, FME cleanup.
+  Remove a launched Harness FME feature flag from application code, keeping the treatment FME
+  serves today, and open a pull request. Use when asked to remove a flag from code, hardcode the
+  winning treatment after a rollout, or pay down flag debt for a specific flag. Do not use for
+  finding stale flags (discover-feature-flags) or archiving and deleting flags in FME
+  (manage-flag-lifecycle). Trigger phrases: remove flag from code, hardcode treatment, flag
+  cleanup, flag debt, clean up feature flag.
 metadata:
   author: Harness
-  version: 1.0.0
-  mcp-server: harness-mcp-v2
+  version: 1.2.1
+  mcp-server: harness-mcp
 license: Apache-2.0
-compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
+compatibility: Requires the Harness MCP server or the Harness CLI
 ---
 
 # Cleanup Feature Flags
 
-Audit Harness FME flags and remove a launched flag from application code while preserving the treatment FME currently serves. Creating, killing, or archiving flags outside this workflow is `/manage-feature-flags`.
+Remove one launched FME flag from application code and keep the branch FME serves today. The work ends with a PR. FME is read-only here; archive happens later in `manage-flag-lifecycle`.
+
+Related: `discover-feature-flags` finds candidates (stale audit); `manage-flag-lifecycle` archives after the change deploys.
+
+## Tools
+
+Works through the Harness MCP server or the Harness CLI; names are from [tool-map.md](../../references/fme/tool-map.md).
+
+| Operation | MCP | CLI |
+|-----------|-----|-----|
+| List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
+| Get flag | `harness_get` · `fme_feature_flag` · `params: { feature_flag_name }` | `harness get feature_flag <flag> --json` |
+| List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
+| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, status: ["ACTIVE", "PAUSED"] }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --status ACTIVE --json`, then again with `--status PAUSED` |
 
 ## Instructions
 
-Follow ordered phases. Load [references/readiness.md](references/readiness.md) before any verdict and [references/sdk-patterns.md](references/sdk-patterns.md) before searching code.
-
-**Do not invent MCP tools.** Compose `harness_list`, `harness_get`, `harness_execute`, and `harness_delete` plus local search.
-
-**MCP resource types** (native FME — use `org_id` + `project_id`):
-
-| Tool | `resource_type` | When |
-|------|-----------------|------|
-| `harness_list` | `fme_environment` | Phase 1 — discover envs |
-| `harness_list` | `fme_feature_flag` | Phase 3 — list flags |
-| `harness_list` | `fme_feature_flag_definition` | Phase 3/5/9 — definitions across envs (`params.feature_flag_name`, `compact: false`) |
-| `harness_list` | `fme_experiment` | Phase 5/9 — active experiments on the flag |
-| `harness_get` | `fme_feature_flag` | Phase 5/9 — flag metadata (`resource_id`) |
-| `harness_get` | `fme_feature_flag_definition` | Phase 5 — one env (`resource_id: "<flag_name>"`, `params.environment_id`) |
-| `harness_execute` | `fme_feature_flag` | Phase 9 — `action: "archive"` (`resource_id`, `confirm: true`) |
-| `harness_delete` | `fme_feature_flag` | Phase 9 — only after archive and only when no active definitions remain |
-
-**Parameters:** pass `feature_flag_name` inside `params` (or `filters`) on list calls. Use `resource_id: "<flag_name>"` for get, archive, and delete. Pass `compact: false` on definition lists so treatments, targeting, and traffic allocation are returned.
-
-**Confirmation:** pass `confirm: true` on archive and delete only after the user has approved the plan.
-
-**Never guess the forward treatment** from SDK defaults in source. Query FME definitions.
-
-**Stop before mutating.** Do not edit application code, archive, or delete until the user explicitly confirms the cleanup plan.
-
-Prefer **archive** over delete. Do not `harness_delete` an ACTIVE flag. Delete only works when the flag has **no active definitions**. “Delete” / “I insist” means archive first, then wait for a second explicit confirm after archive and definition removal.
+Load [readiness.md](references/readiness.md) before giving a verdict. Load [sdk-patterns.md](../../references/fme/sdk-patterns.md) before searching code.
 
 ### Phase 1: Establish scope
 
-Reuse [scope-establishment.md](../../references/scope-establishment.md). Ask for `org_id` and `project_id` if missing.
+Follow [scope-establishment.md](../../references/scope-establishment.md). **List environments** and confirm the critical environments: by default those with `isProduction`, plus any the user adds. The critical set must be non-empty and explicitly confirmed back to the user before any later phase. If no environment is marked `isProduction` and the user hasn't named any, STOP and ask which environments are critical — do not treat an empty critical set as vacuously ready.
 
-```
-Call MCP tool: harness_list
-Parameters:
-  resource_type: "fme_environment"
-  org_id: "<org>"
-  project_id: "<project>"
-```
+### Phase 2: Pick the flag
 
-Identify **critical environments** with the user (Production-like first). Restate scope before proceeding.
+If the user named a flag, **Get flag** to confirm it exists and note its `status` and `rolloutStatus`. If they want candidates instead, hand off to `discover-feature-flags` (stale audit) and come back with one flag.
 
-### Phase 2: Choose mode
+### Phase 3: Forward treatment and verdict
 
-- **Audit** — inventory / flag debt. Run Phase 3. Do **not** edit code.
-- **Remove** — named flag cleanup. Start at Phase 4 unless Phase 3 was already done.
+1. **List flag definitions** for the flag. Resolve the forward treatment for each critical environment per [readiness.md](references/readiness.md#forward-treatment-per-environment). If any call site uses `WithConfig`, also resolve and compare each critical environment's `configurations` value for that treatment — identical treatment names with differing configs are **blocked**, not ready.
+2. Run the [experiment check](../../references/fme/write-safety.md#experiment-check) with **List experiments**. Here ACTIVE means **blocked**: code removal ends the experiment. PAUSED means **caution**.
+3. Give the verdict per [readiness.md](references/readiness.md#verdict). Stop on **blocked**.
 
-### Phase 3: Audit candidates (audit mode)
+Never infer the forward treatment from the code's default or fallback value.
 
-Narrow the candidate set first — by tag, rollout status, or name prefix — before per-flag definition calls.
+### Phase 4: Find call sites
 
-```
-Call MCP tool: harness_list
-Parameters:
-  resource_type: "fme_feature_flag"
-  org_id: "<org>"
-  project_id: "<project>"
-```
+In the application repo, identify the SDK and search for the flag key, batch calls, flag sets, config-file entries and tests per [sdk-patterns.md](../../references/fme/sdk-patterns.md). For each hit, record `file:line`, which branch is the forward one, and any side effects (tracking, metrics, logging).
 
-Filter by status from the returned flags:
+- If you find **dynamic keys** (`"prefix-" + id`, `` `flag-${id}` ``), the verdict is **blocked**. Stop and ask the user how to proceed; automated removal can't be complete.
+- If you find no hits, the flag may live in another repo or only in a flag set. That is **caution**.
 
-- **ACTIVE** flags — primary audit candidates
-- **ARCHIVED** flags — still report when grep finds code refs (archived-but-still-in-code)
+### Phase 5: Present the plan and wait
 
-For each candidate:
+Show:
+- the forward treatment for each critical environment and why;
+- each call site with the branch to keep and the code to delete;
+- the verdict, with every caution reason;
+- the last impression for each critical environment.
 
-```
-Call MCP tool: harness_list
-Parameters:
-  resource_type: "fme_feature_flag_definition"
-  org_id: "<org>"
-  project_id: "<project>"
-  compact: false
-  params:
-    feature_flag_name: "<flag_name>"
-```
+If the forward treatment is `control` or a killed `defaultTreatment`, say plainly that the newer code path will be deleted. Edit nothing until the user explicitly confirms this plan.
 
-Read `lastImpressionAt` per environment from each definition.
+### Phase 6: Edit and verify
 
-Rank with [readiness.md](references/readiness.md) and grep the application repo per [sdk-patterns.md](references/sdk-patterns.md).
+1. Work on a new branch in the application repo.
+2. At each call site, keep the forward branch and inline the config value if `WithConfig` is used. Remove the dead branches, plus any flag-only constants, wrappers, imports, tests, fixtures, localhost or offline entries, and docs. Don't refactor unrelated code.
+3. Search again for the key and for the batch and flag-set patterns. Any remaining hits must be explained: homonyms, other services, or fixtures the user wants to keep.
+4. Run the repo's own build, lint and tests. Fix any failures before moving on.
 
-Present: flag, status (`ACTIVE` / `ARCHIVED`), verdict (`safe` / `caution` / `blocked`), winning treatment per critical env, `lastImpressionAt` summary, code-ref count. Ask which flag to remove, if any.
+### Phase 7: Open the PR
 
-### Phase 4: Explore code (remove mode)
+Confirm with the user before pushing or opening the PR. Use the repo's normal tooling and its own PR template and conventions (for example `.github/pull_request_template.md` or CONTRIBUTING). Don't impose a format. Whatever the template, the description must capture:
 
-Identify the SDK family (see [sdk-patterns.md](references/sdk-patterns.md)). Search the flag key and relevant eval patterns in the **application** repo.
+- the flag key and the treatment (or config value) that was kept;
+- the FME evidence: org and project, critical environments checked, the forward treatment (and config value, if `WithConfig` is used) in each, the verdict and any caution the user acknowledged, the experiment check result, and the last impression in each critical environment;
+- what was removed: branches, tests, config, imports;
+- how it was verified: the clean search and the build and test run;
+- **which repo(s)/service(s) were searched** — a clean search here does not prove the flag is unused elsewhere;
+- the follow-up: archive the flag with `manage-flag-lifecycle` once this change is deployed everywhere the flag is evaluated, plus any other repos or services that may still reference it.
 
-For each hit: file:line, which branch runs, side effects. Dynamic keys → stop (incomplete automation). Flag-set membership (`getTreatmentsByFlagSet`) may hide the key from a plain string search → **caution**.
+### Phase 8: Hand off
 
-### Phase 5: Readiness and forward treatment
-
-```
-Call MCP tool: harness_get
-Parameters:
-  resource_type: "fme_feature_flag"
-  org_id: "<org>"
-  project_id: "<project>"
-  resource_id: "<flag_name>"
-```
-
-List definitions across **every** critical environment:
-
-```
-Call MCP tool: harness_list
-Parameters:
-  resource_type: "fme_feature_flag_definition"
-  org_id: "<org>"
-  project_id: "<project>"
-  compact: false
-  params:
-    feature_flag_name: "<flag_name>"
-```
-
-Check for active experiments — **blocked** if any (`parent_type` is required; `status` defaults to ACTIVE):
-
-```
-Call MCP tool: harness_list
-Parameters:
-  resource_type: "fme_experiment"
-  org_id: "<org>"
-  project_id: "<project>"
-  filters:
-    parent_type: "FEATURE_FLAG"
-    parent_name: "<flag_name>"
-    status: "ACTIVE"
-```
-
-Apply [readiness.md](references/readiness.md) including dependent-flag matchers and `lastImpressionAt`. If **blocked**, stop.
-
-Forward treatment comes from FME only — all critical envs must agree per the rules in readiness.md.
-
-### Phase 6: Present the plan and wait
-
-Show: forward treatment and why, code refs, planned keep vs delete, verdict and warnings, `lastImpressionAt` per critical env, archive-after-merge (not delete). If the flag is killed, say explicitly that hardcoding the default treatment usually removes the new code path.
-
-**Do not proceed until the user explicitly confirms.**
-
-### Phase 7: Remove from application code
-
-Only after confirmation:
-
-- Keep the branch matching forward treatment; remove the other
-- Remove flag-only imports, constants, wrappers, tests, docs, and control branches
-- Do not refactor unrelated code
-
-Match the app’s SDK dialect ([sdk-patterns.md](references/sdk-patterns.md)).
-
-```java
-// Before
-if ("on".equals(splitClient.getTreatment(key, "new-checkout-flow"))) {
-  return renderNewCheckout();
-}
-return renderOldCheckout();
-
-// After
-return renderNewCheckout();
-```
-
-```javascript
-// Node.js — Before
-const treatment = splitClient.getTreatment(key, "new-checkout-flow");
-return treatment === "on" ? renderNewCheckout() : renderOldCheckout();
-
-// After
-return renderNewCheckout();
-```
-
-### Phase 8: Verify
-
-1. Re-search for the flag key — no leftovers (see sdk-patterns for batch/flag-set APIs)
-2. Run existing build/test/lint
-3. Open a PR using [references/pr-template.md](references/pr-template.md)
-
-Archive in FME only after merge/deploy (or archive-only if code is already gone).
-
-### Phase 9: Archive in FME
-
-**Re-check readiness** (Phases 5 checks) immediately before archive. If anything changed — new impressions, active experiment, targeting — stop and ask the user.
-
-```
-Call MCP tool: harness_execute
-Parameters:
-  resource_type: "fme_feature_flag"
-  action: "archive"
-  org_id: "<org>"
-  project_id: "<project>"
-  resource_id: "<flag_name>"
-  confirm: true
-  body:
-    comment: "Cleanup PR merged/deployed — archive after code removal"
-    title: "<cleanup PR title or URL>"
-```
-
-Verify archive succeeded:
-
-```
-Call MCP tool: harness_get
-Parameters:
-  resource_type: "fme_feature_flag"
-  org_id: "<org>"
-  project_id: "<project>"
-  resource_id: "<flag_name>"
-```
-
-Confirm the flag is archived (`status: ARCHIVED`). If archive is blocked by governance (409), show the error — do not delete to bypass it.
-
-Delete only after archive, no active definitions remain, and a **second** explicit user confirm:
-
-```
-Call MCP tool: harness_delete
-Parameters:
-  resource_type: "fme_feature_flag"
-  org_id: "<org>"
-  project_id: "<project>"
-  resource_id: "<flag_name>"
-  confirm: true
-```
-
-## What NOT to do
-
-- Guess forward treatment from code
-- Kill a flag as “cleanup”
-- `harness_delete` an ACTIVE flag or a flag with active definitions
-- Edit code or archive before confirmation
-- Create, kill, or restore flags (use `/manage-feature-flags`)
+Report the PR link and the follow-up: "After this deploys, use `manage-flag-lifecycle` to archive `<flag>`." Don't archive or delete here.
 
 ## Examples
 
-- "Clean up stale FME flags" — Audit mode; rank by `lastImpressionAt` and stop.
-- "Remove `new-checkout-flow` from this repo" — Remove mode; plan, wait, code, verify, archive after merge.
-- "Create a dark-mode flag" — Use `/manage-feature-flags`.
+- "Remove `new-checkout-flow` from this repo": verdict, plan, confirm, edit, verify, PR, then the archive hand-off.
+- "Hardcode the winning treatment for `dark-mode`": resolve the forward treatment from the live definitions, not from the code.
+- "This flag is killed in prod, clean it up": the forward treatment is `defaultTreatment`; warn that the new path is deleted.
+- "Which flags can we clean up?": hand off to `discover-feature-flags` (stale audit).
+- "Archive the flag too": PR here first, then `manage-flag-lifecycle` after the deploy.
 
 ## Performance Notes
 
-- Narrow audits with tags or `rollout_status_id` before calling `fme_feature_flag_definition` per flag — each definition list is one call per flag.
-- Always pass `compact: false` on definition lists; the default omits targeting details.
-- Grep the application repo before labeling a flag **safe** — flag sets and batch APIs can hide the key from a single-string search.
-- Re-check readiness immediately before archive; impressions or experiments may have changed since the plan was confirmed.
+- One **List flag definitions** call covers every environment. Don't fetch definitions one environment at a time.
+- Search the flag key first, then the batch and flag-set patterns. Wrappers often hide the literal key.
+- Keep the diff to the flag. Unrelated refactors make the PR harder to review and revert.
 
 ## Troubleshooting
 
 | Issue | Action |
 |-------|--------|
-| Environments disagree | Do not pick a treatment; ask user to align or narrow critical envs |
-| Missing `lastImpressionAt` | **Caution** — treat as unknown traffic, not proof of zero usage |
-| Active experiment on flag | **Blocked** — end or promote the experiment first |
-| `fme_experiment` not supported | **Caution** — verify experiments in Harness UI before proceeding |
-| Dependent flags in other rules/segments | **Blocked** or **caution** — scan definitions or ask user |
-| Archive blocked (409) | Show error; do not delete around governance |
-| User insists on delete | Archive while ACTIVE; delete only when no active definitions and on later confirm |
-| Flag not found | Confirm org, project, exact flag name |
-| No code refs | Other repos, flag sets, or dynamic keys may still evaluate — do not archive as “unused” without user OK |
-| Archived flag still in code | Report in audit; user may want code cleanup without unarchiving |
-| Skill not in MCP tool list | Load this skill via `@` in chat; MCP exposes `harness_*` tools only |
-
-## References
-
-- [readiness.md](references/readiness.md) — verdict rules and forward treatment
-- [sdk-patterns.md](references/sdk-patterns.md) — code search
-- [pr-template.md](references/pr-template.md) — PR body
-- `/manage-feature-flags` — create, kill, restore
+| Critical environments disagree | **blocked**. Ask the user to align targeting (`update-flag-targeting`) or narrow the critical set. |
+| An environment has no definition | Its forward treatment is `control`, so the fallback branch is live there. Treat it as **caution** and confirm. |
+| Flag is already archived but still in code | Allowed. The forward treatment is `control`; confirm the fallback branch is what users get today. |
+| ACTIVE experiment on the flag | **blocked**. Finish it first (`manage-experiments`). |
+| Code uses `WithConfig` | Hardcode the treatment's config value from the definition, not just the name. If critical environments share the treatment name but have different config values, that's **blocked**, not ready — hardcoding would silently diverge environment behavior. |
+| No explicit critical environment set | **Stop and ask.** Don't default to "ready" on an empty or unconfirmed critical set. |
+| Only one repo searched | Record that scope in the PR and summary. Don't claim the flag is fully unused until other repos/services are confirmed or searched. |
+| Dynamic flag keys | **blocked**. Stop and ask the user. |
+| No call sites found | **caution**. Check other repos and flag sets before claiming the flag is unused. |

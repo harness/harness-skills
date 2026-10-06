@@ -4,7 +4,7 @@ Use this playbook for any skill that lists, creates, updates, deletes, or execut
 
 ## Goal
 
-Establish the correct Harness scope before making MCP calls so the skill does not operate on the wrong account, organization, or project.
+Establish the correct Harness scope before making CLI or MCP calls so the skill does not operate on the wrong account, organization, or project.
 
 ## Workflow
 
@@ -22,11 +22,13 @@ Establish the correct Harness scope before making MCP calls so the skill does no
    - If the skill can work at multiple scope levels, recommend the safest scope first.
 
 4. **Restate the active scope before writes**
-   - Before `harness_create`, `harness_update`, `harness_delete`, or `harness_execute`, summarize the scope in one line.
+   - Before a create, update, delete or execute through either transport, summarize the account/org/project and affected environments in one line.
    - Example: `Working in org=default, project=payments.`
 
 5. **Do not invent defaults**
    - Never assume `default` org/project unless the user explicitly confirmed it or a provided URL resolved to it.
+   - For FME, use explicit MCP `org_id`/`project_id` or CLI `--org`/`--project`; an application repository name is not a Harness project. Confirm the configured account using non-secret metadata only—never dump authentication/configuration files.
+   - Keep the selected transport and confirmed scope in every skill handoff. Missing permissions or tools are capability limits, not reasons to try an unapproved account or transport.
 
 ## Recommended Prompt Pattern
 

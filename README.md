@@ -246,7 +246,7 @@ Typical sequence:
 | [`/discover-feature-flags`](skills/discover-feature-flags/SKILL.md) | Inventory, per-environment rollout report, and stale-flag audit (read-only) |
 | [`/explain-flag`](skills/explain-flag/SKILL.md) | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
 | [`/create-feature-flag`](skills/create-feature-flag/SKILL.md) | Create an FME flag that follows project conventions, with safe-default definitions |
-| [`/intrument-feature-flag`](skills/intrument-feature-flag/SKILL.md) | Gate application code through an extensible flag abstraction, after stack detection and clarification |
+| [`/instrument-feature-flag`](skills/instrument-feature-flag/SKILL.md) | Gate application code through an extensible flag abstraction, after stack detection and clarification |
 | [`/feature-flag-onboarding`](skills/feature-flag-onboarding/SKILL.md) | Set up and verify a first feature flag in an existing project; resume partial onboarding |
 | [`/update-flag-targeting`](skills/update-flag-targeting/SKILL.md) | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
 | [`/manage-flag-lifecycle`](skills/manage-flag-lifecycle/SKILL.md) | Flag metadata, archive readiness, archive/unarchive, and delete |

@@ -17,7 +17,7 @@ Never guess treatment names, environment IDs, or current percentages.
 
 ## Experiment check
 
-Before targeting changes, archive, or flag/definition deletion, **list experiments** for the flag filtering to parent type FEATURE_FLAG, parent name, and status ACTIVE and PAUSED. See [tool-map.md](tool-map.md#fme_experiment).
+Before targeting changes, archive, or flag/definition deletion, **list experiments** for the flag filtering to parent type FEATURE_FLAG, parent name, and status ACTIVE and PAUSED. Scope definition-only/targeting checks to the affected environment; archive and flag deletion require all environments. **Complete every applicable experiment page before a safety verdict**: MCP uses explicit `filters.limit`/`filters.offset` and the shared completeness rules; a full page whose `total` equals its length may be a fallback, so fetch another page rather than treating it as complete. CLI must paginate the ACTIVE and PAUSED queries separately. A first page with no ACTIVE experiment is not clearance. If a page fails or the scan is incomplete, STOP the write and report the check unverified—not ready or acknowledgement-only. See [pagination](tool-map.md#pagination) and [experiment operations](tool-map.md#fme_experiment).
 
 Policy:
 - **ACTIVE**: gate per skill (targeting: require explicit acknowledgement; archive and flag/definition deletion: blocked).

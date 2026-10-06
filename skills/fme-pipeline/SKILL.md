@@ -12,7 +12,7 @@ description: >-
   progressive rollout, multi-environment promotion, flag bootstrap.
 metadata:
   author: Harness
-  version: 1.2.1
+  version: 1.2.2
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -32,7 +32,7 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 |-----------|-----|-----|
 | **List environments** | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
 | **Get flag** | `harness_get` · `fme_feature_flag` · `params: { feature_flag_name }` | `harness get feature_flag <name> --json` |
-| **List definitions** | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `filters: { offset, limit }` · `compact: false` | `harness list feature_flag:definition <name> --json` |
+| **List definitions** | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list feature_flag:definition <name> --json` |
 | **List rollout statuses** | `harness_list` · `fme_rollout_status` · `compact: false` | `harness list rollout_status --json` |
 | **List experiments** | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, status: ["ACTIVE", "PAUSED"] }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --status ACTIVE --json`, then again with `--status PAUSED` |
 | **List user groups** | `harness_list` · `user_group` | `harness list user_group --json` |
@@ -126,7 +126,7 @@ Triggers (use `/create-trigger`), scheduled launches, CD/CI coupling (use `/crea
 
 ## Performance Notes
 
-- **One call to List definitions** returns all environments — prefer over N gets.
+- **One fully paginated definition inventory** covers the environments, not one call. MCP definition lists ignore `size`: set `filters.limit: 100` and advance `filters.offset` until a short page. Follow [pagination](../../references/fme/tool-map.md#pagination) for environment inventories too; incomplete reads cannot establish that a definition is missing or an environment is safe to target.
 - **Design mode avoids writes** — fastest for brainstorming.
 - **Large multi-env pipelines**: propose incremental delivery (staging first, prod follow-up).
 

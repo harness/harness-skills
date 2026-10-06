@@ -1,6 +1,6 @@
 # FME Language & Integration Guidance
 
-Shared workflow for detecting an application's stack and deciding how feature-flag evaluation code should be structured, before writing any SDK call or asking the user something detection could answer instead. Used by [`/intrument-feature-flag`](../../skills/intrument-feature-flag/SKILL.md) and [`/feature-flag-onboarding`](../../skills/feature-flag-onboarding/SKILL.md). SDK detection signals and illustrative call shapes live in [sdk-patterns.md](sdk-patterns.md); FME semantics live in [concepts.md](concepts.md).
+Shared workflow for detecting an application's stack and deciding how feature-flag evaluation code should be structured, before writing any SDK call or asking the user something detection could answer instead. Used by [`/instrument-feature-flag`](../../skills/instrument-feature-flag/SKILL.md) and [`/feature-flag-onboarding`](../../skills/feature-flag-onboarding/SKILL.md). SDK detection signals and illustrative call shapes live in [sdk-patterns.md](sdk-patterns.md); FME semantics live in [concepts.md](concepts.md).
 
 ## Phase 1: Detect before asking
 

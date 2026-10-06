@@ -9,7 +9,7 @@ description: >-
   cleanup, flag debt, clean up feature flag.
 metadata:
   author: Harness
-  version: 1.2.1
+  version: 1.2.2
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -29,8 +29,8 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 |-----------|-----|-----|
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
 | Get flag | `harness_get` · `fme_feature_flag` · `params: { feature_flag_name }` | `harness get feature_flag <flag> --json` |
-| List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
-| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, status: ["ACTIVE", "PAUSED"] }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --status ACTIVE --json`, then again with `--status PAUSED` |
+| List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
+| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, status: ["ACTIVE", "PAUSED"], offset: 0, limit: 100 }` (apply [pagination completeness checks](../../references/fme/tool-map.md#pagination)) · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --status ACTIVE --json`, then again with `--status PAUSED` |
 
 ## Instructions
 
@@ -38,7 +38,7 @@ Load [readiness.md](references/readiness.md) before giving a verdict. Load [sdk-
 
 ### Phase 1: Establish scope
 
-Follow [scope-establishment.md](../../references/scope-establishment.md). **List environments** and confirm the critical environments: by default those with `isProduction`, plus any the user adds. The critical set must be non-empty and explicitly confirmed back to the user before any later phase. If no environment is marked `isProduction` and the user hasn't named any, STOP and ask which environments are critical — do not treat an empty critical set as vacuously ready.
+Follow [scope-establishment.md](../../references/scope-establishment.md). Fully paginate **List environments** per [pagination](../../references/fme/tool-map.md#pagination) before confirming the critical environments: by default those with `isProduction`, plus any the user adds. The critical set must be non-empty and explicitly confirmed back to the user before any later phase. If no environment is marked `isProduction` and the user hasn't named any, STOP and ask which environments are critical — do not treat an empty critical set as vacuously ready.
 
 ### Phase 2: Pick the flag
 
@@ -46,8 +46,8 @@ If the user named a flag, **Get flag** to confirm it exists and note its `status
 
 ### Phase 3: Forward treatment and verdict
 
-1. **List flag definitions** for the flag. Resolve the forward treatment for each critical environment per [readiness.md](references/readiness.md#forward-treatment-per-environment). If any call site uses `WithConfig`, also resolve and compare each critical environment's `configurations` value for that treatment — identical treatment names with differing configs are **blocked**, not ready.
-2. Run the [experiment check](../../references/fme/write-safety.md#experiment-check) with **List experiments**. Here ACTIVE means **blocked**: code removal ends the experiment. PAUSED means **caution**.
+1. Fully paginate **List flag definitions** for the flag with explicit MCP `filters.limit: 100` and advancing `filters.offset` until a short page (`size` is ignored). Incomplete coverage stops code removal; it cannot establish a missing definition or the live forward treatment. Resolve the forward treatment for each critical environment per [readiness.md](references/readiness.md#forward-treatment-per-environment). If any call site uses `WithConfig`, also resolve and compare each critical environment's `configurations` value for that treatment — identical treatment names with differing configs are **blocked**, not ready.
+2. Run the [experiment check](../../references/fme/write-safety.md#experiment-check) with **List experiments**, covering every page of ACTIVE and PAUSED results before a verdict. An incomplete scan stops code removal. Here ACTIVE means **blocked**: code removal ends the experiment. PAUSED means **caution**.
 3. Give the verdict per [readiness.md](references/readiness.md#verdict). Stop on **blocked**.
 
 Never infer the forward treatment from the code's default or fallback value.
@@ -101,7 +101,7 @@ Report the PR link and the follow-up: "After this deploys, use `manage-flag-life
 
 ## Performance Notes
 
-- One **List flag definitions** call covers every environment. Don't fetch definitions one environment at a time.
+- One complete paginated **List flag definitions** inventory covers the environments; it may require multiple calls. A page is not the whole inventory.
 - Search the flag key first, then the batch and flag-set patterns. Wrappers often hide the literal key.
 - Keep the diff to the flag. Unrelated refactors make the PR harder to review and revert.
 

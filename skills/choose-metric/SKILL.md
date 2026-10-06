@@ -8,7 +8,7 @@ description: >-
   choose/pick a metric, primary metric, guardrail metric, what to monitor.
 metadata:
   author: Harness
-  version: 1.3.1
+  version: 1.3.2
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -55,7 +55,7 @@ To narrow the metric list, get the flag's traffic type: **Get flag** returns `tr
 
 ### Phase 5: Inventory candidate metrics
 
-**List metrics** with full definitions, narrowed by the traffic type from Phase 4 and a name substring if the hypothesis gives an obvious keyword. Request ~30 rows unless the hypothesis points to a specific name. When the total count exceeds the rows returned, report the inventory as truncated. Say "no suitable metric in the examined subset," not "no suitable metric exists"; finish pagination (or ask to narrow a costly inventory) before making a project-wide absence claim.
+**List metrics** with full definitions, narrowed by the traffic type from Phase 4 and a name substring if the hypothesis gives an obvious keyword. Request ~30 rows unless the hypothesis points to a specific name. A total exceeding returned rows proves more pages remain, but equality does not prove completeness: MCP can fall back to page length when the API total is absent. Set an explicit `filters.limit`/`filters.offset` and follow [pagination](../../references/fme/tool-map.md#pagination) for metrics, traffic types and event inventories. Say "no suitable metric in the examined subset," not "no suitable metric exists"; finish pagination (or ask to narrow a costly inventory) before making a project-wide absence claim.
 
 Read `name`, `description`, `aggregation`, `spread`, `format`, `isPositive`, `baseEventTypes[].eventTypeId` for each. Judge candidates against [What makes a good metric](../../references/fme/metric-design.md#what-makes-a-good-metric), not health alone.
 

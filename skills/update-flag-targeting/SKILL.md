@@ -12,7 +12,7 @@ description: >-
   copy config.
 metadata:
   author: Harness
-  version: 1.2.1
+  version: 1.2.2
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -31,16 +31,16 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 | Operation | MCP | CLI |
 |-----------|-----|-----|
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
-| List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
+| List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
 | Get definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag> --env <env-id> --json` |
 | Get parent flag definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name: <parent>, environment_id }` | `harness get feature_flag:definition <parent> --env <env-id> --json` |
-| Update definition | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { <fields>, comment, title? }` | `harness update feature_flag:definition <flag> --env <env-id> -f patch.json` (include `comment`/supported `title` in the file) |
+| Update definition | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { <fields>, comment, title? }` | `harness update feature_flag:definition <flag> --env <env-id> -f patch.json --json` (include `comment`/supported `title` in the file) |
 | Create definition | `harness_create` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments, defaultTreatment, defaultRule, rules?, baselineTreatment?, trafficAllocation?, comment? }` | `harness create feature_flag:definition <flag> --env <env-id> -f def.json` |
 | Kill flag | `harness_execute` · `fme_feature_flag` · `action="kill"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:kill <flag> --env <env-id> --comment <text>` |
 | Restore flag | `harness_execute` · `fme_feature_flag` · `action="restore"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:restore <flag> --env <env-id> --comment <text>` |
 | Get segment metadata (all types) | `harness_get` · `fme_segment` · `params: { segment_name, segment_type }` | `harness get segment <segment> --segment-type <type> --json` |
 | Get STANDARD segment definition | `harness_get` · `fme_segment_definition` · `params: { segment_name, environment_id }` | `harness get segment:definition <segment> --env <env-id> --json` |
-| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, environment_id, status: ["ACTIVE", "PAUSED"] }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --env <env-id> --status ACTIVE --json`, then again with `--status PAUSED` |
+| List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, environment_id, status: ["ACTIVE", "PAUSED"], offset: 0, limit: 100 }` (apply [pagination completeness checks](../../references/fme/tool-map.md#pagination)) · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --env <env-id> --status ACTIVE --json`, then again with `--status PAUSED` |
 
 ## Instructions
 
@@ -59,7 +59,7 @@ Ask only for what's missing:
 
 ### Phase 3: Read current state
 
-Always **List flag definitions** for every target environment before planning changes. Never compose rules, targets, or matchers from memory — copy shapes from the live definition or another flag in the project that already uses that shape. If no example exists, warn that the shape is unverified, try it in a non-production env first, and let the API's 400 messages guide you (see [schema-validation-loop.md](../../references/schema-validation-loop.md)).
+Always fully paginate **List flag definitions** for the flag before planning changes in the target environments: explicitly set MCP `filters.limit: 100`, advance `filters.offset`, and stop only on a short page. `size` is ignored for this list. Incomplete inventory is not evidence a definition is missing; stop rather than initialize from a first-page miss. Follow [pagination](../../references/fme/tool-map.md#pagination) for environment and experiment lookups too. Never compose rules, targets, or matchers from memory — copy shapes from the live definition or another flag in the project that already uses that shape. If no example exists, warn that the shape is unverified, try it in a non-production env first, and let the API's 400 messages guide you (see [schema-validation-loop.md](../../references/schema-validation-loop.md)).
 
 Note per environment from the definition:
 - `isKilled` (boolean), `defaultTreatment`, `treatments` (case-sensitive; read them, don't guess)
@@ -128,7 +128,7 @@ Summarize per [operation-summary.md](../../templates/operation-summary.md): oper
 
 ## Performance Notes
 
-- One **List flag definitions** for the flag returns all envs at once — prefer over N separate gets.
+- One fully paginated **List flag definitions** inventory covers the flag's environments; it can require multiple requests. Never equate a page with the complete inventory.
 - Merge-patch update: omit a field to leave it unchanged. `treatments`, `rules`, and `defaultRule` can't be `null` and are replaced whole, so always send the complete array.
 - Large multi-env changes: run non-production envs first to verify the shape works before touching production.
 

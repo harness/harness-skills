@@ -62,13 +62,21 @@ CLI: always pass `--json` to get full output.
 
 ## Pagination
 
-`harness_list` defaults `size: 20`; MCP maps `size` → API `limit`. Passing both `size` and `filters.limit` is safe (limit wins). Max page for `fme_feature_flag` is 50; others 100.
+`harness_list` defaults top-level `size` to **20**, but **only endpoint-mapped arguments reach the API**. Use `filters.offset`, not top-level `page` (ignored by these routes). A list call fetches one page, never an automatic full inventory.
 
-For `fme_feature_flag`, `fme_feature_flag_definition`, `fme_segment`, `fme_segment_definition` lists, MCP reports `total` = page length (v4 doesn't report `totalCount`), so never use `total` to decide completeness—stop only when a page returns fewer rows than requested.
+| MCP list resources | Effective limit | Total semantics |
+|---|---|---|
+| `fme_feature_flag` | `size` → API `limit`; use **`size: 50`** (advertised maximum 50). **`filters.limit` is ignored**; do not assume an oversized size is clamped | No `totalCount` promotion; `total` can be just page length |
+| `fme_environment`, `fme_traffic_type`, `fme_rollout_status`, `fme_metric`, `fme_experiment`, `fme_event_type` | Both `size` and `filters.limit` map to API `limit`; **explicit `filters.limit` wins**. Effective MCP default 20, maximum 100; use `filters.limit: 100` | API `totalCount` is promoted to `total`; if absent, the formatter falls back to page length |
+| `fme_feature_flag_definition`, `fme_segment`, `fme_segment_definition` | **`size` is ignored**; explicitly send **`filters.limit: 100`**. Omitting it relies on the advertised API default 100 (maximum 100), not the MCP size default | No `totalCount` promotion; treat page-length `total` as non-global |
 
-V4 lists (`fme_environment`, `fme_traffic_type`, `fme_rollout_status`, `fme_metric`, `fme_experiment`) do map `totalCount` → `total`.
+For every inventory:
+1. Start at `filters.offset: 0` with the correct effective limit above. Keep scope and resource filters unchanged, use `compact: false` for configuration/name checks, and count returned rows **before** client-side filtering or deduplication.
+2. Advance offset by that raw row count. Where a known API total is available, continue until it is covered—even if an intermediate page is shorter than requested. An empty/non-advancing page before that total is covered is incomplete, not clearance.
+3. `total == returned rows` alone never establishes completeness: even promoted-total routes can fall back to page length. Without a trustworthy global total, continue until a page is shorter than the **effective** requested limit; a full page requires another request, including an extra empty page for exact multiples.
+4. Failed, repeated/non-advancing, uncertain-limit or deliberately skipped pages mean **incomplete**. Stop safety-gated writes; never infer missing definitions, unused segments, no ACTIVE experiments or archive readiness from partial data. Offset pagination is not a snapshot; re-read relevant state before the approved write.
 
-CLI list pagination uses `--offset` / `--limit`; use `--raw` as well as `--json` when response-level totals are needed. A conservative page size of 50 works for flag scans on both transports (CLI permits up to 100). "List once" means one logical inventory, potentially many pages. A failed page or user-limited scan is incomplete: never infer missing definitions, unused resources or archive readiness from it.
+CLI list pagination uses `--offset` / `--limit`; use `--raw` with `--json` when response-level totals are needed. A conservative page size of 50 works for flag scans on both transports (CLI permits up to 100). CLI ACTIVE and PAUSED experiment queries must each be fully paginated. "List once" means one complete logical inventory, potentially many requests.
 
 ## Compact mode
 
@@ -81,7 +89,7 @@ Skills must pass `compact: false` on any list whose config fields you read or wh
 | Status | Cause | Fix |
 |--------|-------|-----|
 | Fields missing (e.g., `isKilled`, `impressions`) | List called with `compact: true` (default) | Pass `compact: false` |
-| Only 20 rows returned | Default page size | Pass `size: 50` (flags) or `size: 100` + `filters.limit: 100` |
+| Only one page returned | Effective limit differs by resource | Flags: `size: 50` (`filters.limit` ignored). Other lists above: explicit `filters.limit: 100`; definition/segment lists ignore `size`. Advance `filters.offset` per [Pagination](#pagination)—a larger page is not a complete inventory |
 | 401 Unauthorized | MCP auth expired or missing | Run `harness auth login` (CLI) or refresh MCP token |
 | 403 Forbidden | Insufficient RBAC permissions | Check role grants for the resource type at the scope |
 | 400 validation | Invalid field value or shape | Read the error message, fix the named field, retry once (see [schema-validation-loop.md](../schema-validation-loop.md)) |
@@ -126,7 +134,7 @@ Harness FME environment. Name max 15 characters. Delete returns 400 `hasDependen
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment` | Offset/limit pagination |
+| **List** | `harness_list` · `fme_environment` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list fme_environment` | Apply [pagination completeness checks](#pagination), including the fallback-total guard; effective MCP default 20 without an explicit limit |
 | **Get** | `harness_get` · `fme_environment` · `params.environment_id` | `harness get fme_environment <env-id>` | Native only |
 | **Create** | `harness_create` · `fme_environment` · `body: { name, isProduction? }` | `harness create fme_environment <name> [--production]` | Native only. `production` accepted as alias for `isProduction` |
 | **Update** | `harness_update` · `fme_environment` · `params.environment_id` · `body: { name?, isProduction? }` | `harness update fme_environment <env-id> --set name=foo` | Native only. Merge patch; name/isProduction not clearable |
@@ -140,7 +148,7 @@ Read-only lookup. Discover valid traffic type IDs/names for flag and segment cre
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_traffic_type` · `compact: false` | `harness list traffic_type` | Native: offset/limit pagination |
+| **List** | `harness_list` · `fme_traffic_type` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list traffic_type` | Native; apply [pagination completeness checks](#pagination), including the fallback-total guard; effective MCP default 20 |
 
 ---
 
@@ -150,7 +158,7 @@ Read-only lookup. Discover rollout status UUIDs for filtering flag lists.
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_rollout_status` · `compact: false` | `harness list rollout_status` | Native: offset/limit pagination |
+| **List** | `harness_list` · `fme_rollout_status` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list rollout_status` | Native; apply [pagination completeness checks](#pagination), including the fallback-total guard; effective MCP default 20 |
 
 ---
 
@@ -176,10 +184,10 @@ Per-environment flag config (treatments, rules, defaultRule, trafficAllocation).
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_feature_flag_definition` · `params.feature_flag_name` · `filters: { offset?, limit? }` · `compact: false` | `harness list feature_flag:definition <flag-name>` | Native only. Lists definitions across environments for one flag. Max 100, default 100 |
+| **List** | `harness_list` · `fme_feature_flag_definition` · `params.feature_flag_name` · `filters: { offset: 0, limit: 100 }` · `compact: false` | `harness list feature_flag:definition <flag-name>` | Native only. Paginate definitions across environments for one flag. `size` ignored; explicit `filters.limit` controls the page. API default/max 100 |
 | **Get** | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag-name> --env <env-id>` | Returns full definition (treatments, rules, defaultRule, etc.) |
 | **Create** | `harness_create` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments, defaultTreatment, defaultRule, rules?, baselineTreatment?, trafficAllocation?, comment?, title? }` | `harness create feature_flag:definition <flag-name> --env <env-id> -f def.json` | Required: treatments, defaultTreatment, defaultRule |
-| **Update** | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments?, rules?, defaultRule?, defaultTreatment?, baselineTreatment?, trafficAllocation?, comment?, title? }` | `harness update feature_flag:definition <name> --env <env-id> --set traffic_allocation=80` | Merge patch (null not allowed for treatments/rules/defaultRule). Arrays (`treatments`, `rules`) are replaced whole — send the full array. comment/title write-only |
+| **Update** | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments?, rules?, defaultRule?, defaultTreatment?, baselineTreatment?, trafficAllocation?, comment?, title? }` | `harness update feature_flag:definition <name> --env <env-id> -f patch.json --json`; scalar alternative: `--set traffic_allocation=80` without `-f` | CLI endpoint supports `file_body: optional`: the file is the merge-patch body using API field names, with no wrapper. `treatments`, `rules`, `defaultRule` replace whole arrays and are not scalar `--set` fields; null is not allowed. File input overrides mutation/body flags: put approved comment/title inside it, never rely on merging separate flags |
 | **Delete** | `harness_delete` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness delete feature_flag:definition <flag-name> --env <env-id>` | No body sent—comment/title silently dropped |
 | **Kill** | `harness_execute` · `fme_feature_flag` · `action="kill"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:kill <flag-name> --env <env-id>` | All traffic → defaultTreatment. Skills use `fme_feature_flag` to match the CLI noun |
 | **Restore** | `harness_execute` · `fme_feature_flag` · `action="restore"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:restore <flag-name> --env <env-id>` | Re-enable after kill |
@@ -193,7 +201,7 @@ Segment metadata (STANDARD, LARGE, or RULE_BASED). Native only. list/get/update/
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_segment` · `filters: { segment_type, status?, offset?, limit? }` · `compact: false` | `harness list segment --segment-type STANDARD` | Native only. `segment_type` required (one kind per call). Optional `status` (ACTIVE\|ARCHIVED). Max 100, default 100 |
+| **List** | `harness_list` · `fme_segment` · `filters: { segment_type, status?, offset: 0, limit: 100 }` · `compact: false` | `harness list segment --segment-type STANDARD` | Native only. `segment_type` required (one kind per call). Optional `status` (ACTIVE\|ARCHIVED). `size` ignored; use explicit `filters.limit` and paginate. API default/max 100 |
 | **Get** | `harness_get` · `fme_segment` · `params: { segment_name, segment_type }` | `harness get segment <name> --segment-type STANDARD` | Native only. `segment_type` required |
 | **Create** | `harness_create` · `fme_segment` · `body: { name, trafficType, segmentType, description?, tags?, owners? }` | `harness create segment <name> --traffic-type user --segment-type STANDARD` | Native only. Required: name, trafficType, segmentType |
 | **Update** | `harness_update` · `fme_segment` · `params: { segment_name, segment_type }` · `body: { description?, tags?, owners? }` | `harness update segment <name> --segment-type STANDARD --set description=foo` | Native only. Merge patch. Clear with null/[] |
@@ -219,7 +227,7 @@ The audited native per-environment definition route handles **STANDARD** segment
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_segment_definition` · `filters: { environment_id, status?, offset?, limit? }` · `compact: false` | `harness list segment:definition --env <env-id>` | Native only. Max 100, default 100 |
+| **List** | `harness_list` · `fme_segment_definition` · `filters: { environment_id, status?, offset: 0, limit: 100 }` · `compact: false` | `harness list segment:definition --env <env-id>` | Native only. `size` ignored; use explicit `filters.limit` and paginate. API default/max 100 |
 | **Get** | `harness_get` · `fme_segment_definition` · `params: { segment_name, environment_id }` | `harness get segment:definition <segment-name> --env <env-id>` | Native only |
 | **Create** | `harness_create` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }?` | `harness create segment:definition <segment-name> --env <env-id>` | Native only. Body optional; omit for empty shell |
 | **Update** | `harness_update` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }` | `harness update segment:definition <segment-name> --env <env-id> --set description=foo` | Native only. Merge patch; description is the only mutable field |
@@ -236,7 +244,7 @@ Metric definition. Native only. Addressed by `id` (UUID), not name. Create requi
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_metric` · `filters: { name?, traffic_type_id?, event_type_ids?, tags?, ids?, sort_order?, offset?, limit? }` · `compact: false` | `harness list metric [--name <name>] [--traffic-type-id <id>] [--event-type-id <id>] [--tag <tag>] [--id <id>] [--sort-order <order>] [--limit <n>]` | Native only. Max 100, default 100 |
+| **List** | `harness_list` · `fme_metric` · `filters: { name?, traffic_type_id?, event_type_ids?, tags?, ids?, sort_order?, offset?, limit? }` · `compact: false` | `harness list metric [--name <name>] [--traffic-type-id <id>] [--event-type-id <id>] [--tag <tag>] [--id <id>] [--sort-order <order>] [--limit <n>]` | Native only. Maximum 100; effective MCP default 20. Set `filters.limit: 100` and apply [pagination completeness checks](#pagination), including the fallback-total guard |
 | **Get** | `harness_get` · `fme_metric` · `params.metric_id` | `harness get metric <metric-id>` | Native only |
 | **Create** | `harness_create` · `fme_metric` · `body: { name, trafficType, format, aggregation, isPositive, baseEventTypes, filterEventType?, triggerEventType?, description?, tags?, owners?, cap? }` | `harness create metric <name> -f metric.json --json` | Native only. File contains the complete confirmed body, including at least one owner (backend rejects empty owners until feature flag ships). 409 'Duplicate Definition' on shape collision |
 | **Update** | `harness_update` · `fme_metric` · `params.metric_id` · `body: { description?, format?, aggregation?, isPositive?, spread?, baseEventTypes?, filterEventType?, triggerEventType?, tags?, owners?, cap? }` | `harness update metric <metric-id> --set description=foo` | Native only. Merge patch. name/trafficType immutable. format/aggregation/isPositive/spread not clearable |
@@ -254,7 +262,7 @@ Responses contain `id` and `trafficTypes`, not an occurrence timestamp or per-in
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_event_type` · `filters: { name?, traffic_type?, offset?, limit? }` · `compact: false` | `harness list event_type [--name <name>] [--traffic-type <name-or-id>] --json` | Native only. Max 100, default 100. `name` filter is substring |
+| **List** | `harness_list` · `fme_event_type` · `filters: { name?, traffic_type?, offset?, limit? }` · `compact: false` | `harness list event_type [--name <name>] [--traffic-type <name-or-id>] --json` | Native only. Maximum 100; effective MCP default 20. Set `filters.limit: 100` and apply [pagination completeness checks](#pagination), including the fallback-total guard. `name` filter is substring |
 | **Get** | `harness_get` · `fme_event_type` · `params.event_type_id` | `harness get event_type <event-type-id> --json` | Native only. 404 = absent or idle > 30 days |
 
 ---
@@ -265,7 +273,7 @@ The API supports feature-flag and AI Config parents, but the current creation/tr
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_experiment` · `filters: { parent_type, parent_name?, environment_id?, name?, status?: ["ACTIVE","PAUSED"], tags?, offset?, limit? }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG [--parent-name <name>] [--env <env-id>] [--search <name>] [--status ACTIVE]` (repeat with `--status PAUSED`) | Native only. `parent_type` required. Max 100, default 20. `status` is an array in MCP, single value in CLI. Defaults to [ACTIVE] if omitted—never omit for ACTIVE+PAUSED |
+| **List** | `harness_list` · `fme_experiment` · `filters: { parent_type, parent_name?, environment_id?, name?, match_type?, status?: ["ACTIVE","PAUSED"], tags?, offset?, limit? }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG [--parent-name <name>] [--env <env-id>] [--search <name>] [--status ACTIVE]` (repeat with `--status PAUSED`) | Native only. `parent_type` required. Maximum 100; effective MCP default 20. Set `filters.limit: 100` and apply [pagination completeness checks](#pagination), including the fallback-total guard. For name substring matching, set `match_type: "contains"` explicitly. `status` is an array in MCP, single value in CLI; paginate each CLI status separately. Defaults to [ACTIVE] if omitted—never omit for ACTIVE+PAUSED |
 | **Get** | `harness_get` · `fme_experiment` · `params.experiment_id` | `harness get experiment <experiment-id>` | Native only |
 | **Create** | `harness_create` · `fme_experiment` · `params: { environment_id }` · `body: { parent: { type, id?, name? }, name, startAt, endAt, baselineTreatment, comparisonTreatments, description?, hypothesis?, keyMetrics?, supportingMetrics?, owners?, rule: "default rule", tags? }` | `harness create experiment <name> --env <env-id> -f experiment.json --json` | Native only. Do not send assignmentSource (400). Pass `rule: "default rule"` (the label of the flag's default rule); results only count impressions whose label matches the experiment's `rule` |
 | **Update** | `harness_update` · `fme_experiment` · `params.experiment_id` · `body: { name?, description?, hypothesis?, startAt?, endAt?, baselineTreatment?, comparisonTreatments?, keyMetrics?, supportingMetrics?, owners?, rule?, tags?, status? }` | `harness update experiment <experiment-id> --set description=foo --set status=PAUSED` | Native only. Merge patch. Status values via `status` (ACTIVE/PAUSED/COMPLETED/ARCHIVED); backend validates transitions. CLI cannot update `name` or `rule` and does not support file-body updates here: stop those requests or propose MCP with approval. CLI date/treatment/metric fields use snake_case IDs. name/startAt/endAt/baselineTreatment/comparisonTreatments/status not clearable. comparisonTreatments rejects [] |

@@ -109,11 +109,13 @@ Never infer "unused" from missing data. Archived flag with recent impressions = 
 - In experiment: `keyMetrics` (primary), `supportingMetrics` (secondary)
 - In workspace: GUARDRAIL, ALERT (workspace-wide monitoring)
 
-**Event types:** Event types are listed only if an event arrived in the last 30 days. If **Get event type** returns 404 (or the type is missing from the list), no events arrived in 30 days—treat the event as not instrumented and hand off to `instrument-metric`.
+**Event types:** Event inventory covers the project's last 30 days across environments. **Get event type** uses the exact event name; check the returned `trafficTypes` too. A 200 is historical visibility, not proof of current flow, target-environment delivery, or experiment attribution. A 404 can mean wrong scope/name, no instrumentation, or an idle event; absence from a filtered or partial list is inconclusive. Confirm scope and recent application activity before handing off to `/instrument-metric` to investigate. See [tool-map.md](tool-map.md#fme_event_type) for transport details.
 
 **Hypothesis form:** "If we \<change>, then \<metric> will \<direction> because \<reason>."
 
 **Results:** count only impressions whose label matches the experiment's `rule` (normally `default rule`), so individual targets and other rules are excluded. SRM (sample ratio mismatch) not exposed by API. Avoid peeking before experiment completion.
+
+**Metric design guidance:** see [metric-design.md](metric-design.md) for what makes a good metric and how to map intent to configuration.
 
 ## Other Things Code Search Can Miss
 

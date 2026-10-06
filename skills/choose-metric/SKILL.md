@@ -1,14 +1,14 @@
 ---
 name: choose-metric
 description: >-
-  Recommend primary/guardrail FME metrics for an experiment or rollout,
-  checking existing metrics and event health first. Doesn't create or
-  attach metrics — see create-metric / instrument-metric / manage-experiments.
-  Trigger phrases: choose/pick a metric, primary metric, guardrail metric,
-  what to monitor.
+  Recommend primary/guardrail metrics for an experiment or rollout, judged
+  against a good-metric checklist. Checks existing metrics and event health,
+  surfaces auto-created guardrails. Doesn't create or attach metrics — see
+  create-metric / instrument-metric / manage-experiments. Trigger phrases:
+  choose/pick a metric, primary metric, guardrail metric, what to monitor.
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.3.0
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -16,7 +16,7 @@ compatibility: Requires the Harness MCP server or the Harness CLI
 
 # Choose Metric
 
-Recommend metrics for an FME experiment or feature-flag rollout: which is primary, which are guardrails/supporting, and which existing candidates are healthy enough to trust. Related: `/manage-experiments` attaches metrics to experiments; `/create-metric` creates new metrics; `/instrument-metric` adds tracking calls.
+Recommend metrics for an FME experiment or feature-flag rollout: which is primary, which are guardrails/supporting, and which existing candidates are healthy enough to trust, judged against [what makes a good metric](../../references/fme/metric-design.md#what-makes-a-good-metric). Related: `/manage-experiments` attaches metrics to experiments; `/create-metric` creates new metrics; `/instrument-metric` adds tracking calls.
 
 ## Tools
 
@@ -27,7 +27,8 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 | Get flag | `harness_get` · `fme_feature_flag` · `params: { feature_flag_name }` | `harness get feature_flag <name> --json` |
 | Get experiment | `harness_get` · `fme_experiment` · `params: { experiment_id }` | `harness get experiment <id> --json` |
 | List metrics | `harness_list` · `fme_metric` · `filters: { traffic_type_id?, name?, limit }` · `compact: false` | `harness list metric --traffic-type-id <id> --name <substring> --json` |
-| List traffic types | `harness_list` · `fme_traffic_type` | `harness list traffic_type --json` |
+| List traffic types | `harness_list` · `fme_traffic_type` · `compact: false` | `harness list traffic_type --json` |
+| List event types | `harness_list` · `fme_event_type` · `filters: { traffic_type?, name? }` · `compact: false` | `harness list event_type --traffic-type <name or id> --name <substring> --json` |
 | Get event type | `harness_get` · `fme_event_type` · `params: { event_type_id }` | `harness get event_type <event-name> --json` |
 
 ## Instructions
@@ -56,16 +57,18 @@ To narrow the metric list, get the flag's traffic type: **Get flag** returns `tr
 
 **List metrics** with full definitions, narrowed by the traffic type from Phase 4 and a name substring if the hypothesis gives an obvious keyword. Request ~30 rows unless the hypothesis points to a specific name. When the total count exceeds the rows returned, report the inventory as truncated.
 
-Read `name`, `description`, `aggregation`, `spread`, `format`, `isPositive`, `baseEventTypes[].eventTypeId` for each. Use `description` to judge centrality vs. noise — "leading indicator, noisy" is a weaker guardrail than "primary revenue metric".
+Read `name`, `description`, `aggregation`, `spread`, `format`, `isPositive`, `baseEventTypes[].eventTypeId` for each. Judge candidates against [What makes a good metric](../../references/fme/metric-design.md#what-makes-a-good-metric), not health alone.
 
 ### Phase 6: Health-check each candidate
 
-Metric creation doesn't validate `baseEventTypes[].eventTypeId`, so a metric can look complete while its event is a typo, was renamed, or has gone idle. For each candidate you're about to recommend, **Get event type** using the `eventTypeId` as the exact name. Event types are listed only if an event arrived in the last 30 days. If **Get event type** returns 404 (or the type isn't listed), no events arrived in 30 days — treat it as not instrumented and hand off to `instrument-metric`. Don't health-check metrics you're explicitly ruling out.
+Metric creation doesn't validate any event reference, so a metric can look complete while its event is a typo, was renamed, or has gone idle. For each candidate you're about to recommend, **Get event type** for *every* event reference it uses — `baseEventTypes`, and `filterEventType`/`triggerEventType` if set, not just the base event, since a stale filter or trigger event silently changes which units get counted even if the base event is healthy. The response has only `id` and `trafficTypes` — check the returned `trafficTypes` includes the candidate's traffic type. Event types are listed only if an event arrived in the last 30 days, project-wide across all environments — this isn't a "currently flowing" guarantee for any one environment. An exact-get 404 means no matching event is visible in this scope/window — check scope and spelling, then whether a previously working flow has simply been idle. It does **not** prove the event was never instrumented. Absence from a filtered or partial list is inconclusive. Ask whether the flow has run recently before concluding the metric needs re-instrumentation or modifying any code; if confirmed idle rather than broken, say so instead of handing off to `instrument-metric` by default. Don't health-check metrics you're explicitly ruling out.
+
+For rollout monitoring, surface [auto-created ` - Split Agents` metrics](../../references/fme/metric-design.md#auto-created-metrics) as ready-made guardrails.
 
 ### Phase 7: Recommend, branching by context
 
 **Experiment:**
-- **Primary metric** — must directly measure the stated hypothesis, be healthy, and use `spread: PER` (`ACROSS` metrics get no significance test and can't decide an experiment). If no existing metric qualifies, recommend `/create-metric` (and `/instrument-metric` first if the event doesn't exist yet) rather than forcing a loose fit.
+- **Primary metric** — must directly measure the stated hypothesis, be healthy, and use `spread: PER` (`ACROSS` metrics get no significance test and can't decide an experiment). One of each secondary type is usually enough; every extra metric adds noise. A primary with no events produces no result. The metric's traffic type must match the flag's traffic type, and the subject key used in `track()` must be the same key `getTreatment` uses for this flag (attribution fact) — the event's **name** does not need to, and usually shouldn't, match the flag's name. If no existing metric qualifies, recommend `/create-metric` (and `/instrument-metric` first if the event doesn't exist yet) rather than forcing a loose fit.
 - **Secondary metrics**, each typed as:
   - *Guardrail* — safety metric that must not regress (error rate, latency, unsubscribe). Goes in `supportingMetrics` (category `SUPPORTING` in results) — not to be confused with workspace-wide `GUARDRAIL` category metrics, which apply automatically to every experiment. See [concepts.md](../../references/fme/concepts.md#experiments-and-metrics) for the distinction.
   - *Counter-metric* — checks for undesirable tradeoffs the primary wouldn't reveal (conversion up but average order value down).
@@ -85,16 +88,18 @@ Metric creation doesn't validate `baseEventTypes[].eventTypeId`, so a metric can
 - Supporting: <name> — <what it corroborates> [healthy/at-risk]
 
 ## Gaps
-<any hypothesis/rollout aspect with no healthy metric — point to /create-metric or /instrument-metric>
+<any hypothesis/rollout aspect with no healthy metric>
+For each gap, give a concrete starting spec (event, aggregation, format, isPositive from the intent table) for /create-metric. If the app repo is available, offer candidates via [Suggest metrics from code](../../references/fme/metric-design.md#suggest-metrics-from-code).
 ```
 
 Flag every at-risk metric explicitly rather than silently omitting it — the user may know it's about to be re-instrumented.
 
 ## Examples
 
+- "We have no metrics yet — what should we measure for the search-ranking test?" — Phase 2 hypothesis check; Phase 5 finds no candidates; Phase 8 gaps with code suggestions if app repo available.
 - "What metric should I use as primary for the checkout-redesign experiment?" — Phase 2 hypothesis check, then Phases 5-7 for a primary + guardrails.
 - "Pick guardrails for the new-pricing test" — primary already known/set; focus Phase 7 on guardrail/counter-metric selection only.
-- "What should I monitor while rolling out the new-search flag?" — flag rollout branch of Phase 7, cap at 2-3 metrics.
+- "What should I monitor while rolling out the new-search flag?" — flag rollout branch of Phase 7, cap at 2-3 metrics; surface auto-created metrics.
 - "Is checkout_conversion_rate a good primary metric for this test?" — evaluate the named metric via Phases 5-6 rather than surveying all metrics, then confirm or push back with a reason.
 
 ## Performance Notes

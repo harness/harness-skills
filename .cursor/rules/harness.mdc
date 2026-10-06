@@ -68,9 +68,9 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/fme-pipeline` | Generate FME pipelines for rollout scenarios, gates, and flag lifecycle |
 | `/manage-experiments` | Design, create, update, and delete FME experiments; delegates metric selection to choose-metric |
 | `/review-experiment-results` | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
-| `/choose-metric` | Recommend primary/guardrail metrics for an experiment or rollout monitoring |
-| `/create-metric` | Create an FME metric definition (traffic type, aggregation, event types, cap, owners) |
-| `/instrument-metric` | Wire up a track() call for a metric's event and verify it arrives |
+| `/choose-metric` | Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist |
+| `/create-metric` | Design and create an FME metric: intent-to-config guidance, code-based suggestions, traffic type, events, cap, owners |
+| `/instrument-metric` | Wire up a track() call for a metric's event, placed at the real outcome, and verify it arrives |
 
 ### Platform Operations
 

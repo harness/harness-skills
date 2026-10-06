@@ -38,11 +38,13 @@ If a flag is only referenced via a flag set, a plain key grep returns nothing.
 
 ## Tracking Calls (`track()`)
 
-**Server-side SDKs:** `client.track(key, trafficType, eventType, value?, properties?)`. All params explicit.
+The signatures below are illustrative pseudocode, not a literal per-language reference — the actual parameter order, casing (`track`/`Track`), and optional-argument handling vary by SDK and version. Before writing a call, inspect the installed SDK's version and its actual method signature/types (type definitions, installed package docs, or an existing call in the codebase) rather than assuming the pattern here applies verbatim.
 
-**Client-side SDKs:** `client.track(trafficType, eventType, value?, properties?)` (key bound at init), or `client.track(eventType, value?, properties?)` if traffic type also bound.
+**Server-side SDKs (illustrative):** `client.track(key, trafficType, eventType, value?, properties?)`. All params explicit.
 
-`value` is a number, only needed for aggregations TOTAL/AVERAGE (when the metric doesn't read from a property). `properties` is a map/dict for property filters or `propertyForValue`.
+**Client-side SDKs (illustrative):** `client.track(trafficType, eventType, value?, properties?)` (key bound at init), or `client.track(eventType, value?, properties?)` if traffic type also bound.
+
+`value` is a number, only needed for aggregations TOTAL/AVERAGE when the metric doesn't read from a property (`propertyForValue`). When the value is meant to come from a property instead, don't guess a universal positional form for "value omitted" — check the installed SDK's actual signature for how it expects a skipped value (`null`, `undefined`, omitted trailing arg, or a named-args/options object), since this differs by language and SDK version. `properties` is a map/dict for property filters or `propertyForValue`.
 
 ## Search Patterns
 
@@ -50,10 +52,22 @@ If a flag is only referenced via a flag set, a plain key grep returns nothing.
 - Basic: `grep -rE 'getTreatment\(|get_treatment\(|\.Treatment\(' <src-dir>`
 - Batch: `grep -rE 'getTreatments\(|ByFlagSet\(|_with_config\(' <src-dir>`
 - React: `grep -r 'useSplitTreatments' <src-dir>`
-- Tracking: `grep -rE '\.track\(|client\.track\(' <src-dir>`
+- Tracking: `grep -rE '\.track\(|\.Track\(|client\.track\(' <src-dir>` (include the capitalized `.Track(` form for Go/.NET SDKs)
 
 **Dynamic keys** (`"prefix-" + id`, `` `flag-${id}` ``): if found, human review required.
 
 **Localhost / offline config:** `split.yaml`, `.split`, `split.yml`, `localhost` sections in SDK bootstrap, test fixtures.
 
 **Also search:** tests, config, fixtures, comments, control branches (`control`, `defaultTreatment`), fallback `else` paths.
+
+## Other analytics calls
+
+These mark outcomes the team already measures and are placement signals for FME `track()` calls. Look for them when deciding where to add `track()`:
+
+| Tool | Pattern |
+|------|---------|
+| Segment | `analytics.track(` |
+| Mixpanel | `mixpanel.track(` |
+| Amplitude | `amplitude.track(`, `logEvent(` |
+| Google Analytics | `gtag('event'` |
+| PostHog | `posthog.capture(` |

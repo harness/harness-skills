@@ -219,20 +219,24 @@ Metric definition. Native only. Addressed by `id` (UUID), not name. Create requi
 |-----------|----------|-------------|-------|
 | **List** | `harness_list` · `fme_metric` · `filters: { name?, traffic_type_id?, event_type_ids?, tags?, ids?, sort_order?, offset?, limit? }` · `compact: false` | `harness list metric [--name <name>] [--traffic-type-id <id>] [--event-type-id <id>] [--tag <tag>] [--id <id>] [--sort-order <order>] [--limit <n>]` | Native only. Max 100, default 100 |
 | **Get** | `harness_get` · `fme_metric` · `params.metric_id` | `harness get metric <metric-id>` | Native only |
-| **Create** | `harness_create` · `fme_metric` · `body: { name, trafficType, format, aggregation, isPositive, baseEventTypes, filterEventType?, triggerEventType?, description?, tags?, owners?, cap? }` | `harness create metric <name> --traffic-type user --event-type signup --set format=NUMBER --set aggregation=COUNT --set isPositive=true` | Native only. Backend rejects empty owners (until feature flag ships); pass at least one. 409 'Duplicate Definition' on shape collision |
+| **Create** | `harness_create` · `fme_metric` · `body: { name, trafficType, format, aggregation, isPositive, baseEventTypes, filterEventType?, triggerEventType?, description?, tags?, owners?, cap? }` | `harness create metric <name> -f metric.json --json` | Native only. File contains the complete confirmed body, including at least one owner (backend rejects empty owners until feature flag ships). 409 'Duplicate Definition' on shape collision |
 | **Update** | `harness_update` · `fme_metric` · `params.metric_id` · `body: { description?, format?, aggregation?, isPositive?, spread?, baseEventTypes?, filterEventType?, triggerEventType?, tags?, owners?, cap? }` | `harness update metric <metric-id> --set description=foo` | Native only. Merge patch. name/trafficType immutable. format/aggregation/isPositive/spread not clearable |
 | **Delete** | `harness_delete` · `fme_metric` · `params.metric_id` | `harness delete metric <metric-id>` | No body sent—comment/title silently dropped. Hard delete, no archive/restore |
+
+**Metric payload parity:** send the same complete approved definition as MCP `body` or CLI `-f metric.json` (JSON/YAML; `-f -` accepts stdin). Use wire-field names such as `isPositive` inside the file. File input takes precedence over `--set` / `--add`; don't combine them expecting a merge. Without a file, the CLI mutation field is `is_positive`, and owners use `--add owners.user:<email-or-id>` or `--add owners.group:<identifier>`; arbitrary nested property filters are not exposed through `--set`. For base events without property settings, include `propertyFilters: []` and `propertyForValue: null` explicitly (MCP otherwise inserts these defaults).
 
 ---
 
 ## fme_event_type
 
-Read-only lookup. Discover valid event type IDs for metric baseEventTypes. Only event types with events in last 30 days are visible. List `filters.name` is case-insensitive substring match, not exact. Get is exact; 404 = absent or idle > 30 days.
+Read-only lookup. Discover event type IDs for metric baseEventTypes. Visibility covers the project's last 30 days **across environments**; neither transport exposes an environment filter. List `filters.name` is a case-insensitive substring match; `traffic_type` resolves an ID or exact traffic type name. Get uses the exact event name; 404 = absent in this scope/window or idle > 30 days.
+
+Responses contain `id` and `trafficTypes`, not an occurrence timestamp or per-invocation receipt. Check the intended traffic type is present. A 200 does not prove current traffic, delivery from the target environment, or experiment attribution.
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_event_type` · `filters: { name?, traffic_type?, offset?, limit? }` · `compact: false` | `harness list event_type [--name <name>]` | Native only. Max 100, default 100. `name` filter is substring |
-| **Get** | `harness_get` · `fme_event_type` · `params.event_type_id` | `harness get event_type <event-type-id>` | Native only. 404 = absent or idle > 30 days |
+| **List** | `harness_list` · `fme_event_type` · `filters: { name?, traffic_type?, offset?, limit? }` · `compact: false` | `harness list event_type [--name <name>] [--traffic-type <name-or-id>] --json` | Native only. Max 100, default 100. `name` filter is substring |
+| **Get** | `harness_get` · `fme_event_type` · `params.event_type_id` | `harness get event_type <event-type-id> --json` | Native only. 404 = absent or idle > 30 days |
 
 ---
 

@@ -1,17 +1,24 @@
 # FME Tool Map: MCP ↔ CLI
 
-This is the single source of truth for FME resource names, operations, and MCP-to-CLI translation. Skills must copy names from here exactly as written; `scripts/validate-skills.sh` checks `fme_*` names against this file.
+This is the shared reference for FME resource names, operations, and verified MCP/CLI differences. Skills must copy supported forms from here; `scripts/validate-skills.sh` checks `fme_*` names against this file. Source review: CLI `8768ee9`, MCP `427d5ac1`; deployed versions may differ. This is not a promise of full transport parity.
+
+## Transport preflight and handoffs
+
+- Load this map, [concepts.md](concepts.md), and the skill-local references needed for the selected operation. Load [write-safety.md](write-safety.md) before any mutation. Missing file/tool access is a stop condition, not permission to guess.
+- Choose the available CLI or MCP transport before planning. Verify installed command/schema capabilities; generic `--help` can show flags unsupported by a particular endpoint. CLI flags and mutation field IDs are not mechanically derived from JSON names. Unsupported operations must stop; offer another available transport with explicit approval, never switch to bypass authorization or governance.
+- CLI discovery: consult `harness <verb> <noun> --help` and the installed command specification for that operation. MCP discovery: use `harness_describe` when available. If neither source establishes a required payload, ask for the schema or stop; do not probe by writing guessed payloads.
+- A skill handoff means load the linked workflow, not assume a host-specific slash-command tool exists. Carry confirmed account/org/project, transport, resource/environment IDs, intended change, approved payload/decisions, inventory completeness and unresolved risks. Return exact IDs, readback/test evidence and remaining unverified work. Approval applies only to the original plan, not a new mutation in the next skill.
 
 ## Translation Rules
 
 | MCP Tool | CLI Verb | Notes |
 |----------|----------|-------|
-| `harness_list` | `harness list <noun>` | MCP `resource_type` → CLI noun; MCP `filters` → CLI `--<filter-name>` |
+| `harness_list` | `harness list <noun>` | Use the noun and supported filters below; unsupported filters require complete-inventory client-side filtering |
 | `harness_get` | `harness get <noun> <id>` | Primary `params` identifier → CLI positional `<id>`; secondary `params` (e.g. `environment_id`) → CLI flags (`--env`) |
-| `harness_create` | `harness create <noun> <id>` | MCP `body` → CLI `-f <file>` or `--set <field>=<value>` |
-| `harness_update` | `harness update <noun> <id>` | MCP `body` → CLI `--set` / `--del` (merge patch) or `-f` (full body) |
+| `harness_create` | `harness create <noun> <id>` | Use `-f <file>` only where the endpoint supports it, or the declared CLI mutation fields |
+| `harness_update` | `harness update <noun> <id>` | Use declared `--set` / `--add` / `--del` fields; only some endpoints accept `-f`. No arbitrary JSON-path mutation |
 | `harness_delete` | `harness delete <noun> <id>` | Primary `params` identifier → CLI positional `<id>` |
-| `harness_execute` | `harness execute <noun>:<action> <id>` | MCP `action` → CLI `:<action>` qualifier; MCP `body` → CLI flags or `-f` |
+| `harness_execute` | `harness execute <noun>:<action> <id>` | Only registered CLI actions exist; some MCP actions have no CLI equivalent |
 
 **Noun mapping:**
 - MCP `fme_feature_flag` ↔ CLI `feature_flag` (alias `ff`)
@@ -34,9 +41,7 @@ This is the single source of truth for FME resource names, operations, and MCP-t
 - MCP `harness_execute(resource_type="fme_feature_flag", action="reallocate", params={feature_flag_name, environment_id})` ↔ CLI `harness execute feature_flag:reallocate <name> --env <env-id>`
 - MCP `harness_execute(resource_type="fme_feature_flag", action="archive", params={feature_flag_name})` ↔ CLI `harness execute feature_flag:archive <name>`
 - MCP `harness_execute(resource_type="fme_feature_flag", action="unarchive", params={feature_flag_name})` ↔ CLI `harness execute feature_flag:unarchive <name>`
-- MCP `harness_execute(resource_type="fme_segment_definition", action="list_keys")` ↔ CLI `harness execute segment:list_keys <segment> --env <env-id>`
-- MCP `harness_execute(resource_type="fme_segment_definition", action="add_keys")` ↔ CLI `harness execute segment:add_keys <segment> --env <env-id> -f keys.json`
-- MCP `harness_execute(resource_type="fme_segment_definition", action="remove_keys")` ↔ CLI `harness execute segment:remove_keys <segment> --env <env-id> -f keys.json`
+- MCP `fme_segment_definition` actions `list_keys`, `add_keys`, `remove_keys`: STANDARD segments only; **not supported by the audited CLI**. Do not invent execute commands.
 
 ## Conventions
 
@@ -51,7 +56,7 @@ CLI: `--org <org>` and `--project <project>` flags; or set `HARNESS_ORG` / `HARN
 
 **Identifiers always go in `params`** by field name: `feature_flag_name`, `environment_id`, `segment_name`, `segment_type`, `metric_id`, `experiment_id`, `event_type_id`. Never `resource_id`, never top-level args (MCP silently drops anything not in `params`/`filters`). List filters and pagination (`name`, `tags`, `rollout_status_id`, `status`, `parent_type`, `offset`, `limit`) go in `filters`.
 
-**CLI translation:** MCP `params` → CLI positional `<id>` for the primary identifier, flags for secondary identifiers (e.g., `environment_id` → `--env <env-id>`). MCP `filters.foo_bar` → CLI `--foo-bar`. Exception: experiment list uses `--search <name>` (not `--name`).
+**CLI translation:** use the documented positional ID and secondary flags (e.g. `--env`), not inferred spellings. Flag/experiment name search uses `--search`; metric/event search uses `--name`. CLI mutation field IDs include `rollout_status`, `traffic_allocation`, `is_positive`, `significance_threshold`, and `is_enabled`; the JSON wire fields differ. Tags/owners use their declared `--add` / `--del` handlers, not `--set` arrays.
 
 CLI: always pass `--json` to get full output.
 
@@ -62,6 +67,8 @@ CLI: always pass `--json` to get full output.
 For `fme_feature_flag`, `fme_feature_flag_definition`, `fme_segment`, `fme_segment_definition` lists, MCP reports `total` = page length (v4 doesn't report `totalCount`), so never use `total` to decide completeness—stop only when a page returns fewer rows than requested.
 
 V4 lists (`fme_environment`, `fme_traffic_type`, `fme_rollout_status`, `fme_metric`, `fme_experiment`) do map `totalCount` → `total`.
+
+CLI list pagination uses `--offset` / `--limit`; use `--raw` as well as `--json` when response-level totals are needed. A conservative page size of 50 works for flag scans on both transports (CLI permits up to 100). "List once" means one logical inventory, potentially many pages. A failed page or user-limited scan is incomplete: never infer missing definitions, unused resources or archive readiness from it.
 
 ## Compact mode
 
@@ -83,16 +90,16 @@ Skills must pass `compact: false` on any list whose config fields you read or wh
 
 ## Reverse-lookup scans
 
-No reverse-lookup API exists. To find segment usage, scan flag definitions' `rules`/`targets` for the segment name. To find IN_SPLIT dependents, scan rules for `depends.splitName`. To find metric usage, scan experiments for both parent types' `keyMetrics`/`supportingMetrics`.
+No reverse-lookup API exists. To find segment usage, inspect rule matchers **and** each treatment's `segments`, `largeSegments`, and `ruleBasedSegments` memberships; individual `keys` also live inside treatments. There is no generic top-level `targets` array. To find IN_SPLIT dependents, scan rules for `depends.splitName`. To find metric usage, scan experiments for both parent types' `keyMetrics`/`supportingMetrics`.
 
-**Cost guard:** one list call per flag; if >50 flags, stop and ask the user to narrow (tag/name/rollout status) or confirm. Report "unchecked" when skipped.
+**Cost guard:** one paginated definition inventory per flag; if >50 flags, ask the user to narrow or approve the cost. Finish all relevant flag/definition/experiment pages for a complete usage verdict. Report "unchecked" or "incomplete" when skipped or interrupted, never "unused".
 
 ### Updates (JSON Merge Patch RFC 7396)
 
 Harness-native updates use JSON Merge Patch: omit a field to leave it unchanged, pass a value to update, pass `null` (or `[]` for arrays) to clear clearable fields. Non-clearable fields (e.g., name, trafficType, isProduction) reject explicit `null` with 400.
 
 MCP: `body: { description: "New desc", tags: null }` (clears tags)
-CLI: `--set description="New desc" --del tags` (or `--set tags=`)
+CLI: `--set description="New desc"`; remove a particular tag with its declared `--del tags.<name>` handler. For clearing all tags, enumerate and approve the removals or use a supported full-body endpoint. `--set tags=` is not supported by the tag handler.
 
 ### Confirm
 
@@ -105,7 +112,7 @@ Many FME write operations accept optional `comment` and/or `title` in the body f
 Operations supporting audit fields: kill/restore/reallocate, archive/unarchive, definition updates, segment key ops.
 
 MCP: `body: { comment: "Rolling out to beta users", title: "Beta rollout" }`
-CLI: `--comment "Rolling out to beta users" --title "Beta rollout"`
+CLI: use `--comment` / `--title` only when the endpoint declares them. When using `-f`, put audit fields **inside the approved file**: file input takes precedence and separate body flags are not merged. Unsupported audit fields cannot be sent; record the reason in the operation summary instead.
 
 ### Output / Links
 
@@ -153,10 +160,10 @@ Feature flag metadata (cross-environment). Max page size 50.
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
-| **List** | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name?, tags?, rollout_status_id?, offset? }` · `compact: false` | `harness list feature_flag [--search <name>] [--tags <tag>] [--rollout-status-id <id>] [--status <ACTIVE\|ARCHIVED>]` | Max size 50, default 20. MCP has **no status filter** — filter `status` client-side; CLI has `--status` |
+| **List** | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name?, tags?, rollout_status_id?, offset? }` · `compact: false` | `harness list feature_flag [--search <name>] [--status <ACTIVE\|ARCHIVED>] --json` | MCP max size 50. MCP status filtering is client-side. CLI tag/rollout-status filters are unavailable: filter the complete JSON inventory client-side |
 | **Get** | `harness_get` · `fme_feature_flag` · `params.feature_flag_name` | `harness get feature_flag <name>` | Returns metadata without requiring environment |
 | **Create** | `harness_create` · `fme_feature_flag` · `body: { name, trafficType, description?, tags?, owners? }` | `harness create feature_flag <name> --traffic-type user` | Required: name + trafficType |
-| **Update** | `harness_update` · `fme_feature_flag` · `params.feature_flag_name` · `body: { description?, tags?, owners?, rolloutStatus? }` | `harness update feature_flag <name> --set description=foo` | Merge patch. `rolloutStatus` shape: `{id: "<uuid>"}` (CLI: `--set rolloutStatus.id=<uuid>`). `owners` shape: `{type: "USER", id or email}` or `{type: "GROUP", identifier}`. Clear description/tags/owners with null/[] |
+| **Update** | `harness_update` · `fme_feature_flag` · `params.feature_flag_name` · `body: { description?, tags?, owners?, rolloutStatus? }` | `harness update feature_flag <name> --set description=foo` | Merge patch. `rolloutStatus` shape: `{id: "<uuid>"}` (CLI: `--set rollout_status=<uuid>`). `owners` shape: `{type: "USER", id or email}` or `{type: "GROUP", identifier}`. Clear description/tags/owners with null/[] |
 | **Delete** | `harness_delete` · `fme_feature_flag` · `params.feature_flag_name` | `harness delete feature_flag <name>` | No body sent—comment/title silently dropped |
 | **Archive** | `harness_execute` · `fme_feature_flag` · `action="archive"` · `params.feature_flag_name` · `body: { comment?, title? }?` | `harness execute feature_flag:archive <name> [--comment <text>]` | OPA policy checks (409 on failure) |
 | **Unarchive** | `harness_execute` · `fme_feature_flag` · `action="unarchive"` · `params.feature_flag_name` · `body: { comment?, title? }?` | `harness execute feature_flag:unarchive <name>` | 409 if flag has dependents |
@@ -172,7 +179,7 @@ Per-environment flag config (treatments, rules, defaultRule, trafficAllocation).
 | **List** | `harness_list` · `fme_feature_flag_definition` · `params.feature_flag_name` · `filters: { offset?, limit? }` · `compact: false` | `harness list feature_flag:definition <flag-name>` | Native only. Lists definitions across environments for one flag. Max 100, default 100 |
 | **Get** | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag-name> --env <env-id>` | Returns full definition (treatments, rules, defaultRule, etc.) |
 | **Create** | `harness_create` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments, defaultTreatment, defaultRule, rules?, baselineTreatment?, trafficAllocation?, comment?, title? }` | `harness create feature_flag:definition <flag-name> --env <env-id> -f def.json` | Required: treatments, defaultTreatment, defaultRule |
-| **Update** | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments?, rules?, defaultRule?, defaultTreatment?, baselineTreatment?, trafficAllocation?, comment?, title? }` | `harness update feature_flag:definition <name> --env <env-id> --set trafficAllocation=80` | Merge patch (null not allowed for treatments/rules/defaultRule). Arrays (`treatments`, `rules`) are replaced whole — send the full array. comment/title write-only |
+| **Update** | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments?, rules?, defaultRule?, defaultTreatment?, baselineTreatment?, trafficAllocation?, comment?, title? }` | `harness update feature_flag:definition <name> --env <env-id> --set traffic_allocation=80` | Merge patch (null not allowed for treatments/rules/defaultRule). Arrays (`treatments`, `rules`) are replaced whole — send the full array. comment/title write-only |
 | **Delete** | `harness_delete` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness delete feature_flag:definition <flag-name> --env <env-id>` | No body sent—comment/title silently dropped |
 | **Kill** | `harness_execute` · `fme_feature_flag` · `action="kill"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:kill <flag-name> --env <env-id>` | All traffic → defaultTreatment. Skills use `fme_feature_flag` to match the CLI noun |
 | **Restore** | `harness_execute` · `fme_feature_flag` · `action="restore"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:restore <flag-name> --env <env-id>` | Re-enable after kill |
@@ -194,9 +201,21 @@ Segment metadata (STANDARD, LARGE, or RULE_BASED). Native only. list/get/update/
 
 ---
 
+### Segment type capabilities
+
+Harness supports **STANDARD, LARGE and RULE_BASED**. These are different membership models, not different levels of product support. The following is a snapshot of the audited native tool contracts; discover installed capabilities before selecting an operation.
+
+| Type | Metadata (MCP and CLI) | Environment/membership workflow |
+|------|------------------------|---------------------------------|
+| STANDARD | List/get/create/update/delete | `fme_segment_definition` / `segment:definition`; keys via MCP execute actions |
+| LARGE | List/get/create/update/delete | Dedicated large-segment definitions and asynchronous bulk upload/drain/export; not exposed by the audited native MCP/CLI |
+| RULE_BASED | List/get/create/update/delete | Dedicated rule conditions/matchers/exclusions; audited native tools expose metadata, while legacy rule-based MCP operations use a different workspace contract |
+
+[manage-segments](../../skills/manage-segments/SKILL.md) routes all three types. If an installed tool lacks the required type-specific operation, offer a supported tool or the corresponding Harness administration workflow and report unverified steps. Never treat the type as unsupported or silently substitute a STANDARD route/legacy scope.
+
 ## fme_segment_definition
 
-Per-environment segment definition. Native only. list requires `environment_id`; get/create/update/delete require `segment_name` + `environment_id`. Segment key ops are execute actions.
+The audited native per-environment definition route handles **STANDARD** segments. LARGE and RULE_BASED use their own [type-specific workflows](#segment-type-capabilities); this route's shape is not evidence of product-wide restrictions. List requires `environment_id`; get/create/update/delete require `segment_name` + `environment_id`. Key operations are MCP execute actions only in the audited versions.
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
@@ -205,15 +224,15 @@ Per-environment segment definition. Native only. list requires `environment_id`;
 | **Create** | `harness_create` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }?` | `harness create segment:definition <segment-name> --env <env-id>` | Native only. Body optional; omit for empty shell |
 | **Update** | `harness_update` · `fme_segment_definition` · `params: { segment_name, environment_id }` · `body: { description? }` | `harness update segment:definition <segment-name> --env <env-id> --set description=foo` | Native only. Merge patch; description is the only mutable field |
 | **Delete** | `harness_delete` · `fme_segment_definition` · `params: { segment_name, environment_id }` | `harness delete segment:definition <segment-name> --env <env-id>` | No body sent—comment/title silently dropped. 400 `hasDependents` while keys remain |
-| **List Keys** | `harness_execute` · `fme_segment_definition` · `action="list_keys"` · `params: { segment_name, environment_id, offset?, limit? }` | `harness execute segment:list_keys <segment> --env <env-id>` | Native only. Pagination: offset/limit (max 100, default 100) |
-| **Add Keys** | `harness_execute` · `fme_segment_definition` · `action="add_keys"` · `params: { segment_name, environment_id, replace? }` · `body: { keys, comment?, title? }` | `harness execute segment:add_keys <segment> --env <env-id> [--replace] -f keys.json` | Native only. `keys` max 10000. `replace=true` allows empty keys (full replace) |
-| **Remove Keys** | `harness_execute` · `fme_segment_definition` · `action="remove_keys"` · `params: { segment_name, environment_id }` · `body: { keys, comment?, title? }` | `harness execute segment:remove_keys <segment> --env <env-id> -f keys.json` | Native only. `keys` must have at least 1, max 10000 |
+| **List Keys** | `harness_execute` · `fme_segment_definition` · `action="list_keys"` · `params: { segment_name, environment_id, offset?, limit? }` | Not supported by the audited CLI | STANDARD only. Exhaust offset/limit pages (max 100) for membership verification |
+| **Add Keys** | `harness_execute` · `fme_segment_definition` · `action="add_keys"` · `params: { segment_name, environment_id, replace? }` · `body: { keys, comment?, title? }` | Not supported by the audited CLI | STANDARD only. Max 10000 keys; `replace=true` allows empty replacement. Never split a replacement into multiple replace calls |
+| **Remove Keys** | `harness_execute` · `fme_segment_definition` · `action="remove_keys"` · `params: { segment_name, environment_id }` · `body: { keys, comment?, title? }` | Not supported by the audited CLI | STANDARD only. 1–10000 keys per request; verify against complete membership inventory |
 
 ---
 
 ## fme_metric
 
-Metric definition. Native only. Addressed by `id` (UUID), not name. Create requires name + trafficType + format + aggregation + isPositive + baseEventTypes. Update cannot change name/trafficType. List CLI flags: `--name`, `--traffic-type-id`, `--event-type-id`, `--tag`, `--id`, `--sort-order`, `--limit`. `owners` shape: `{type: "USER", id or email}` or `{type: "GROUP", identifier}` (GROUP uses group identifier).
+Metric definition. Native only. Addressed by `id` (UUID), not name. Create requires name + trafficType + format + aggregation + isPositive + baseEventTypes. Update cannot change name/trafficType. List CLI flags: `--name`, `--traffic-type-id`, `--event-type-id`, `--tag`, `--id`, `--sort-order`, `--limit`. In the audited CLI, repeated ID/tag/event-type filters send only the first value; do not comma-join values. Use one filter value per call or get each metric by ID. `owners` shape: `{type: "USER", id or email}` or `{type: "GROUP", identifier}` (GROUP uses group identifier).
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
@@ -242,14 +261,14 @@ Responses contain `id` and `trafficTypes`, not an occurrence timestamp or per-in
 
 ## fme_experiment
 
-Experiment against a feature flag or AI Config. Native only. Addressed by `id` (ULID). Create requires parent + name + startAt + endAt + baselineTreatment + comparisonTreatments. Status transitions (ACTIVE/PAUSED/COMPLETED/ARCHIVED) are done via update `status` field. List CLI uses `--search <name>` (exception to translation rule). Tags shape: `{name}` objects.
+The API supports feature-flag and AI Config parents, but the current creation/treatment-validation skill implements FEATURE_FLAG only; it must not resolve an AI Config through a feature-flag definition. Read-only experiment/results lookup may use either parent type. Native only. Addressed by `id` (ULID). Create requires parent + name + startAt + endAt + baselineTreatment + comparisonTreatments. CLI full-body creation must include the approved `rule` and still pass `--env` for the query parameter; owners are optional. Status transitions (ACTIVE/PAUSED/COMPLETED/ARCHIVED) are done via update `status` field. List CLI uses `--search <name>` (exception to translation rule). Tags shape: `{name}` objects.
 
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
 | **List** | `harness_list` · `fme_experiment` · `filters: { parent_type, parent_name?, environment_id?, name?, status?: ["ACTIVE","PAUSED"], tags?, offset?, limit? }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG [--parent-name <name>] [--env <env-id>] [--search <name>] [--status ACTIVE]` (repeat with `--status PAUSED`) | Native only. `parent_type` required. Max 100, default 20. `status` is an array in MCP, single value in CLI. Defaults to [ACTIVE] if omitted—never omit for ACTIVE+PAUSED |
 | **Get** | `harness_get` · `fme_experiment` · `params.experiment_id` | `harness get experiment <experiment-id>` | Native only |
-| **Create** | `harness_create` · `fme_experiment` · `params: { environment_id }` · `body: { parent: { type, id?, name? }, name, startAt, endAt, baselineTreatment, comparisonTreatments, description?, hypothesis?, keyMetrics?, supportingMetrics?, owners?, rule: "default rule", tags? }` | `harness create experiment <name> --parent-type FEATURE_FLAG --parent-name my-flag --env <env-id> --start-at <iso8601> --end-at <iso8601> --baseline-treatment off --comparison-treatment on [--key-metric <id>] [--supporting-metric <id>]` | Native only. Do not send assignmentSource (400). Pass `rule: "default rule"` (the label of the flag's default rule); results only count impressions whose label matches the experiment's `rule` |
-| **Update** | `harness_update` · `fme_experiment` · `params.experiment_id` · `body: { name?, description?, hypothesis?, startAt?, endAt?, baselineTreatment?, comparisonTreatments?, keyMetrics?, supportingMetrics?, owners?, rule?, tags?, status? }` | `harness update experiment <experiment-id> --set description=foo --set status=PAUSED` | Native only. Merge patch. Status transitions via `status` field (ACTIVE/PAUSED/COMPLETED/ARCHIVED). name/startAt/endAt/baselineTreatment/comparisonTreatments/status not clearable. comparisonTreatments rejects [] |
+| **Create** | `harness_create` · `fme_experiment` · `params: { environment_id }` · `body: { parent: { type, id?, name? }, name, startAt, endAt, baselineTreatment, comparisonTreatments, description?, hypothesis?, keyMetrics?, supportingMetrics?, owners?, rule: "default rule", tags? }` | `harness create experiment <name> --env <env-id> -f experiment.json --json` | Native only. Do not send assignmentSource (400). Pass `rule: "default rule"` (the label of the flag's default rule); results only count impressions whose label matches the experiment's `rule` |
+| **Update** | `harness_update` · `fme_experiment` · `params.experiment_id` · `body: { name?, description?, hypothesis?, startAt?, endAt?, baselineTreatment?, comparisonTreatments?, keyMetrics?, supportingMetrics?, owners?, rule?, tags?, status? }` | `harness update experiment <experiment-id> --set description=foo --set status=PAUSED` | Native only. Merge patch. Status values via `status` (ACTIVE/PAUSED/COMPLETED/ARCHIVED); backend validates transitions. CLI cannot update `name` or `rule` and does not support file-body updates here: stop those requests or propose MCP with approval. CLI date/treatment/metric fields use snake_case IDs. name/startAt/endAt/baselineTreatment/comparisonTreatments/status not clearable. comparisonTreatments rejects [] |
 | **Delete** | `harness_delete` · `fme_experiment` · `params.experiment_id` | `harness delete experiment <experiment-id>` | No body sent—comment/title silently dropped. Hard delete, not archive |
 
 ---
@@ -261,7 +280,7 @@ Experiment statistical settings. Native only. Update creates/updates experiment-
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
 | **Get** | `harness_get` · `fme_experiment_settings` · `params: { experiment_id }` | `harness get experiment:settings <experiment-id>` | Native only |
-| **Update** | `harness_update` · `fme_experiment_settings` · `params: { experiment_id }` · `body: { statisticalTestType?, significanceThreshold?, multipleComparisonCorrection?, minimumSampleSize?, reviewPeriod?, varianceReduction? }` | `harness update experiment:settings <experiment-id> --set significanceThreshold=0.1` | Native only. Merge patch. varianceReduction clearable with null. Others not clearable |
+| **Update** | `harness_update` · `fme_experiment_settings` · `params: { experiment_id }` · `body: { statisticalTestType?, significanceThreshold?, multipleComparisonCorrection?, minimumSampleSize?, reviewPeriod?, varianceReduction? }` | `harness update experiment:settings <experiment-id> --set significance_threshold=0.1` | Native only. Merge patch. varianceReduction clearable with null. Others not clearable |
 | **Delete** | `harness_delete` · `fme_experiment_settings` · `params: { experiment_id }` | `harness delete experiment:settings <experiment-id>` | Native only. Resets to defaults |
 
 ---
@@ -273,7 +292,7 @@ Experiment alerting subscription. Native only.
 | Operation | MCP Call | CLI Command | Notes |
 |-----------|----------|-------------|-------|
 | **Get** | `harness_get` · `fme_experiment_alerting` · `params: { experiment_id }` | `harness get experiment:alerts <experiment-id>` | Native only |
-| **Update** | `harness_update` · `fme_experiment_alerting` · `params: { experiment_id }` · `body: { isEnabled }` | `harness update experiment:alerts <experiment-id> --set isEnabled=true` | Native only. isEnabled required, not clearable with null |
+| **Update** | `harness_update` · `fme_experiment_alerting` · `params: { experiment_id }` · `body: { isEnabled }` | `harness update experiment:alerts <experiment-id> --set is_enabled=true` | Native only. isEnabled required, not clearable with null |
 
 ---
 
@@ -308,7 +327,7 @@ These resource types are deprecated or legacy-only. New skills must never use th
 | `fme_workspace` | Legacy Split.io concept. Only for discovering workspace_id for deprecated contract. | Pass `org_id` + `project_id` directly; skip fme_workspace entirely |
 | `fme_standard_segment` | Legacy workspace_id contract only. | `fme_segment` with `segment_type: "STANDARD"` |
 | `fme_rule_based_segment` | Legacy workspace_id contract only. | `fme_segment` with `segment_type: "RULE_BASED"` |
-| `fme_rule_based_segment_definition` | Legacy workspace_id contract only. | `fme_segment_definition` |
+| `fme_rule_based_segment_definition` | Legacy workspace_id contract only. | Native rule-definition operations are unsupported; do not substitute the STANDARD definition route |
 | `fme_segment_keys` | Legacy workspace_id contract only. | `fme_segment_definition` execute actions (list_keys / add_keys / remove_keys) |
 | `fme_identity` | Legacy contract; native not implemented yet. | N/A (avoid identity operations until native support ships) |
 

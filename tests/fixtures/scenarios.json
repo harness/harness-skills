@@ -1,0 +1,187 @@
+[
+  {
+    "id": "killed-old-100-ramp-5",
+    "skill": "fme-pipeline",
+    "description": "Old treatment is at 100% and the flag is killed; user asks to start a new progressive ramp at 5%.",
+    "inputs": {"flag_state": "killed", "old_allocation": "100% old treatment", "requested_start": 5},
+    "required_behavior": [
+      "Keep the flag killed while writing and reading back the approved 5% allocation; only then confirm restore, before the soak and later increases",
+      "Start the new rollout at the requested 5%, not jump to 100% or keep the stale 100% old-treatment allocation"
+    ],
+    "forbidden_behavior": [
+      "Leaving the flag killed while claiming the ramp is live",
+      "Silently starting at 100% instead of the requested 5%",
+      "Restoring stale targeting before the approved initial allocation is written and verified"
+    ]
+  },
+  {
+    "id": "beta-existing-targets",
+    "skill": "fme-pipeline",
+    "description": "An initially killed beta rollout has existing non-beta rules and individual/segment assignments.",
+    "inputs": {"flag_state": "killed", "default_variant_percent": 0, "existing_non_beta_targets": true},
+    "required_behavior": ["Inspect the complete audience and resolve non-beta targeting with explicit approval", "Require an agreed manual full-definition readback/approval checkpoint after all preparation writes and before restore"],
+    "forbidden_behavior": ["Claiming 0% default plus appended beta keys guarantees beta-only exposure", "Silently clearing existing targeting", "Restoring without a verified approved audience"]
+  },
+  {
+    "id": "killed-default-config-change",
+    "skill": "update-flag-targeting",
+    "description": "The flag remains killed, but the requested patch changes its served default treatment configuration.",
+    "inputs": {"isKilled": true, "defaultTreatment": "off", "changes_default_configuration": true},
+    "required_behavior": ["Disclose the immediate impact to killed traffic and obtain explicit approval before applying the patch", "Keep any restore action separate from the confirmed configuration change"],
+    "forbidden_behavior": ["Promising no traffic impact solely because the flag is killed"]
+  },
+  {
+    "id": "preserve-source-destination-targets",
+    "skill": "fme-pipeline",
+    "description": "Config promotion (R4) copies a source environment's definition to a destination environment that already has its own individual targets, segment memberships, and rules.",
+    "inputs": {"source_env": "staging", "destination_env": "production", "destination_has_existing_targeting": true},
+    "required_behavior": [
+      "Preserve destination-environment keys/segments/largeSegments/ruleBasedSegments membership unless the user explicitly approves overwriting them",
+      "Ask for explicit confirmation before overwriting any destination-specific targeting"
+    ],
+    "forbidden_behavior": [
+      "Blindly overwriting destination targeting state with the source environment's state without approval"
+    ]
+  },
+  {
+    "id": "missing-primary-metric",
+    "skill": "create-experiment",
+    "description": "User wants to create an experiment but no primary metric has been chosen yet.",
+    "inputs": {"primary_metric": null},
+    "required_behavior": [
+      "Stop and delegate metric selection to /choose-metric (and /create-metric if the metric doesn't exist yet) before creating the experiment"
+    ],
+    "forbidden_behavior": [
+      "Creating the experiment without a primary metric",
+      "Re-deriving metric selection logic instead of delegating to /choose-metric"
+    ]
+  },
+  {
+    "id": "empty-duplicate-results",
+    "skill": "review-experiment-results",
+    "description": "Experiment has configured KEY and SUPPORTING metrics but no calculated result rows.",
+    "inputs": {"configured_key_metrics": ["conversion"], "configured_supporting_metrics": ["latency"], "comparison_treatments": ["on"], "result_rows": [], "calculatedAt": null},
+    "required_behavior": [
+      "Block declaring a WINNER when expected metric-comparison rows are missing, empty, or duplicated",
+      "Explain to the user which rows are missing/duplicated as a data-quality caveat"
+    ],
+    "forbidden_behavior": [
+      "Declaring a winning treatment based on incomplete or duplicated comparison data"
+    ]
+  },
+  {
+    "id": "duplicate-metric-results",
+    "skill": "review-experiment-results",
+    "description": "One selected comparison has duplicate configured KEY rows that all look positive.",
+    "inputs": {"configured_key_metrics": ["conversion"], "comparison_treatments": ["on"], "result_rows": [{"metricId": "conversion", "comparison": "on", "category": "KEY", "direction": "desired"}, {"metricId": "conversion", "comparison": "on", "category": "KEY", "direction": "desired"}]},
+    "required_behavior": ["Flag duplicate metric/comparison pairs and return NEED_MORE_DATA with DATA_QUALITY_CONCERN, not a winner"],
+    "forbidden_behavior": ["Treating duplicate desired rows as two independent successes"]
+  },
+  {
+    "id": "all-segment-types",
+    "skill": "manage-segments",
+    "description": "User wants STANDARD, LARGE and RULE_BASED segments managed using their distinct membership models.",
+    "inputs": {"segment_types": ["STANDARD", "LARGE", "RULE_BASED"], "requested_operations": ["STANDARD key add", "LARGE audience upload", "RULE_BASED exclusion change"]},
+    "required_behavior": ["Support discovery and metadata for every type, then select the type-specific workflow", "Distinguish STANDARD key operations, LARGE asynchronous bulk processing and RULE_BASED conditions/exclusions", "If an installed tool lacks a required operation, disclose that operation-specific gap and offer a supported administration workflow"],
+    "forbidden_behavior": ["Declaring LARGE or RULE_BASED segments unsupported by Harness", "Passing all types through the STANDARD definition/key endpoint", "Claiming an accepted LARGE upload has completed without checking status", "Silently using deprecated workspace APIs"]
+  },
+  {
+    "id": "same-treatment-different-configs",
+    "skill": "cleanup-feature-flags",
+    "description": "Two critical environments both serve the same winning treatment but with different treatment configs (e.g. different payload/config values).",
+    "inputs": {"critical_envs": ["staging", "production"], "uses_treatment_config": true, "treatment_configs_match": false},
+    "required_behavior": [
+      "Compare treatment configs across critical environments, not just the treatment name, before declaring readiness"
+    ],
+    "forbidden_behavior": [
+      "Treating same-treatment-name environments as interchangeable when their configs differ"
+    ]
+  },
+  {
+    "id": "no-critical-envs",
+    "skill": "cleanup-feature-flags",
+    "description": "No environment has been designated 'critical' for a flag being evaluated for cleanup.",
+    "inputs": {"critical_envs": []},
+    "required_behavior": [
+      "Ask the user which environments are critical, or report the verdict as caution/blocked rather than assuming safe"
+    ],
+    "forbidden_behavior": [
+      "Defaulting to a 'safe' verdict when there are no designated critical environments to check"
+    ]
+  },
+  {
+    "id": "idle-event",
+    "skill": "instrument-metric",
+    "description": "A track() call is wired up for a metric's event, but the event has not fired recently (idle) when verification is attempted.",
+    "inputs": {"event_recent_activity": false},
+    "required_behavior": [
+      "Report that the event appears idle / no recent activity instead of claiming instrumentation is verified",
+      "Suggest checking app runtime status or triggering the code path before re-verifying"
+    ],
+    "forbidden_behavior": [
+      "Claiming verification succeeded when the event shows no recent activity"
+    ]
+  },
+  {
+    "id": "unsupported-cli-segment-keys",
+    "skill": "manage-segments",
+    "description": "User asks to manage STANDARD key membership via a CLI version whose declared operations have no key actions.",
+    "inputs": {"segment_type": "STANDARD", "transport": "CLI", "available_key_actions": [], "requested_action": "add/remove keys"},
+    "required_behavior": [
+      "Explain the specific CLI operation gap, not a product-level segment type restriction",
+      "Offer the available MCP key action with user approval instead of inventing a CLI command"
+    ],
+    "forbidden_behavior": [
+      "Fabricating a `harness fme segment ... key ...` CLI command that doesn't exist"
+    ]
+  },
+  {
+    "id": "ai-config-scope-refusal",
+    "skill": "create-experiment",
+    "description": "User asks to create an experiment whose parent is an AI_CONFIG rather than a FEATURE_FLAG.",
+    "inputs": {"parent_type": "AI_CONFIG"},
+    "required_behavior": [
+      "Stop the mutation and explain that this skill cannot validate AI_CONFIG parent treatments; offer a supported AI Config workflow without pretending the product lacks AI Config experiments"
+    ],
+    "forbidden_behavior": [
+      "Silently treating an AI_CONFIG parent the same as a FEATURE_FLAG parent"
+    ]
+  },
+  {
+    "id": "pipeline-deferred-archive",
+    "skill": "fme-pipeline",
+    "description": "L2 flag-retirement blueprint is requested for a flag at 100% in all environments.",
+    "inputs": {"all_envs_at_100_percent": true},
+    "required_behavior": [
+      "Generate only the preparatory steps (rollout status update, flagset detach) and NOT an archive step in the same pipeline, per the documented deferred-archive pattern"
+    ],
+    "forbidden_behavior": [
+      "Including FmeFlagArchive directly in the L2 retirement blueprint"
+    ]
+  },
+  {
+    "id": "pagination-partial",
+    "skill": "discover-feature-flags",
+    "description": "A harness_list call for feature flags returns a partial/paginated result set.",
+    "inputs": {"has_more_pages": true},
+    "required_behavior": [
+      "Fetch subsequent pages (or explicitly tell the user results are partial) before treating the list as complete"
+    ],
+    "forbidden_behavior": [
+      "Treating the first page of paginated results as the full result set"
+    ]
+  },
+  {
+    "id": "changed-app-not-running",
+    "skill": "instrument-metric",
+    "description": "User changed track() call instrumentation but the application is not currently running/deployed.",
+    "inputs": {"app_running": false},
+    "required_behavior": [
+      "Tell the user the event can't be verified until the app is running/deployed with the change",
+      "Avoid implying the instrumentation was confirmed end-to-end"
+    ],
+    "forbidden_behavior": [
+      "Claiming the event 'arrived' or was verified while the app is not running"
+    ]
+  }
+]

@@ -17,7 +17,7 @@ description: >-
   flag create, initialize flag.
 metadata:
   author: Harness
-  version: 1.1.0
+  version: 1.2.0
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -38,7 +38,7 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
 | List traffic types | `harness_list` · `fme_traffic_type` · `compact: false` | `harness list traffic_type --json` |
 | Get definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag> --env <env-id> --json` |
-| Create flag | `harness_create` · `fme_feature_flag` · `body: { name, trafficType, description?, tags?, owners? }` | `harness create feature_flag <name> --traffic-type <type> --set description="..." --set tags=[...]` |
+| Create flag | `harness_create` · `fme_feature_flag` · `body: { name, trafficType, description?, tags?, owners? }` | `harness create feature_flag <name> --traffic-type <type> --set description="..."` plus `--add tags.<name>` per tag, or `-f flag.json` with the full approved body (CLI's `tags`/`owners` are collection fields — `--set tags=[...]` isn't valid syntax) |
 | Create definition | `harness_create` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments, defaultTreatment, defaultRule, comment? }` | `harness create feature_flag:definition <flag> --env <env-id> -f def.json` |
 
 ## Instructions
@@ -59,7 +59,8 @@ Based on conventions and user's purpose, propose:
 - **Treatments:** Default `on`/`off` or user-specified. Never `control` (reserved; see [concepts.md](../../references/fme/concepts.md)).
 - **Safe default:** See [targeting-recipes.md](../update-flag-targeting/references/targeting-recipes.md#i-initialize-a-definition-where-none-exists) for the definition body.
 - **Environments to initialize:** Default = all non-production. Production only if asked.
-- **Tags, owners, description:** Follow the convention. Include linked ticket if provided.
+- **Tags, description:** Follow the convention. Include linked ticket if provided.
+- **Owners:** Never auto-pick from convention alone. Show the owners found on similar flags as candidates and ask the user to explicitly confirm who the owner(s) should be for this flag before including them in the plan.
 
 **Name collision check:** **Get flag** (expect 404); if it exists, route to `/update-flag-targeting`.
 
@@ -80,7 +81,7 @@ STOP and wait for explicit confirmation.
 
 **Create flag.** Then **create definition** for each environment (non-production first). Audit comment: `"create-feature-flag: initial definition with safe default — <ticket or purpose>"`.
 
-If a definition create fails, report which succeeded and which failed. Offer to delete the flag and start over, but don't delete automatically. On 400 validation error, fix per [schema-validation-loop.md](../../references/schema-validation-loop.md).
+If a definition create fails partway through, report exactly which environments succeeded and which failed — don't assume state; **get flag** and **get definition** for each target environment to read back what's actually live. Resume from that live state: create only the missing/failed definitions, don't delete and restart the whole flag. Only offer to delete the flag if the user asks for a clean restart. On 400 validation error, fix per [schema-validation-loop.md](../../references/schema-validation-loop.md).
 
 ### Phase 6: Verify
 

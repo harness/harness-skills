@@ -17,10 +17,10 @@ Never guess treatment names, environment IDs, or current percentages.
 
 ## Experiment check
 
-Before targeting changes or archive, **list experiments** for the flag filtering to parent type FEATURE_FLAG, parent name, and status ACTIVE and PAUSED. See [tool-map.md](tool-map.md#fme_experiment).
+Before targeting changes, archive, or flag/definition deletion, **list experiments** for the flag filtering to parent type FEATURE_FLAG, parent name, and status ACTIVE and PAUSED. See [tool-map.md](tool-map.md#fme_experiment).
 
 Policy:
-- **ACTIVE**: gate per skill (targeting: require explicit acknowledgement; archive: blocked).
+- **ACTIVE**: gate per skill (targeting: require explicit acknowledgement; archive and flag/definition deletion: blocked).
 - **PAUSED**: warn user: "Experiment `<name>` is PAUSED on this flag. Targeting changes may invalidate results. Proceed?" Require explicit acknowledgement; user may proceed.
 - **COMPLETED**: ignore (completed experiments don't block changes).
 
@@ -55,11 +55,13 @@ Rules:
 ## 4. Execute
 
 - Run environments one at a time, non-production first. Stop at the first failure and report what succeeded and what didn't.
-- Add an audit comment (and title where supported) on every write. Use the format `"<skill>: <what> — <why>"`, e.g. `"update-flag-targeting: ramp new-checkout to 25% in staging — FME-123"`. Exception: deletes take no body, so no comment is sent; record the reason in the plan/summary instead.
+- If a flag is killed, update approved targeting while it remains killed, read it back, and restore only after explicit approval of the resulting audience. Never restore stale targeting first. Changes to the served `defaultTreatment` or its configuration can affect killed traffic immediately; disclose and approve that impact separately. If the update/readback cannot be completed, stop rather than activate stale targeting. Pipeline resume requires an agreed manual readback/approval checkpoint when no native verifier exists.
+- Re-read immediately before a dependent write; if state changed since approval, present a revised plan. Authoring a future pipeline is not proof of execution-time archive readiness.
+- Add an audit comment (and title where supported) on every write. Use the format `"<skill>: <what> — <why>"`, e.g. `"update-flag-targeting: ramp new-checkout to 25% in staging — FME-123"`. Only send audit fields the operation supports; otherwise record the reason in the plan/summary. Deletes take no body. For CLI file-body operations, include supported comment/title fields inside the approved file, not separate flags.
 - **Errors:**
-  - 400: fix the field the message names and retry once (see [schema-validation-loop.md](../schema-validation-loop.md)).
+  - 400: check for a persisted/partially applied resource, fix only the named field, then show and reconfirm the revised payload before one retry (see [schema-validation-loop.md](../schema-validation-loop.md)).
   - 404: re-check the identifiers. Never create something to fill the gap.
-  - 409 or a governance/approval response: report it as-is and stop. Never retry around it, never try another route, and never delete to work around a blocked archive.
+  - Governance/approval denial (including 409): report it and stop. Never change transport or delete a resource to bypass it. A confirmed duplicate-name/definition conflict follows the skill's specific retry guidance only after a newly approved plan; it is not blanket permission to retry.
 
 ## 5. Verify and restate
 

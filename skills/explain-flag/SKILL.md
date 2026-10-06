@@ -11,7 +11,7 @@ description: >-
   explain this flag, how is X configured, is X on in prod, what's targeted for X.
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.3.0
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -39,13 +39,13 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 
 Get `org_id` + `project_id` if not already known. Don't use the deprecated `workspace_id`: the Step 4 definition list is Harness-native only.
 
-**List environments** up front, since Step 4 needs every environment. Keep the full list with each environment's `isProduction`: Step 4 diffs against it for missing definitions, and Step 6 labels production environments ("is X on" questions almost always mean "in production").
+**List environments** up front, since Step 4 needs every environment. Page through every offset until a page returns fewer than requested — one call is not guaranteed to return all environments, and an environment you never fetched is **unseen**, not confirmed **nonexistent**; don't diff Step 4 against a partial list. Keep the full list with each environment's `isProduction`: Step 4 diffs against it for missing definitions, and Step 6 labels production environments ("is X on" questions almost always mean "in production").
 
 ### Step 2: Find the flag, disambiguating if needed
 
 **Stop condition:** if the user hasn't given any identifier at all (no name, key, or tag to search on), ask for one rather than listing every flag in the project as a substitute.
 
-**List flags** for the substring. The name filter is a substring match, so it often returns several candidates (e.g. searching `checkout` also returns `checkout_v2` and `new_checkout`).
+**List flags** for the substring, paging through every offset until a page returns fewer than requested — a candidate on a later page is unseen, not nonexistent, and stopping early can turn a genuine collision into a false single-match. The name filter is a substring match, so it often returns several candidates (e.g. searching `checkout` also returns `checkout_v2` and `new_checkout`).
 
 **If exactly one candidate's `name` is an exact, case-sensitive match to what the user typed, use it without asking** - the other hits are substring noise. It's genuinely ambiguous only when no candidate is exact and several are plausible.
 
@@ -65,7 +65,7 @@ Read `description`, `tags`, `trafficType` (an object - use `.name`, don't print 
 
 **List definitions** for the flag.
 
-For each environment's definition, read `isKilled` (per environment - a flag can be killed in one and live in another), `treatments`, `defaultTreatment` (served when the flag is killed or the traffic isn't allocated), `defaultRule` (buckets served when no targeting rule matches), `rules` (each with `buckets` + a `condition`), `trafficAllocation`, and `impressions.lastImpressionAt` (most recent impression; `null` = never received traffic). If `impressions` is absent, report last impression as unknown, not as unused.
+For each environment's definition, read `isKilled` (per environment - a flag can be killed in one and live in another), `treatments` (including any `keys`/`segments`/`largeSegments`/`ruleBasedSegments` membership nested on individual treatments - these are the individual targets, evaluated before rules), `defaultTreatment` (served when the flag is killed or the traffic isn't allocated), `defaultRule` (buckets served when no targeting rule matches), `rules` (each with `buckets` + a `condition`), `trafficAllocation`, and `impressions.lastImpressionAt` (most recent impression; `null` = never received traffic). If `impressions` is absent, report last impression as unknown, not as unused.
 
 Diff the returned environments against Step 1's full list explicitly. An environment with no definition is "not configured in `<env>`" - a distinct state, not a copy of another environment's config.
 
@@ -90,9 +90,9 @@ Call out every difference explicitly - a flag behaving differently between stagi
 **Rollout status:** <rolloutStatus.name>   **Link:** <openInHarness URL>
 
 ### Per-environment state
-| Environment | Prod? | Killed | Default treatment | Rules | Traffic allocation | Last impression |
-|---|---|---|---|---|---|---|
-| <env> | yes/no | yes/no | <defaultTreatment> (<defaultRule split>) | <n> rule(s) - <one-line summary each> | <trafficAllocation>% | <lastImpressionAt, "never", or "unknown"> |
+| Environment | Prod? | Killed | Default treatment | Individual targets | Rules | Traffic allocation | Last impression |
+|---|---|---|---|---|---|---|---|
+| <env> | yes/no | yes/no | <defaultTreatment> (<defaultRule split>) | <n> key(s)/segment(s) across treatments, or "none" | <n> rule(s) - <one-line summary each> | <trafficAllocation>% | <lastImpressionAt, "never", or "unknown"> |
 
 ### Notable
 <any cross-environment inconsistency from Step 5, or "consistent across all environments" if none>

@@ -8,7 +8,7 @@ description: >-
   choose/pick a metric, primary metric, guardrail metric, what to monitor.
 metadata:
   author: Harness
-  version: 1.3.0
+  version: 1.3.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -55,7 +55,7 @@ To narrow the metric list, get the flag's traffic type: **Get flag** returns `tr
 
 ### Phase 5: Inventory candidate metrics
 
-**List metrics** with full definitions, narrowed by the traffic type from Phase 4 and a name substring if the hypothesis gives an obvious keyword. Request ~30 rows unless the hypothesis points to a specific name. When the total count exceeds the rows returned, report the inventory as truncated.
+**List metrics** with full definitions, narrowed by the traffic type from Phase 4 and a name substring if the hypothesis gives an obvious keyword. Request ~30 rows unless the hypothesis points to a specific name. When the total count exceeds the rows returned, report the inventory as truncated. Say "no suitable metric in the examined subset," not "no suitable metric exists"; finish pagination (or ask to narrow a costly inventory) before making a project-wide absence claim.
 
 Read `name`, `description`, `aggregation`, `spread`, `format`, `isPositive`, `baseEventTypes[].eventTypeId` for each. Judge candidates against [What makes a good metric](../../references/fme/metric-design.md#what-makes-a-good-metric), not health alone.
 
@@ -104,7 +104,7 @@ Flag every at-risk metric explicitly rather than silently omitting it — the us
 
 ## Performance Notes
 
-- **List metrics** once per session, not once per candidate.
+- Reuse one metric inventory per scope/session, not one per candidate; an inventory may require multiple pages.
 - Health-check (Phase 6) every metric you're about to recommend, but skip it for metrics you're explicitly ruling out.
 - Don't **Get experiment** per treatment — once per experiment is enough (Phase 3).
 - Don't use substring list to check event health; use **Get event type** (exact) for a definitive 200/404 signal.
@@ -114,5 +114,5 @@ Flag every at-risk metric explicitly rather than silently omitting it — the us
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Experiment doesn't exist yet | Phase 3 fails with 404 | Skip Phase 3, tell the user you're recommending from inventory and hypothesis alone, proceed |
-| No metrics survive health check | All `baseEventTypes` return 404 | Say so directly; recommend `/create-metric` and `/instrument-metric` — don't propose an at-risk metric as a stopgap |
+| No metrics survive health check | Referenced events are not visible in the current scope/window | Confirm scope, exact names, traffic types, and recent activity first. Idle events do not imply missing instrumentation or justify duplicate metrics. Route to `/instrument-metric` only for a confirmed gap/investigation; report candidates as at-risk, not decision-ready |
 | User proposes >5 metrics for a rollout | Large guardrail set increases false-positive rollback risk | Push back — ask which 2-3 matter most |

@@ -65,8 +65,8 @@ Environments have an `isProduction` field. Treat any production environment as h
 ## Segments
 
 - Types: `STANDARD` (key list), `LARGE` (key list at a larger scale), `RULE_BASED` (membership from rules, no key list). Most operations need segment type, and the type can't be changed after creation.
-- Segment metadata is project-wide. Per-environment segment definitions hold the keys, managed with list/add/remove key operations. A segment does nothing in an environment until it has a definition there.
-- Flags reference segments in their rules and targets. Before changing or deleting a segment, scan the definitions that use it, because there's no reverse-lookup API.
+- Harness supports all three segment types. Metadata is project-wide; definitions/membership are environment-specific and must follow the selected type's model: STANDARD key operations, LARGE asynchronous bulk upload/drain, or RULE_BASED conditions/matchers/exclusions. The audited native tool routes do not expose every type-specific operation; consult [segment type capabilities](tool-map.md#segment-type-capabilities), discover installed support, and offer the appropriate administration workflow if needed. A tool gap is not lack of product support; never substitute another type's route or silently change scope contracts.
+- Flags reference segments in rule matchers and treatment-level `segments`, `largeSegments`, and `ruleBasedSegments`. Before changing/deleting a segment, finish all relevant flag/definition pages and scan both locations. Incomplete scans cannot establish that a segment is unused.
 
 ## Definition state checklist
 
@@ -76,7 +76,7 @@ Per-environment fields to read and describe:
 - `treatments`: available treatment variants
 - `defaultRule`: bucketing for traffic not matched by any targeting rule
 - `rules`: top-to-bottom targeting rules (condition + buckets)
-- Individual targets: keys/segments assigned specific treatments
+- Individual targets: `treatments[].keys`, `segments`, `largeSegments`, `ruleBasedSegments` (not a generic top-level `targets` array); environment copying must preserve destination memberships unless changes are explicitly approved
 - `trafficAllocation` (%): limits exposure; outside → `defaultTreatment`
 - `baselineTreatment`: experiment baseline (not related to `control`)
 - `impressions.lastImpressionAt` (ISO-8601, null = never, absent = unknown): last SDK evaluation

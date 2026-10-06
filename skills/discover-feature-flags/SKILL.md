@@ -15,7 +15,7 @@ description: >-
   removal (cleanup-feature-flags).
 metadata:
   author: Harness
-  version: 1.1.0
+  version: 1.2.0
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -33,7 +33,7 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 |-----------|-----|-----|
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
 | List rollout statuses | `harness_list` · `fme_rollout_status` · `compact: false` | `harness list rollout_status --json` |
-| List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name?, tags?, rollout_status_id?, offset? }` · `compact: false` | `harness list feature_flag --search <name> --tags <tag> --rollout-status-id <id> --json` |
+| List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name?, tags?, rollout_status_id?, offset? }` · `compact: false` | `harness list feature_flag --search <name> --status <ACTIVE\|ARCHIVED> --json` (CLI has no `--tags`/`--rollout-status-id`; filter the full JSON client-side — MCP's `tags`/`rollout_status_id` filters are server-side) |
 | Get flag | `harness_get` · `fme_feature_flag` · `params.feature_flag_name` | `harness get feature_flag <name> --json` |
 | List definitions | `harness_list` · `fme_feature_flag_definition` · `params.feature_flag_name` · `filters: { offset?, limit? }` · `compact: false` | `harness list feature_flag:definition <name> --json` |
 | List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, status: ["ACTIVE", "PAUSED"] }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <name> --status ACTIVE --json`, then again with `--status PAUSED` |
@@ -72,9 +72,9 @@ Ask only for missing items relevant to the user's goal:
 
 ### Phase 4: List flags
 
-**List flags**, filtering by name (substring), tags, rollout status ID, and pagination offset. Apply additional client-side filtering for status (ACTIVE / ARCHIVED), trafficType, and owners.
+**List flags**, filtering by name (substring) and, on MCP, tags and rollout status ID server-side (MCP `filters.tags`/`filters.rollout_status_id`). On CLI, these two have no flag equivalent (CLI only supports `--search` and `--status`) — fetch the full inventory with `--json` and filter tags/rollout-status client-side instead of fabricating unsupported flags. Apply additional client-side filtering for status (ACTIVE / ARCHIVED), trafficType, and owners.
 
-Stop pagination when a page returns fewer than requested. Report truncation: "First 50 of at least N flags". See [tool-map.md](../../references/fme/tool-map.md#pagination).
+Page through every offset until a page returns fewer than requested — a single call is not guaranteed to return the whole project. Report truncation only if you stopped early by choice: "First 50 of at least N flags". See [tool-map.md](../../references/fme/tool-map.md#pagination).
 
 **Inventory mode stops here.** Skip to Phase 6.
 

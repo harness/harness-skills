@@ -13,7 +13,7 @@ description: >-
   delete flag, archive readiness, is flag safe to archive, flag lifecycle.
 metadata:
   author: Harness
-  version: 1.1.0
+  version: 1.2.0
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -30,9 +30,9 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 | Operation | MCP | CLI |
 |-----------|-----|-----|
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
-| List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name?, tags?, rollout_status_id?, offset? }` · `compact: false` | `harness list feature_flag --json` |
+| List flags | `harness_list` · `fme_feature_flag` · `size: 50` · `filters: { name?, tags?, rollout_status_id?, offset? }` · `compact: false` | `harness list feature_flag --search <name> --status <ACTIVE\|ARCHIVED> --json` (CLI has no `--tags`/`--rollout-status-id`; filter client-side on the full JSON, which MCP's `tags`/`rollout_status_id` filters do server-side) |
 | Get flag | `harness_get` · `fme_feature_flag` · `params.feature_flag_name` | `harness get feature_flag <name> --json` |
-| Update flag | `harness_update` · `fme_feature_flag` · `params.feature_flag_name` · `body: { description?, tags?, owners?, rolloutStatus? }` | `harness update feature_flag <name> --set description="..." --set rolloutStatus.id=<uuid>` |
+| Update flag | `harness_update` · `fme_feature_flag` · `params.feature_flag_name` · `body: { description?, tags?, owners?, rolloutStatus? }` | `harness update feature_flag <name> --set description="..." --set rollout_status=<uuid>` (CLI field id is `rollout_status`; `--set rolloutStatus.id=` doesn't match the spec's mutable field id and fails) |
 | List definitions | `harness_list` · `fme_feature_flag_definition` · `params.feature_flag_name` · `filters: { offset?, limit? }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
 | Get definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag> --env <env-id> --json` |
 | Delete definition | `harness_delete` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness delete feature_flag:definition <flag> --env <env-id>` |
@@ -104,7 +104,7 @@ Read the flag and all definitions first (Phase 3). Targeting resumes as it was w
 
 ### Phase 8: Delete definition (one environment)
 
-**List environments** to check isProduction. Explain: "Deleting the `<flag>` definition in `<env>` means SDKs in that environment will get `control`." Confirm per [write-safety.md](../../references/fme/write-safety.md).
+**List environments** to check isProduction. **List experiments** for the flag (ACTIVE and PAUSED) scoped to this environment: an experiment relying on this definition's targeting is silently invalidated by the delete, so treat ACTIVE the same as the [experiment check](../../references/fme/write-safety.md#experiment-check) (explicit acknowledgement) and PAUSED as a warning. Read the current definition and report its live `defaultTreatment` and whether it's killed, so the confirmation names what's being removed, not just the environment. Explain: "Deleting the `<flag>` definition in `<env>` (currently serving `<defaultTreatment>`) means SDKs in that environment will get `control`." Confirm per [write-safety.md](../../references/fme/write-safety.md).
 
 **Delete definition.** **Verify** with a 404 on get. Expect 404. If still present, report failure.
 

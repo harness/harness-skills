@@ -6,12 +6,12 @@ Common FME rollout use cases. Scenarios can be combined (e.g., R3 inside each en
 
 | Scenario | Use when | Primary steps |
 |----------|----------|---------------|
-| **R1** Progressive ramp | Increase traffic in one environment | `FmeFlagRestore` → `FmeFlagDefaultAllocation` (5→25→50→100) |
-| **R2** Multi-environment promotion | Ramp across dev/qa/staging/prod with different schedules per env | ONE STAGE PER ENVIRONMENT, each with restore + allocation + optional gates |
-| **R3** Beta cohort first | Test users first, then ramp to everyone | `FmeFlagAddRemoveIndividualTargets` or `FmeFlagSetTargetingRules` → then default allocation |
+| **R1** Progressive ramp | Increase traffic in one environment | Initial allocation while killed → manual readback/approval → restore → soak/later allocations (5→25→50→100) |
+| **R2** Multi-environment promotion | Ramp across dev/qa/staging/prod with different schedules per env | ONE STAGE PER ENVIRONMENT: initial allocation → manual readback/approval → restore → soak/ramps |
+| **R3** Beta cohort first | Test users first, then ramp to everyone | 0% default + approved beta targeting → full-audience readback/approval → restore → soak/ramps |
 | **R4** Config promotion | Copy validated staging config to prod | `FmeFlagDefinitionInstructions` or `FmeFlagPatchDefinition` after reading source env |
 | **L1** Flag bootstrap | Create flag + treatments + initial targeting | `FmeFlagCreate` → `FmeFlagSetTreatments` per env → kill/restore/targets per env → flagsets |
-| **L2** Flag retirement | Archive a fully-launched flag | Verify 100% → `FmeFlagUpdate` (rolloutStatus) → remove from flagsets → `FmeFlagArchive` |
+| **L2** Flag retirement | Prepare a fully-launched flag for retirement (preparatory only, does not archive) | Verify 100% at authoring time → `FmeFlagUpdate` (rolloutStatus) → remove from flagsets → hand off to `/manage-flag-lifecycle` for archive |
 | **L3** Segment sync from external system | Import user keys from external system to segment | `ShellScript` fetches keys → `FmeSegmentAddRemoveTargets` with expression |
 | **L4** Test-user targeting for E2E tests | Add test keys, run tests, clean up on success or failure | `FmeFlagAddRemoveIndividualTargets` add → `ShellScript` run tests → remove keys with cleanup step |
 
@@ -20,11 +20,13 @@ Common FME rollout use cases. Scenarios can be combined (e.g., R3 inside each en
 **Use when:** Ramping a flag within a single environment (e.g., staging 5% → 25% → 50% → 100%).
 
 **Pattern:**
-1. `FmeFlagRestore` (if flag is killed)
-2. `FmeFlagDefaultAllocation` with first percentage (e.g., 5% on, 95% off)
-3. Optional gate: `HarnessApproval`, `Wait`, or `FmeMetricCheck`
-4. `FmeFlagDefaultAllocation` with next percentage (e.g., 25% on, 75% off)
-5. Repeat until 100%
+1. `FmeFlagDefaultAllocation` with the first percentage (e.g., 5% on, 95% off) — apply this **while the flag is still killed** if it starts killed, so the write lands before any traffic is exposed
+2. Required, agreed `HarnessApproval`: approver manually reads the complete target definition via Harness UI or `/explain-flag`, confirms it remains killed and matches the approved audience (default rule, exposure, rules, keys/segments, default treatment/config), and re-checks experiments. Reject mismatches; if no readback/approver is available, stop and hand off.
+3. `FmeFlagRestore` only after that approval; omit restore/checkpoint when authoring for an already-active flag after explicitly approving the live changes.
+4. Optional soak/gate: `HarnessApproval`, `Wait`, or `FmeMetricCheck`
+5. `FmeFlagDefaultAllocation` with the next percentage; repeat until 100%.
+
+**Why this order matters:** a killed flag's default rule can still hold an old value (e.g. 100% from before it was killed). Restoring before the new allocation is written briefly re-exposes that old value to real traffic — and if the following allocation step then fails, the flag is left live at the stale value instead of safely killed.
 
 **Stage structure:** One `Custom` stage per percentage, OR one stage with sequential steps if no gates between percentages.
 
@@ -36,7 +38,7 @@ Common FME rollout use cases. Scenarios can be combined (e.g., R3 inside each en
 
 **THE HEADLINE SCENARIO.** A reusable pipeline where the flag name is a pipeline input (`<+input>`) and the pipeline ramps the flag across multiple environments in order. Each environment can have its own: ramp schedule (non-prod: straight to 100%; prod: slower such as 1→5→25→50→100), gate before the environment (approval, wait, or none), gate between ramp steps within the environment (approval, wait, metric check, or none).
 
-**Pattern:** ONE STAGE PER ENVIRONMENT (not a matrix), because schedules and gates differ per environment. Per environment: optional gate BEFORE the env (e.g., `HarnessApproval` before prod), `FmeFlagRestore`, `FmeFlagDefaultAllocation` steps per the env's ramp schedule, optional gates BETWEEN ramp steps (e.g., `Wait` 1h after 25%).
+**Pattern:** ONE STAGE PER ENVIRONMENT (not a matrix), because schedules and gates differ per environment. Per environment: optional gate BEFORE the env (e.g., `HarnessApproval` before prod), `FmeFlagDefaultAllocation` for the env's first ramp step (written while still killed, if the env starts killed), required agreed manual full-definition readback/`HarnessApproval` as in R1, `FmeFlagRestore` (after readback approval, never before), remaining `FmeFlagDefaultAllocation` steps per the env's ramp schedule, optional gates BETWEEN ramp steps (e.g., `Wait` 1h after 25%). See R1's "Why this order matters" for the resume-to-stale-value risk this avoids.
 
 **Multiple prod regions:** can be sequential stages, or a `parallel:` stage group if simultaneous rollout is desired.
 
@@ -61,11 +63,12 @@ Common FME rollout use cases. Scenarios can be combined (e.g., R3 inside each en
 **Use when:** Targeting a subset of users (beta cohort) before ramping the default allocation.
 
 **Pattern:**
-1. `FmeFlagRestore`
+1. Read the existing full audience first. Resolve any non-beta rules/targets with explicit approval; do not blindly clear them. Set the test treatment's default allocation to 0% while killed—this alone does not prevent higher-priority rules/targets from serving non-beta users.
 2. `FmeFlagAddRemoveIndividualTargets` to add beta user keys, OR `FmeFlagSetTargetingRules` to set a segment rule
-3. Optional soak/gate (`Wait`, `FmeMetricCheck`, `HarnessApproval`)
-4. `FmeFlagDefaultAllocation` to ramp the default allocation (5 → 25 → 50 → 100)
-5. At GA (100%): `FmeFlagSetIndividualTargets` with empty list to clear individual targets, OR `FmeFlagSetTargetingRules` with empty list to clear rules
+3. Required agreed manual readback/`HarnessApproval`: verify the entire audience is beta-only, all relevant rules/keys/segment memberships are approved, the flag remains killed and default/configuration and experiment checks match the plan. Reject unexpected targeting or stop and hand off.
+4. `FmeFlagRestore` only after that approval, then optional soak/gate (`Wait`, `FmeMetricCheck`, `HarnessApproval`).
+5. `FmeFlagDefaultAllocation` to ramp the default allocation (5 → 25 → 50 → 100)
+6. At GA (100%): `FmeFlagSetIndividualTargets` with empty list to clear individual targets, OR `FmeFlagSetTargetingRules` with empty list to clear rules
 
 **Evaluation order:** Individual targets and rules take precedence over the default allocation, so beta users see the test treatment even when the default allocation is 0%.
 
@@ -94,6 +97,8 @@ Common FME rollout use cases. Scenarios can be combined (e.g., R3 inside each en
 
 **Use when:** Creating a new flag from scratch with treatments, initial targeting, and environment-specific defaults.
 
+**Discovery is inverted here:** do not require the flag to already exist. **Get flag** should come back empty — that confirms the name is free, it is not an error. Instead confirm prerequisites that creation actually needs: the project/account scope and that the requested traffic type exists. Do not call **List definitions** (there are no definitions yet).
+
 **Pattern:**
 1. `FmeFlagCreate` with flag name and treatments (creates definitions with trafficAllocation 100% and defaultRule 100% on `defaultTreatment`)
 2. Per environment: `FmeFlagSetTreatments` if treatments differ per env (requires `environment` + `baselineTreatment`, items `{treatment,description}`)
@@ -103,17 +108,19 @@ Common FME rollout use cases. Scenarios can be combined (e.g., R3 inside each en
 
 **Inputs to gather:** Flag name, treatment names (at least 2), default treatment, baseline treatment (for metrics), per environment: kill or restore, default allocation, individual targets, flagset name (if attaching to a flagset).
 
-## L2: Flag Retirement
+## L2: Flag Retirement (Preparatory Only)
 
-**Use when:** A flag is at 100% in all critical environments and ready to be archived.
+**Use when:** A flag is at 100% in all critical environments at authoring time and the user wants to start winding it down.
+
+**This pipeline is intentionally preparatory and does NOT archive the flag.** 100% rollout at the time the pipeline is authored is not the same as archive readiness at the time it runs: the pipeline may sit unused for weeks, during which the flag could go stale, gain dependents (other flags' `IN_SPLIT` rules), or pick up a new active/paused experiment. This skill has no steps that re-verify those conditions at execution time, so it does not generate an `FmeFlagArchive` step at all.
 
 **Pattern:**
 1. **Verify 100%** before generating the pipeline: **List definitions** for the flag. Per environment: confirm `isKilled` is false, `defaultRule` allocation is 100% on the winning treatment, `trafficAllocation` is 100, `rules` is empty, individual targets empty. If any environment is not at 100%, STOP and tell the user which environments need to reach 100% first.
 2. `FmeFlagUpdate` with `rolloutStatus` to mark the flag as "Completed" or "Deprecated" (discover valid values via **List rollout statuses**)
 3. `FmeFlagAddRemoveFlagsets` with `removeFlagsets` to detach from any flagsets
-4. `FmeFlagArchive` to archive the flag (archiving makes SDKs return `control` in every environment; remove the flag from code first with `/cleanup-feature-flags`)
+4. **Stop here.** Tell the user to remove the flag from code first with `/cleanup-feature-flags`, then run `/manage-flag-lifecycle` to archive — that skill re-checks staleness, dependents, and active/paused experiments against current state before archiving (archiving makes SDKs return `control` in every environment).
 
-**DO NOT generate this pipeline if any environment is not at 100%.** The user must first roll out to 100% everywhere (use R1 or R2), then run the retirement pipeline.
+**DO NOT generate this pipeline if any environment is not at 100%.** The user must first roll out to 100% everywhere (use R1 or R2), then run the retirement-preparation pipeline. **DO NOT generate an `FmeFlagArchive` step in this pipeline under any circumstances** — archive readiness must be checked at execution time, not baked into a long-lived pipeline from authoring-time state.
 
 **Inputs to gather:** Flag name, confirm all critical environments are at 100% (verify first), rollout status value, flagsets to remove from (if any).
 
@@ -156,7 +163,7 @@ Common FME rollout use cases. Scenarios can be combined (e.g., R3 inside each en
 **Example: L1 + R2 + L2**
 - L1: Bootstrap the flag
 - R2: Multi-environment promotion to 100%
-- L2: Retire and archive the flag
+- L2: Prepare for retirement (status update + flagset detach); archive separately via `/manage-flag-lifecycle` after code removal
 
 ## Not Covered (Out of Scope)
 

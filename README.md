@@ -1,6 +1,6 @@
 # Harness Skills
 
-Claude Code skills for the [Harness.io](https://harness.io) CI/CD platform. Generate pipeline YAML, manage resources, debug failures, analyze costs, and more from natural language.
+Model-agnostic AI coding skills for the [Harness.io](https://harness.io) CI/CD platform. Generate pipeline YAML, manage resources, debug failures, analyze costs, and more from natural language.
 
 This repository is designed as a workflow system, not just a folder of prompts. The top-level instructions (`AGENTS.md`, with `CLAUDE.md` importing it for Claude Code, plus `.github/copilot-instructions.md`) establish shared behavior, while individual skills specialize in creation, debugging, governance, and reporting tasks.
 
@@ -9,6 +9,15 @@ This repository is designed as a workflow system, not just a folder of prompts. 
 - [Harness MCP v2 Server](https://github.com/harness/mcp-server) - required for MCP-powered skills. Most skills in this repo depend on it for Harness API access.
 
 ## Setup
+
+### FME with CLI or MCP (any coding agent)
+
+1. Keep the repository's `skills/`, shared `references/`, and `templates/` available together. Load `AGENTS.md` and the selected skill; referencing just its SKILL.md without the linked playbooks is insufficient.
+2. Choose the transport available to your agent: a preconfigured Harness CLI with shell access, or the [Harness MCP server](https://github.com/harness/mcp-server). Confirm the account, organization, project and intended environments without exposing credentials. CLI-only FME sessions do not require MCP; authentication should use the tool's supported secure setup outside the prompt.
+3. Read the [FME tool map](references/fme/tool-map.md#transport-preflight-and-handoffs) and check capabilities for the installed version. It documents unsupported operations; CLI/MCP support is not identical. Segment key operations require MCP; some experiment updates also require MCP.
+4. Use the skill file as instructions even if the host has no slash-skill invocation. Load linked skills explicitly during handoffs. Code-editing workflows also need the application repository and its test tools; live verification additionally needs an authorized running application.
+
+The editor-specific MCP examples below apply to MCP-powered sessions, not as a prerequisite for every FME workflow.
 
 ### Claude Code
 
@@ -150,7 +159,7 @@ Create a CI pipeline for my Python service
 The skills in this repo are plain Markdown files with YAML frontmatter. They work with any AI coding tool that supports:
 
 1. **System instructions** - Use `AGENTS.md` as project-level context (`CLAUDE.md` imports it for Claude Code).
-2. **MCP servers** - Connect the [Harness MCP v2 server](https://github.com/harness/mcp-server) for API access.
+2. **Resource access** - Connect the [Harness MCP server](https://github.com/harness/mcp-server), or use the Harness CLI for supported FME operations.
 3. **File context** - Reference individual `skills/*/SKILL.md` files in prompts.
 
 ## Operating Model
@@ -159,7 +168,7 @@ The best Harness skills follow the same control flow even when they target diffe
 
 1. **Establish scope first** - confirm account/org/project context before listing, creating, updating, or deleting resources.
 2. **Verify dependencies before generating dependents** - do not reference connectors, secrets, environments, infrastructure, or templates that have not been confirmed to exist.
-3. **Discover schema before writing payloads** - use `harness_describe` and API validation feedback instead of guessing field names or payload shape.
+3. **Discover schema before writing payloads** - use MCP `harness_describe` or the installed CLI command specification and documented payload schema; stop when required capabilities are unavailable rather than guessing fields.
 
 These repo-level playbooks live in:
 
@@ -228,7 +237,7 @@ Typical sequence:
 |-------|-------------|
 | [`/dbops-changeset`](skills/dbops-changeset/SKILL.md) | Generate, refine, review, and execute Liquibase changesets with Harness DBOPS |
 
-### Access Control & Feature Flags (MCP)
+### Access Control & Feature Flags
 
 | Skill | Description |
 |-------|-------------|
@@ -239,10 +248,11 @@ Typical sequence:
 | [`/create-feature-flag`](skills/create-feature-flag/SKILL.md) | Create an FME flag that follows project conventions, with safe-default definitions |
 | [`/update-flag-targeting`](skills/update-flag-targeting/SKILL.md) | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
 | [`/manage-flag-lifecycle`](skills/manage-flag-lifecycle/SKILL.md) | Flag metadata, archive readiness, archive/unarchive, and delete |
-| [`/manage-segments`](skills/manage-segments/SKILL.md) | FME segments (STANDARD, LARGE, RULE_BASED) and per-environment keys |
+| [`/manage-segments`](skills/manage-segments/SKILL.md) | STANDARD, LARGE and RULE_BASED segment workflows; type-aware membership and explicit CLI/MCP capabilities |
 | [`/cleanup-feature-flags`](skills/cleanup-feature-flags/SKILL.md) | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
 | [`/fme-pipeline`](skills/fme-pipeline/SKILL.md) | Generate FME pipelines for rollout scenarios (progressive ramp, multi-env promotion, beta cohorts, config promotion, bootstrap, retirement, segment sync, test targeting) with gates and lifecycle automation |
-| [`/manage-experiments`](skills/manage-experiments/SKILL.md) | Design, create, update, and delete FME experiments; delegates metric selection to choose-metric |
+| [`/create-experiment`](skills/create-experiment/SKILL.md) | Creation-only entry point to the manage-experiments workflow |
+| [`/manage-experiments`](skills/manage-experiments/SKILL.md) | Feature-flag experiment design/lifecycle; delegates metrics and states CLI update limitations |
 | [`/review-experiment-results`](skills/review-experiment-results/SKILL.md) | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
 | [`/choose-metric`](skills/choose-metric/SKILL.md) | Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist |
 | [`/create-metric`](skills/create-metric/SKILL.md) | Design and create an FME metric: intent-to-config guidance, code-based suggestions, traffic type, events, cap, owners |

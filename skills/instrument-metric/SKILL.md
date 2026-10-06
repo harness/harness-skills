@@ -7,7 +7,7 @@ description: >-
   wire up tracking, verify the event arrives.
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.2.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -65,6 +65,8 @@ Key = the same key `getTreatment` uses (attribution fact). Value units must matc
 Add or update focused tests using the repo's existing test framework: exact event name, evaluation subject key, traffic type, units/value source/properties, once on the intended outcome, and no success event on failure. Run them before asking for a live trigger. A mocked `track()` assertion verifies code behavior, **not ingestion**.
 
 ### Phase 7: Trigger and verify
+
+First confirm the running application contains the edited revision and is connected to the intended environment; record the revision/build and environment as non-secret metadata. If it needs a restart/build/deployment, ask the user to perform or authorize that step—do not deploy automatically. Without it, stop at "code tested; live delivery unverified." Agree on an authorized integration test or runtime telemetry source that can establish actual delivery; the event inventory alone cannot.
 
 Ask the user to trigger the action (or state clearly that you cannot execute their running application yourself), then verify: **Get event type** using the event name exactly. The response has only `id` and `trafficTypes` — check the returned `trafficTypes` includes the metric's traffic type; a hit under the wrong traffic type doesn't confirm this event. Event types with traffic in the last 30 days (across the whole project and all environments, not "currently flowing" in any narrower sense) return 200; 404 = absent or idle > 30 days.
 

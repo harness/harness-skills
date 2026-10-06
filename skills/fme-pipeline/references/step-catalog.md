@@ -19,7 +19,7 @@ Default to **`type: Custom`** stages for FME rollouts. The schema allows FME ste
 | `FmeFlagDelete` | Delete flag | Avoid in rollout pipelines — prefer kill + archive |
 | `FmeFlagArchive` | Archive launched flag | Post-launch cleanup |
 | `FmeFlagKill` | Serve `defaultTreatment` to everyone in an environment | Failure strategy or explicit rollback stage |
-| `FmeFlagRestore` | Un-kill: targeting resumes as configured | First step when enabling traffic |
+| `FmeFlagRestore` | Un-kill: targeting resumes as configured | After approved initial targeting is written and manually read back/approved; before soak/later increases |
 | `FmeFlagDefaultAllocation` | Set default-rule percentage split across treatments | Progressive rollout (5 → 25 → 50 → 100) and full launch |
 | `FmeFlagLimitExposure` | Set flag-wide `trafficAllocation` exposure cap (0–100) | Limit exposure; traffic outside the cap gets `defaultTreatment` |
 | `FmeFlagSetTreatments` | Define treatment list + defaults | When treatments are not yet defined in the env |
@@ -53,8 +53,10 @@ When sequencing steps, remember how targeting is evaluated:
 **Implications:**
 
 - `FmeFlagRestore` alone does not change percentages — pair with `FmeFlagDefaultAllocation` or `FmeFlagLimitExposure`.
+- **Order matters when un-killing:** write approved initial allocation/targeting while killed → manual full-definition readback and `HarnessApproval` → `FmeFlagRestore` → soak/later ramp increases. Never restore stale targeting first, or wait until the final percentage to restore. A change to the served `defaultTreatment`/configuration affects killed traffic immediately and needs explicit approval.
 - Individual targets bypass percentage rollout — remove or narrow them before a full launch.
 - Downstream env gating: keep prod **killed** (`FmeFlagKill`) until upstream env is verified at 100%.
+- **No native readback step exists for these mutations.** Use an agreed `HarnessApproval` checkpoint after the writes: the approver reads the complete target definition in Harness UI or `/explain-flag` and rejects mismatches before restore. If this cannot be done, stop and hand off; API acceptance is not verification. This manual configuration check is distinct from SDK propagation or a later `FmeMetricCheck`.
 
 ## Out of scope
 

@@ -1,11 +1,20 @@
-# L2: Flag Retirement
+# L2: Flag Retirement (PREPARATORY ONLY)
 #
 # Full pipeline blueprint for the fme-pipeline skill.
 # See ../blueprints.md and ../scenarios.md for context.
+#
+# INTENTIONAL RESTRICTION: this pipeline does NOT include an FmeFlagArchive
+# step. 100% rollout verified when the pipeline was authored is not the same
+# as archive readiness when it eventually runs -- staleness, dependents, and
+# active/paused experiments can change in between, and this skill has no
+# steps that re-check those conditions at execution time. After this
+# pipeline runs, remove the flag from code with /cleanup-feature-flags, then
+# archive with /manage-flag-lifecycle, which re-verifies readiness against
+# current state.
 
 pipeline:
-  identifier: flag_retirement
-  name: Retire and Archive Flag
+  identifier: flag_retirement_prep
+  name: Prepare Flag for Retirement
   orgIdentifier: default
   projectIdentifier: my_project
   tags: {}
@@ -52,22 +61,9 @@ pipeline:
                 - AllErrors
               action:
                 type: MarkAsFailure
-    - stage:
-        identifier: archive_flag
-        name: Archive Flag
-        type: Custom
-        spec:
-          execution:
-            steps:
-              - step:
-                  identifier: archive_step
-                  name: Archive Feature Flag
-                  type: FmeFlagArchive
-                  spec:
-                    name: old_checkout_flow
-        failureStrategies:
-          - onFailure:
-              errors:
-                - AllErrors
-              action:
-                type: MarkAsFailure
+
+# No FmeFlagArchive stage here by design -- see the header note above.
+# Next steps after this pipeline succeeds:
+#   1. /cleanup-feature-flags to remove old_checkout_flow from application code
+#   2. /manage-flag-lifecycle to archive, after it re-checks staleness,
+#      dependents, and active/paused experiments against current state

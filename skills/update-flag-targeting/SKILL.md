@@ -12,7 +12,7 @@ description: >-
   copy config.
 metadata:
   author: Harness
-  version: 1.1.0
+  version: 1.2.0
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -34,11 +34,12 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 | List flag definitions | `harness_list` · `fme_feature_flag_definition` · `params: { feature_flag_name }` · `compact: false` | `harness list feature_flag:definition <flag> --json` |
 | Get definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag> --env <env-id> --json` |
 | Get parent flag definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name: <parent>, environment_id }` | `harness get feature_flag:definition <parent> --env <env-id> --json` |
-| Update definition | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { <fields>, comment, title? }` | `harness update feature_flag:definition <flag> --env <env-id> -f patch.json --comment <text>` |
+| Update definition | `harness_update` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { <fields>, comment, title? }` | `harness update feature_flag:definition <flag> --env <env-id> -f patch.json` (include `comment`/supported `title` in the file) |
 | Create definition | `harness_create` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments, defaultTreatment, defaultRule, rules?, baselineTreatment?, trafficAllocation?, comment? }` | `harness create feature_flag:definition <flag> --env <env-id> -f def.json` |
 | Kill flag | `harness_execute` · `fme_feature_flag` · `action="kill"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:kill <flag> --env <env-id> --comment <text>` |
 | Restore flag | `harness_execute` · `fme_feature_flag` · `action="restore"` · `params: { feature_flag_name, environment_id }` · `body: { comment?, title? }?` | `harness execute feature_flag:restore <flag> --env <env-id> --comment <text>` |
-| Get segment definition | `harness_get` · `fme_segment_definition` · `params: { segment_name, environment_id }` | `harness get segment:definition <segment> --env <env-id> --json` |
+| Get segment metadata (all types) | `harness_get` · `fme_segment` · `params: { segment_name, segment_type }` | `harness get segment <segment> --segment-type <type> --json` |
+| Get STANDARD segment definition | `harness_get` · `fme_segment_definition` · `params: { segment_name, environment_id }` | `harness get segment:definition <segment> --env <env-id> --json` |
 | List experiments | `harness_list` · `fme_experiment` · `filters: { parent_type: "FEATURE_FLAG", parent_name, environment_id, status: ["ACTIVE", "PAUSED"] }` · `compact: false` | `harness list experiment --parent-type FEATURE_FLAG --parent-name <flag> --env <env-id> --status ACTIVE --json`, then again with `--status PAUSED` |
 
 ## Instructions
@@ -77,11 +78,11 @@ Run these checks before composing the plan. Stop at the first failure and report
 | Check | How | What to report |
 |-------|-----|----------------|
 | **Experiment** | **List experiments** for the flag (and environment), filtering to ACTIVE and PAUSED. Apply the [experiment check](../../references/fme/write-safety.md#experiment-check) protocol | ACTIVE: explicit acknowledgement required; PAUSED: warn + acknowledgement; COMPLETED: ignore |
-| **Segment matcher** | For each segment in a new or updated rule, **Get segment definition** to verify it exists in the target env | "Segment `<segment>` has no definition in `<env>`. Create it first or remove the matcher." |
+| **Segment reference** | For every new/changed rule matcher or treatment membership, resolve STANDARD/LARGE/RULE_BASED metadata and verify the target-env definition through [that type's workflow](../manage-segments/SKILL.md#phase-3-execute-operation). The listed definition endpoint is STANDARD-only | Distinguish confirmed missing from unverified because the current tool lacks the operation. Stop the dependent write until verified; never use a STANDARD lookup for LARGE/RULE_BASED or silently switch to legacy scope |
 | **Flag dependency (IN_SPLIT)** | For each `depends: {splitName, treatment}` in a new or updated rule, **Get parent flag definition** and verify the treatment exists in `treatments` | "Flag `<parent>` has no definition (or treatment `<treatment>` doesn't exist) in `<env>`." |
 | **Treatment reference** | Every treatment in rules, defaultRule, individual targets, and `defaultTreatment` must exist in the `treatments` array | "Treatment `<treatment>` not found. Add it to `treatments` first." |
 | **Bucket sum** | The `size` fields across all `{treatment, size}` buckets in `defaultRule` or a rule must sum to 100 | "Bucket sizes sum to `<sum>`, not 100. Fix the split." |
-| **Killed flag** | If `isKilled` is true, a targeting update doesn't un-kill it. Offer restore as a separate step. | "This flag is killed in `<env>`. All traffic gets `<defaultTreatment>` regardless of targeting. Restore first?" |
+| **Killed flag** | Write/read back approved targeting while killed, then separately confirm restore and re-run the [experiment check](../../references/fme/write-safety.md#experiment-check). Inspect the entire patch first: changing `defaultTreatment`, removing/renaming it, or changing its configuration affects killed traffic immediately | Name the current served treatment/config and any immediate change. Only promise unchanged traffic if that pair remains unchanged; never restore stale targeting first |
 
 ### Phase 5: Plan the change
 
@@ -137,7 +138,7 @@ Summarize per [operation-summary.md](../../templates/operation-summary.md): oper
 |---------|-------|-----|
 | 400: buckets don't sum to 100 | Bucket `size` fields across `{treatment, size}` in `defaultRule` or a rule must sum to 100 | Adjust the sizes to sum to 100 |
 | 400: unknown treatment | A rule, defaultRule, or defaultTreatment references a treatment not in the `treatments` array | Add the treatment to `treatments` first, or fix the reference |
-| Update ignored, flag still behaves the same | The flag is killed in that environment. Targeting updates don't un-kill it. | Restore first: **Restore flag** |
+| Targeting changed but traffic is unchanged | The flag is killed | Verify the approved targeting while it remains killed, re-check experiments, then obtain explicit approval before restoring. Never restore stale targeting first |
 | 409 governance/approval | OPA policy blocked the write or turned it into a pending approval | Report the response as-is. Never retry around it or try another route. |
 | Concurrent edit detected | Another user or process modified the definition between your read and write | Stop and re-plan from the new state |
 

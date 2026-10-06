@@ -2,6 +2,17 @@
 #
 # Full pipeline blueprint for the fme-pipeline skill.
 # See ../blueprints.md and ../scenarios.md for context.
+#
+# STARTER / RESUME PATH: This blueprint is designed for a flag that starts KILLED.
+# The verify-before-restore checkpoint enforces human readback of the live flag
+# state before FmeFlagRestore re-activates it. If the flag is already active and
+# you are authoring an explicitly approved live targeting change, omit FmeFlagRestore
+# and the verify-before-restore checkpoint; do not auto-kill or add unrequested gates.
+#
+# ORDERING NOTE: the first allocation is set BEFORE FmeFlagRestore. If the
+# flag starts killed, its stale pre-kill default rule could otherwise be
+# briefly (or, on a later step failure, indefinitely) re-exposed by
+# restoring before the new allocation is written.
 
 pipeline:
   identifier: progressive_ramp_staging
@@ -18,13 +29,6 @@ pipeline:
           execution:
             steps:
               - step:
-                  identifier: restore_flag
-                  name: Restore Flag
-                  type: FmeFlagRestore
-                  spec:
-                    flagName: new_checkout_flow
-                    environment: staging
-              - step:
                   identifier: set_25_percent
                   name: Set 25 Percent Allocation
                   type: FmeFlagDefaultAllocation
@@ -36,6 +40,48 @@ pipeline:
                         amount: 25
                       - treatment: "off"
                         amount: 75
+              - step:
+                  identifier: verify_before_restore_staging
+                  name: Verify State Before Restore - Staging
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: >-
+                      HUMAN READBACK REQUIRED — do not approve without completing
+                      all checks below.
+
+                      1. Open this flag in the Harness UI or run /explain-flag
+                      for environment: staging. Confirm the flag still shows
+                      KILLED (isKilled = true), with the approved defaultTreatment
+                      and its configuration. Check the trafficAllocation exposure
+                      limit separately from the defaultRule treatment split.
+
+                      2. Verify the full targeting state matches the approved
+                      audience exactly: defaultRule split (25% on /
+                      75% off), every individual target key per treatment, every
+                      segment membership per treatment, all rule conditions,
+                      treatment assignments, and treatment configs.
+
+                      3. Re-check any active experiments referencing this flag
+                      and confirm no conflict with the intended restore state.
+
+                      4. Approve ONLY if every check above passes exactly.
+                      Reject if anything does not match — do not silently proceed.
+
+                      This approval is NOT automated SDK verification. A human
+                      must confirm the live flag state before restore proceeds.
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Managers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+              - step:
+                  identifier: restore_flag
+                  name: Restore Flag
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: staging
               - step:
                   identifier: approval_before_50
                   name: Approval Before 50 Percent

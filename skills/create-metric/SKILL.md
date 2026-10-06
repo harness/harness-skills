@@ -9,7 +9,7 @@ description: >-
   suggest metrics.
 metadata:
   author: Harness
-  version: 1.4.0
+  version: 1.4.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -17,7 +17,7 @@ compatibility: Requires the Harness MCP server or the Harness CLI
 
 # Create Metric
 
-Create an FME metric definition, with guidance on what makes a good metric and what to measure. Resolves every reference (traffic type, event type, owners) against real data first instead of guessing IDs. Design guidance lives in [metric-design.md](../../references/fme/metric-design.md). Related: `/manage-experiments` attaches metrics; `/instrument-metric` adds tracking calls.
+Create an FME metric definition, with guidance on what makes a good metric and what to measure. Resolves traffic types and events against real data and asks the user to select an owner instead of guessing IDs. Owner existence is validated by the API on creation/readback; the declared tools do not provide an owner-directory lookup. Design guidance lives in [metric-design.md](../../references/fme/metric-design.md). Related: `/manage-experiments` attaches metrics; `/instrument-metric` adds tracking calls.
 
 For every phase marked **Stop condition**, see [stop-conditions.md](references/stop-conditions.md) before improvising.
 
@@ -49,7 +49,7 @@ What decision does the metric support (experiment primary / guardrail / supporti
 
 **List metrics** with full definitions, narrowed by name substring and traffic type if known — you need `aggregation` and `baseEventTypes` to judge duplicates. Read naming and tag conventions from this list. The backend returns 409 for a duplicate name or duplicate definition (same attribute combination under a different name). Catching this early saves a round trip. Check for [auto-created ` - Split Agents` metrics](../../references/fme/metric-design.md#auto-created-metrics) before creating a latency or error metric. If something close exists, confirm a new metric is actually needed rather than reusing/updating the existing one.
 
-**Stop condition** if the request is vague (e.g. "track checkouts" with no aggregation specified) — see [stop-conditions.md](references/stop-conditions.md).
+**Stop condition** if the request is vague (e.g. "track checkouts" with no aggregation specified) — see [Ambiguous metric intent](references/stop-conditions.md#ambiguous-metric-intent).
 
 ### Phase 4: Resolve `trafficType`
 
@@ -59,7 +59,7 @@ What decision does the metric support (experiment primary / guardrail / supporti
 
 **List event types** narrowed by traffic type and event name if the user named one. The event name filter is a case-insensitive substring match; the traffic type filter accepts an ID or exact name, not a substring. Check pagination before treating a list as complete; use **Get event type** for an agreed exact name and verify the returned `trafficTypes` includes the intended type. Note: RUM/integration events may flow with no `track()` in code.
 
-**Stop condition** if the event isn't in this list, *or* if several events match and none is an exact match for what the user said — a substring search on a word like `purchase` routinely returns a dozen variants, so present the real ones and ask instead of picking the shortest or cleanest-looking name. Don't invent an ID and don't silently substitute the closest-looking real event; see [stop-conditions.md](references/stop-conditions.md).
+**Stop condition** if the event isn't in this list, *or* if several events match and none is an exact match for what the user said — a substring search on a word like `purchase` routinely returns a dozen variants, so present the real ones and ask instead of picking the shortest or cleanest-looking name. Don't invent an ID and don't silently substitute the closest-looking real event; see [Missing or ambiguous event](references/stop-conditions.md#missing-or-ambiguous-event). If instrumentation is needed, settle the aggregation/value contract and applicable property filters below **before** handing off. Pass scope, environment, exact event name, traffic type, units, value source and required properties; resume here with that same contract plus code-test and delivery evidence, not just a success claim.
 
 ### Phase 6: Decide aggregation, format, isPositive
 
@@ -79,7 +79,7 @@ This is the event **contract** (`trafficType`, `aggregation`, value units, value
 - `description`: [what is counted, where event fires, which direction is good](../../references/fme/metric-design.md#naming-description-and-tags).
 - `owners`: required; `{type: "USER", email}` or `{type: "GROUP", identifier}` (group's `id` field, not display name).
 
-**Stop condition** if no owner was specified, or one turns out to be invalid — see [stop-conditions.md](references/stop-conditions.md).
+**Stop condition** if no owner was specified, or one turns out to be invalid — see [Missing or invalid owner](references/stop-conditions.md#missing-or-invalid-owner). Don't claim the owner was directory-verified without an actual lookup.
 
 ### Phase 8: Optional fields
 
@@ -88,7 +88,7 @@ This is the event **contract** (`trafficType`, `aggregation`, value units, value
   - `"COUNT"` with `aggregation: COUNT` — ratio metric ("ratio of two events per unit"): `baseEventTypes` is the numerator, `filterEventType` the denominator.
 - `triggerEventType` — `{eventTypeId}`, resolved the same way as Phase 5. Before/trigger relationship (HAS_DONE_BEFORE): only count units that did this event *before* the base event. Use this when the user asks for "only count users who did X before Y", "prior to", or "as a trigger" — don't substitute a plain `filterEventType` (HAS_DONE, no ordering), since it drops the ordering constraint.
 
-**Stop condition** if the request is ambiguous between a plain "has done" filter and a before/trigger relationship — see [stop-conditions.md](references/stop-conditions.md).
+**Stop condition** if the request is ambiguous between a plain "has done" filter and a before/trigger relationship — see [Filter versus ordered trigger](references/stop-conditions.md#filter-versus-ordered-trigger).
 
 - `cap` — outlier capping; 7 sub-fields (`baseEventCountCap`, `baseEventSumCap`, `baseEventValueCap`, `filterEventCountCap`, `filterEventSumCap`, `filterEventValueCap`, `metricValueCap`, all default `0` = no cap) plus `granularity` (`MINUTES|HOURS|DAYS|WEEKS`, default `DAYS`) — the time window each cap value is evaluated over. Only the cap field matching the metric's `aggregation` has any effect — don't set others; ask which cap the user wants if they mention capping without specifying.
 - `tags` — send each entry as `{name: "..."}`.

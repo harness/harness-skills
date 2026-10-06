@@ -9,7 +9,7 @@ description: >-
   cleanup, flag debt, clean up feature flag.
 metadata:
   author: Harness
-  version: 1.1.0
+  version: 1.2.0
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -38,7 +38,7 @@ Load [readiness.md](references/readiness.md) before giving a verdict. Load [sdk-
 
 ### Phase 1: Establish scope
 
-Follow [scope-establishment.md](../../references/scope-establishment.md). **List environments** and confirm the critical environments: by default those with `isProduction`, plus any the user adds.
+Follow [scope-establishment.md](../../references/scope-establishment.md). **List environments** and confirm the critical environments: by default those with `isProduction`, plus any the user adds. The critical set must be non-empty and explicitly confirmed back to the user before any later phase. If no environment is marked `isProduction` and the user hasn't named any, STOP and ask which environments are critical — do not treat an empty critical set as vacuously ready.
 
 ### Phase 2: Pick the flag
 
@@ -46,7 +46,7 @@ If the user named a flag, **Get flag** to confirm it exists and note its `status
 
 ### Phase 3: Forward treatment and verdict
 
-1. **List flag definitions** for the flag. Resolve the forward treatment for each critical environment per [readiness.md](references/readiness.md#forward-treatment-per-environment).
+1. **List flag definitions** for the flag. Resolve the forward treatment for each critical environment per [readiness.md](references/readiness.md#forward-treatment-per-environment). If any call site uses `WithConfig`, also resolve and compare each critical environment's `configurations` value for that treatment — identical treatment names with differing configs are **blocked**, not ready.
 2. Run the [experiment check](../../references/fme/write-safety.md#experiment-check) with **List experiments**. Here ACTIVE means **blocked**: code removal ends the experiment. PAUSED means **caution**.
 3. Give the verdict per [readiness.md](references/readiness.md#verdict). Stop on **blocked**.
 
@@ -81,9 +81,10 @@ If the forward treatment is `control` or a killed `defaultTreatment`, say plainl
 Confirm with the user before pushing or opening the PR. Use the repo's normal tooling and its own PR template and conventions (for example `.github/pull_request_template.md` or CONTRIBUTING). Don't impose a format. Whatever the template, the description must capture:
 
 - the flag key and the treatment (or config value) that was kept;
-- the FME evidence: org and project, critical environments checked, the forward treatment in each, the verdict and any caution the user acknowledged, the experiment check result, and the last impression in each critical environment;
+- the FME evidence: org and project, critical environments checked, the forward treatment (and config value, if `WithConfig` is used) in each, the verdict and any caution the user acknowledged, the experiment check result, and the last impression in each critical environment;
 - what was removed: branches, tests, config, imports;
 - how it was verified: the clean search and the build and test run;
+- **which repo(s)/service(s) were searched** — a clean search here does not prove the flag is unused elsewhere;
 - the follow-up: archive the flag with `manage-flag-lifecycle` once this change is deployed everywhere the flag is evaluated, plus any other repos or services that may still reference it.
 
 ### Phase 8: Hand off
@@ -112,6 +113,8 @@ Report the PR link and the follow-up: "After this deploys, use `manage-flag-life
 | An environment has no definition | Its forward treatment is `control`, so the fallback branch is live there. Treat it as **caution** and confirm. |
 | Flag is already archived but still in code | Allowed. The forward treatment is `control`; confirm the fallback branch is what users get today. |
 | ACTIVE experiment on the flag | **blocked**. Finish it first (`manage-experiments`). |
-| Code uses `WithConfig` | Hardcode the treatment's config value from the definition, not just the name. |
+| Code uses `WithConfig` | Hardcode the treatment's config value from the definition, not just the name. If critical environments share the treatment name but have different config values, that's **blocked**, not ready — hardcoding would silently diverge environment behavior. |
+| No explicit critical environment set | **Stop and ask.** Don't default to "ready" on an empty or unconfirmed critical set. |
+| Only one repo searched | Record that scope in the PR and summary. Don't claim the flag is fully unused until other repos/services are confirmed or searched. |
 | Dynamic flag keys | **blocked**. Stop and ask the user. |
 | No call sites found | **caution**. Check other repos and flag sets before claiming the flag is unused. |

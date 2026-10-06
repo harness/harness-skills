@@ -2,6 +2,22 @@
 #
 # Full pipeline blueprint for the fme-pipeline skill.
 # See ../blueprints.md and ../scenarios.md for context.
+#
+# STARTER / RESUME PATH: This blueprint is designed for a flag that starts KILLED.
+# The verify-before-restore checkpoint enforces human readback of the live flag
+# state before FmeFlagRestore re-activates it. If the flag is already active and
+# you are authoring an explicitly approved live targeting change, omit FmeFlagRestore
+# and the verify-before-restore checkpoint; do not auto-kill or add unrequested gates.
+#
+# BETA COHORT NOTE: Setting 0% default allocation and adding beta individual targets
+# does NOT remove pre-existing rules, segment-based targeting rules, or other
+# individual target keys that may already exist on the flag. The verify-before-restore
+# checkpoint must confirm that no non-beta allocations remain via any existing rules,
+# keys, or segments before the flag is restored.
+#
+# ORDERING NOTE: default allocation and beta targets are written BEFORE
+# FmeFlagRestore, so a killed flag never briefly resumes a stale prior
+# allocation before flipping to 0%-default-plus-beta-targets.
 
 pipeline:
   identifier: beta_then_everyone
@@ -18,12 +34,17 @@ pipeline:
           execution:
             steps:
               - step:
-                  identifier: restore_flag
-                  name: Restore Flag
-                  type: FmeFlagRestore
+                  identifier: set_default_0
+                  name: Set Default to 0 Percent
+                  type: FmeFlagDefaultAllocation
                   spec:
                     flagName: new_search
                     environment: production
+                    allocation:
+                      - treatment: "on"
+                        amount: 0
+                      - treatment: "off"
+                        amount: 100
               - step:
                   identifier: add_beta_users
                   name: Add Beta Users
@@ -38,17 +59,56 @@ pipeline:
                           - beta-user-2
                           - beta-user-3
               - step:
-                  identifier: set_default_0
-                  name: Set Default to 0 Percent
-                  type: FmeFlagDefaultAllocation
+                  identifier: verify_before_restore_production
+                  name: Verify State Before Restore - Production
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: >-
+                      HUMAN READBACK REQUIRED — do not approve without completing
+                      all checks below.
+
+                      1. Open this flag in the Harness UI or run /explain-flag
+                      for environment: production. Confirm the flag still shows
+                      KILLED (isKilled = true), with the approved defaultTreatment
+                      and its configuration. Check the trafficAllocation exposure
+                      limit separately from the defaultRule treatment split.
+
+                      2. Verify the full targeting state matches the approved
+                      audience exactly: defaultRule split (0% on /
+                      100% off), every individual target key per treatment
+                      (confirm only the approved beta keys are present — no
+                      unexpected keys), every segment membership per treatment,
+                      all rule conditions, treatment assignments, and treatment
+                      configs.
+
+                      3. CRITICAL — setting 0% default allocation and adding beta
+                      individual targets does NOT remove pre-existing rules,
+                      segment-based targeting rules, or other individual target
+                      keys. Confirm that NO non-beta allocations remain via any
+                      existing rules, keys, or segments. If any non-beta targeting
+                      is still active, reject and remediate before restoring.
+
+                      4. Re-check any active experiments referencing this flag
+                      and confirm no conflict with the intended restore state.
+
+                      5. Approve ONLY if every check above passes exactly.
+                      Reject if anything does not match — do not silently proceed.
+
+                      This approval is NOT automated SDK verification. A human
+                      must confirm the live flag state before restore proceeds.
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Managers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+              - step:
+                  identifier: restore_flag
+                  name: Restore Flag
+                  type: FmeFlagRestore
                   spec:
                     flagName: new_search
                     environment: production
-                    allocation:
-                      - treatment: "on"
-                        amount: 0
-                      - treatment: "off"
-                        amount: 100
               - step:
                   identifier: wait_beta_soak
                   name: Beta Soak 24h

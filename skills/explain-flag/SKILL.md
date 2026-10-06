@@ -11,7 +11,7 @@ description: >-
   explain this flag, how is X configured, is X on in prod, what's targeted for X.
 metadata:
   author: Harness
-  version: 1.3.0
+  version: 1.3.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -74,8 +74,8 @@ Diff the returned environments against Step 1's full list explicitly. An environ
 Compare across environments before writing the summary, not after - inconsistency-spotting is the point of this skill, not an afterthought:
 
 - Is `isKilled` the same across environments? A flag killed in one environment and live in another is the single most important inconsistency to surface - it usually means a rollback happened in one place and never propagated, or was never meant to.
-- Same `defaultTreatment` and `defaultRule` split, or does one environment default differently (e.g. prod at 30/70, staging at 50/50)?
-- Same targeting `rules` (same conditions, same treatment splits), or does one environment have rules the others lack?
+- Same `defaultTreatment` and `defaultRule` treatment allocation, or does one environment default differently (e.g. prod at 30/70, staging at 50/50)?
+- Same targeting `rules` (same conditions, same treatment allocation), or does one environment have rules the others lack?
 - Same `trafficAllocation`, or is one environment running a partial rollout while another is at 100%?
 
 Call out every difference explicitly - a flag behaving differently between staging and prod is very often exactly what the user needs to know, not noise to summarize away.
@@ -92,13 +92,13 @@ Call out every difference explicitly - a flag behaving differently between stagi
 ### Per-environment state
 | Environment | Prod? | Killed | Default treatment | Individual targets | Rules | Traffic allocation | Last impression |
 |---|---|---|---|---|---|---|---|
-| <env> | yes/no | yes/no | <defaultTreatment> (<defaultRule split>) | <n> key(s)/segment(s) across treatments, or "none" | <n> rule(s) - <one-line summary each> | <trafficAllocation>% | <lastImpressionAt, "never", or "unknown"> |
+| <env> | yes/no | yes/no | <defaultTreatment> (<defaultRule treatment allocation>) | <n> key(s)/segment(s) across treatments, or "none" | <n> rule(s) - <one-line summary each> | <trafficAllocation>% | <lastImpressionAt, "never", or "unknown"> |
 
 ### Notable
 <any cross-environment inconsistency from Step 5, or "consistent across all environments" if none>
 ```
 
-One line per rule (condition -> treatment split); offer **Get definition** (from Tools table) for full matcher detail instead of dumping raw JSON. The `Prod?` column comes from Step 1's `isProduction`, never from the environment name (names like `env-7` or `blue` say nothing).
+One line per rule (condition -> treatment allocation); offer **Get definition** (from Tools table) for full matcher detail instead of dumping raw JSON. The `Prod?` column comes from Step 1's `isProduction`, never from the environment name (names like `env-7` or `blue` say nothing).
 
 If no environment has a definition, skip the table:
 

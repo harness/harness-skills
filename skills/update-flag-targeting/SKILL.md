@@ -12,7 +12,7 @@ description: >-
   copy config.
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.2.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -81,7 +81,7 @@ Run these checks before composing the plan. Stop at the first failure and report
 | **Segment reference** | For every new/changed rule matcher or treatment membership, resolve STANDARD/LARGE/RULE_BASED metadata and verify the target-env definition through [that type's workflow](../manage-segments/SKILL.md#phase-3-execute-operation). The listed definition endpoint is STANDARD-only | Distinguish confirmed missing from unverified because the current tool lacks the operation. Stop the dependent write until verified; never use a STANDARD lookup for LARGE/RULE_BASED or silently switch to legacy scope |
 | **Flag dependency (IN_SPLIT)** | For each `depends: {splitName, treatment}` in a new or updated rule, **Get parent flag definition** and verify the treatment exists in `treatments` | "Flag `<parent>` has no definition (or treatment `<treatment>` doesn't exist) in `<env>`." |
 | **Treatment reference** | Every treatment in rules, defaultRule, individual targets, and `defaultTreatment` must exist in the `treatments` array | "Treatment `<treatment>` not found. Add it to `treatments` first." |
-| **Bucket sum** | The `size` fields across all `{treatment, size}` buckets in `defaultRule` or a rule must sum to 100 | "Bucket sizes sum to `<sum>`, not 100. Fix the split." |
+| **Bucket sum** | The `size` fields across all `{treatment, size}` buckets in `defaultRule` or a rule must sum to 100 | "Bucket sizes sum to `<sum>`, not 100. Fix the treatment allocation." |
 | **Killed flag** | Write/read back approved targeting while killed, then separately confirm restore and re-run the [experiment check](../../references/fme/write-safety.md#experiment-check). Inspect the entire patch first: changing `defaultTreatment`, removing/renaming it, or changing its configuration affects killed traffic immediately | Name the current served treatment/config and any immediate change. Only promise unchanged traffic if that pair remains unchanged; never restore stale targeting first |
 
 ### Phase 5: Plan the change

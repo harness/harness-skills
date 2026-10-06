@@ -30,7 +30,7 @@ Evaluate in this order and stop at the first step that applies:
 
 Consequences:
 - `defaultTreatment` is **not** "what most users get". It's what killed traffic and excluded traffic get. The default rule decides the remaining population.
-- `trafficAllocation` limits exposure. It is **not** the split between treatments, which is set by bucket `size`s.
+- `trafficAllocation` limits exposure. It does **not** set treatment allocation, which is determined by bucket `size`s.
 - Bucketing is deterministic per key, so the same key gets the same treatment until the targeting changes.
 - A single-environment read isn't enough to describe a flag. Read every environment's definition.
 

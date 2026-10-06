@@ -100,10 +100,10 @@ pipeline:
                       1. Open this flag in the Harness UI or run /explain-flag
                       for environment: dev. Confirm isKilled = true, with the
                       approved defaultTreatment and its configuration. Check the
-                      trafficAllocation exposure limit separately from the split.
+                      trafficAllocation exposure limit separately from treatment allocation.
 
                       2. Verify the full targeting state matches the approved
-                      audience exactly: defaultRule split (100% on /
+                      audience exactly: defaultRule treatment allocation (100% on /
                       0% off), every individual target key per treatment, every
                       segment membership per treatment, all rule conditions,
                       treatment assignments, and treatment configs.
@@ -166,10 +166,10 @@ pipeline:
                       1. Open this flag in the Harness UI or run /explain-flag
                       for environment: qa. Confirm isKilled = true, with the
                       approved defaultTreatment and its configuration. Check the
-                      trafficAllocation exposure limit separately from the split.
+                      trafficAllocation exposure limit separately from treatment allocation.
 
                       2. Verify the full targeting state matches the approved
-                      audience exactly: defaultRule split (50% on /
+                      audience exactly: defaultRule treatment allocation (50% on /
                       50% off), every individual target key per treatment, every
                       segment membership per treatment, all rule conditions,
                       treatment assignments, and treatment configs.
@@ -250,10 +250,10 @@ pipeline:
                       1. Open this flag in the Harness UI or run /explain-flag
                       for environment: staging. Confirm isKilled = true, with the
                       approved defaultTreatment and its configuration. Check the
-                      trafficAllocation exposure limit separately from the split.
+                      trafficAllocation exposure limit separately from treatment allocation.
 
                       2. Verify the full targeting state matches the approved
-                      audience exactly: defaultRule split (100% on /
+                      audience exactly: defaultRule treatment allocation (100% on /
                       0% off), every individual target key per treatment, every
                       segment membership per treatment, all rule conditions,
                       treatment assignments, and treatment configs.
@@ -336,11 +336,11 @@ pipeline:
                           /explain-flag for environment: prod_us. Confirm
                           isKilled = true, with the approved defaultTreatment
                           and configuration. Check the trafficAllocation
-                          exposure limit separately from the treatment split.
+                          exposure limit separately from treatment allocation.
 
                           2. Verify the full targeting state matches the
                           approved audience exactly: defaultRule
-                          split (1% on / 99% off), every
+                          treatment allocation (1% on / 99% off), every
                           individual target key per treatment, every segment
                           membership per treatment, all rule conditions,
                           treatment assignments, and treatment configs.
@@ -491,11 +491,11 @@ pipeline:
                           /explain-flag for environment: prod_eu. Confirm
                           isKilled = true, with the approved defaultTreatment
                           and configuration. Check the trafficAllocation
-                          exposure limit separately from the treatment split.
+                          exposure limit separately from treatment allocation.
 
                           2. Verify the full targeting state matches the
                           approved audience exactly: defaultRule
-                          split (1% on / 99% off), every
+                          treatment allocation (1% on / 99% off), every
                           individual target key per treatment, every segment
                           membership per treatment, all rule conditions,
                           treatment assignments, and treatment configs.

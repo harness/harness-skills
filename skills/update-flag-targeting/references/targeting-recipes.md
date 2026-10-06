@@ -78,7 +78,7 @@ Killed traffic and traffic outside `trafficAllocation` get this treatment. It mu
 { "trafficAllocation": 50 }
 ```
 
-This limits exposure: keys outside the percentage get `defaultTreatment` and aren't counted in experiments. It doesn't set the split between treatments. Lowering it moves some keys to `defaultTreatment` immediately, so say so in the plan.
+This limits exposure: keys outside the percentage get `defaultTreatment` and aren't counted in experiments. It doesn't set treatment allocation. Lowering it moves some keys to `defaultTreatment` immediately, so say so in the plan.
 
 ## (g) Treatments
 

@@ -1,12 +1,10 @@
 # Harness Skills
 
-This repository contains model-agnostic workflow instructions for AI coding tools working with Harness.io. Most skills use Harness MCP; FME skills also support the Harness CLI for the operations explicitly listed in their Tools tables.
-
-For FME, load the selected SKILL.md, its applicable local references, and `references/fme/tool-map.md` plus `concepts.md`; load `write-safety.md` before writes. Keep shared references accessible when installing/copying skills. Follow the tool map's capability limits and handoff contract: a slash-skill name means read its linked workflow, not assume a model-specific invocation tool. Unsupported operations stop rather than falling back to guessed commands.
+This repository contains model-agnostic workflows for AI coding tools working with Harness.io. Most skills use Harness MCP; a few support both MCP and the Harness CLI. Each skill documents its supported interfaces, prerequisites, and workflow.
 
 ## Harness MCP Server
 
-The [Harness MCP server](https://github.com/harness/mcp-server) provides the generic tools below. CLI-only FME sessions use the verified equivalents in `references/fme/tool-map.md`; other skills retain their declared MCP requirements:
+The [Harness MCP server](https://github.com/harness/mcp-server) provides the following generic tools:
 
 | Tool | Purpose |
 |------|---------|
@@ -65,11 +63,11 @@ Skills live in `skills/<skill-name>/SKILL.md`. Each skill folder may contain `re
 | `/create-feature-flag` | Create an FME flag that follows project conventions, with safe-default definitions |
 | `/update-flag-targeting` | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
 | `/manage-flag-lifecycle` | Flag metadata, archive readiness, archive/unarchive, and delete |
-| `/manage-segments` | STANDARD, LARGE and RULE_BASED segment workflows; type-aware membership and CLI/MCP capability checks |
+| `/manage-segments` | Create, inspect, and maintain targeting segments and membership |
 | `/cleanup-feature-flags` | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
 | `/fme-pipeline` | Generate FME pipelines for rollout scenarios, gates, and flag lifecycle |
 | `/create-experiment` | Creation-only entry point to the manage-experiments workflow |
-| `/manage-experiments` | Feature-flag experiment design/lifecycle; delegates metrics and states CLI update limitations |
+| `/manage-experiments` | Design and manage feature-flag experiments |
 | `/review-experiment-results` | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
 | `/choose-metric` | Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist |
 | `/create-metric` | Design and create an FME metric: intent-to-config guidance, code-based suggestions, traffic type, events, cap, owners |

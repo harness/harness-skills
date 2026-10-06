@@ -14,7 +14,7 @@ description: >-
   statistical significance, guardrail metric, ship this experiment.
 metadata:
   author: Harness
-  version: 2.1.0
+  version: 2.1.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
@@ -72,7 +72,7 @@ Fields to carry forward: `significanceThreshold` (not always 0.05), `multipleCom
 
 Per-row fields: `category` (`KEY`, `SUPPORTING`, `GUARDRAIL`, or `ALERT`), `comparison` (comparison treatment this row is for), `metricId.id` / `metricId.name` (`name` can be `null`; resolve in Step 5), `metricResultState` (stats engine verdict; `null` if none yet), `pvalue`, `impactLower`/`impactUpper`, `value`, `errorMargin`, `baselineMean`/`comparisonMean` (each with `Lower`/`Upper`), `baselineSampleSize`/`comparisonSampleSize`, `varianceReduction`, `positive` (metric's configured `isPositive`, not observed outcome; non-null even when numeric fields are `null`).
 
-No SRM field in response, so can't confirm traffic split matched configured split - Step 8 says so whenever it reports a winner. Report `metricResultState`/`pvalue` as given; never recompute significance or claim to correct for peeking.
+No SRM field in response, so can't confirm observed treatment allocation matched configured treatment allocation - Step 8 says so whenever it reports a winner. Report `metricResultState`/`pvalue` as given; never recompute significance or claim to correct for peeking.
 
 **Reconcile before scoring.** The expected row set is the Cartesian product of every configured metric (`keyMetrics` ∪ `supportingMetrics` from Step 2) × every comparison treatment in scope (all of them, or the one(s) picked in Step 2); it must be non-empty, since Step 2 already stops on empty `keyMetrics`. Match returned rows against it:
 - Two or more rows for the same (`metricId.id`, `comparison`) pair → duplicate/conflicting data; don't pick one arbitrarily - treat that combination as `needs_more_data` and note the conflict in Step 8.

@@ -20,7 +20,7 @@ Default to **`type: Custom`** stages for FME rollouts. The schema allows FME ste
 | `FmeFlagArchive` | Archive launched flag | Post-launch cleanup |
 | `FmeFlagKill` | Serve `defaultTreatment` to everyone in an environment | Failure strategy or explicit rollback stage |
 | `FmeFlagRestore` | Un-kill: targeting resumes as configured | After approved initial targeting is written and manually read back/approved; before soak/later increases |
-| `FmeFlagDefaultAllocation` | Set default-rule percentage split across treatments | Progressive rollout (5 → 25 → 50 → 100) and full launch |
+| `FmeFlagDefaultAllocation` | Set treatment allocation percentages in the default rule | Progressive rollout (5 → 25 → 50 → 100) and full launch |
 | `FmeFlagLimitExposure` | Set flag-wide `trafficAllocation` exposure cap (0–100) | Limit exposure; traffic outside the cap gets `defaultTreatment` |
 | `FmeFlagSetTreatments` | Define treatment list + defaults | When treatments are not yet defined in the env |
 | `FmeFlagSetTargetingRules` | Replace targeting rules | Beta cohorts, segment rules, prerequisites |

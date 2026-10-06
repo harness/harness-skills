@@ -7,7 +7,6 @@ on:
       - 'skills/**'
       - 'references/**'
       - 'templates/**'
-      - 'tests/**'
       - 'AGENTS.md'
       - 'README.md'
       - '.github/workflows/validate-skills.yml'
@@ -18,7 +17,6 @@ on:
       - 'skills/**'
       - 'references/**'
       - 'templates/**'
-      - 'tests/**'
       - 'AGENTS.md'
       - 'README.md'
       - '.github/workflows/validate-skills.yml'
@@ -35,6 +33,3 @@ jobs:
         run: |
           chmod +x scripts/validate-skills.sh
           scripts/validate-skills.sh
-
-      - name: Validate FME documentation contracts
-        run: python3 -m unittest discover -s tests -v

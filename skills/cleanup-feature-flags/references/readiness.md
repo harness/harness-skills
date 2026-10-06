@@ -13,7 +13,7 @@ Work out what each critical environment actually serves today:
 | Flag is archived, or the environment has no definition | `control`. SDKs return `control`, so the code's fallback branch is what runs. |
 | `isKilled` is true | `defaultTreatment` |
 | Not killed, `trafficAllocation` is 100 (or absent), no `rules`, no individual targets, and `defaultRule` is a single treatment at 100 | That treatment |
-| Anything else (split buckets, rules, targets, allocation below 100) | None: the environment is still mixed |
+| Anything else (allocation across multiple treatments, rules, targets, traffic allocation below 100) | None: the environment is still mixed |
 
 If the code reads the treatment config (the `WithConfig` calls in [sdk-patterns.md](../../../references/fme/sdk-patterns.md)), resolve and compare **both** the forward treatment name **and** that treatment's `configurations` value across every critical environment. Two critical environments that agree on the treatment name but carry different `configurations` are NOT the same forward state — hardcoding one environment's config value into the code would silently change behavior in the other. Treat a name match with a configuration mismatch as **blocked** (same severity as a treatment-name mismatch), not caution. Only hardcode the config value once the name and the configuration are identical across every critical environment.
 

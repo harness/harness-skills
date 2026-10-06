@@ -71,10 +71,10 @@ pipeline:
                       for environment: production. Confirm the flag still shows
                       KILLED (isKilled = true), with the approved defaultTreatment
                       and its configuration. Check the trafficAllocation exposure
-                      limit separately from the defaultRule treatment split.
+                      limit separately from the defaultRule treatment allocation.
 
                       2. Verify the full targeting state matches the approved
-                      audience exactly: defaultRule split (0% on /
+                      audience exactly: defaultRule treatment allocation (0% on /
                       100% off), every individual target key per treatment
                       (confirm only the approved beta keys are present — no
                       unexpected keys), every segment membership per treatment,

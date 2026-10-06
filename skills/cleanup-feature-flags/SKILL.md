@@ -9,7 +9,7 @@ description: >-
   cleanup, flag debt, clean up feature flag.
 metadata:
   author: Harness
-  version: 1.2.0
+  version: 1.2.1
   mcp-server: harness-mcp
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI

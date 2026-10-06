@@ -1,5 +1,2 @@
 # Local SBOM test fixtures (not part of skill definitions)
 sboms/
-
-# Python documentation-contract tests
-__pycache__/

@@ -1,0 +1,140 @@
+# R1: Progressive Ramp Within One Environment
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: progressive_ramp_staging
+  name: Progressive Ramp - Staging
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  stages:
+    - stage:
+        identifier: ramp_25_percent
+        name: Ramp to 25 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: restore_flag
+                  name: Restore Flag
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: staging
+              - step:
+                  identifier: set_25_percent
+                  name: Set 25 Percent Allocation
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: staging
+                    allocation:
+                      - treatment: "on"
+                        amount: 25
+                      - treatment: "off"
+                        amount: 75
+              - step:
+                  identifier: approval_before_50
+                  name: Approval Before 50 Percent
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: Approve to increase to 50%
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Managers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: ramp_50_percent
+        name: Ramp to 50 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: set_50_percent
+                  name: Set 50 Percent Allocation
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: staging
+                    allocation:
+                      - treatment: "on"
+                        amount: 50
+                      - treatment: "off"
+                        amount: 50
+              - step:
+                  identifier: approval_before_100
+                  name: Approval Before 100 Percent
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: Approve to go to 100%
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Managers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: ramp_100_percent
+        name: Ramp to 100 Percent
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: set_100_percent
+                  name: Set 100 Percent Allocation
+                  type: FmeFlagDefaultAllocation
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: staging
+                    allocation:
+                      - treatment: "on"
+                        amount: 100
+                      - treatment: "off"
+                        amount: 0
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: rollback_on_failure
+        name: Rollback - Kill Flag
+        type: Custom
+        when:
+          pipelineStatus: Failure
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: kill_flag
+                  name: Kill Flag
+                  type: FmeFlagKill
+                  spec:
+                    flagName: new_checkout_flow
+                    environment: staging
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

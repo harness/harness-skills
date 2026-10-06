@@ -1,0 +1,74 @@
+# R4: Config Promotion Between Environments
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: config_promotion_staging_to_prod
+  name: Promote Config - Staging to Prod
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  stages:
+    - stage:
+        identifier: approve_promotion
+        name: Approve Config Promotion
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: approve
+                  name: Approve Promotion to Prod
+                  type: HarnessApproval
+                  spec:
+                    approvalMessage: "Approve copying staging config to production for dark_mode"
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups:
+                        - account.Engineering_Leads
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: promote_definition
+        name: Promote Definition to Prod
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: apply_definition
+                  name: Apply Staging Definition to Prod
+                  type: FmeFlagDefinitionInstructions
+                  spec:
+                    flagName: dark_mode
+                    environment: production
+                    instructions:
+                      - type: SetFlagKilled
+                        value: false
+                      - type: SetDefaultAllocations
+                        value:
+                          - treatment: "on"
+                            amount: 75
+                          - treatment: "off"
+                            amount: 25
+                      - type: SetTargetingRules
+                        value: []
+              - step:
+                  identifier: wait_verification
+                  name: Soak 30 Minutes
+                  type: Wait
+                  spec:
+                    duration: 30m
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

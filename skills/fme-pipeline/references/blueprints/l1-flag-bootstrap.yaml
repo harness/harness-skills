@@ -1,0 +1,133 @@
+# L1: Flag Bootstrap
+#
+# Full pipeline blueprint for the fme-pipeline skill.
+# See ../blueprints.md and ../scenarios.md for context.
+
+pipeline:
+  identifier: flag_bootstrap
+  name: Bootstrap New Flag
+  orgIdentifier: default
+  projectIdentifier: my_project
+  tags: {}
+  stages:
+    - stage:
+        identifier: create_flag
+        name: Create Flag
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: create_flag_step
+                  name: Create Feature Flag
+                  type: FmeFlagCreate
+                  spec:
+                    trafficType: user
+                    name: dark_mode
+                    description: "Dark mode UI theme"
+                    treatments:
+                      - treatment: "on"
+                        description: "Dark mode enabled"
+                      - treatment: "off"
+                        description: "Light mode (default)"
+                    defaultTreatment: "off"
+                    baselineTreatment: "off"
+                    owners:
+                      - engineering@example.com
+                    tags:
+                      - ui
+                      - theme
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: configure_per_env
+        name: Configure Per Environment
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: kill_prod
+                  name: Kill Flag in Production
+                  type: FmeFlagKill
+                  spec:
+                    flagName: dark_mode
+                    environment: production
+              - step:
+                  identifier: restore_dev
+                  name: Restore Flag in Dev
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: dark_mode
+                    environment: dev
+              - step:
+                  identifier: restore_qa
+                  name: Restore Flag in QA
+                  type: FmeFlagRestore
+                  spec:
+                    flagName: dark_mode
+                    environment: qa
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: add_qa_targets
+        name: Add QA Test Users
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: add_qa_users_qa
+                  name: Add QA Users in QA
+                  type: FmeFlagAddRemoveIndividualTargets
+                  spec:
+                    flagName: dark_mode
+                    environment: qa
+                    treatments:
+                      - treatment: "on"
+                        addKeys:
+                          - qa-user-1
+                          - qa-user-2
+                          - qa-user-3
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+    - stage:
+        identifier: attach_flagset
+        name: Attach to Flagset - Optional
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  identifier: create_flagset
+                  name: Create Release Flagset
+                  type: FmeFlagsetCreate
+                  spec:
+                    name: q4_release
+              - step:
+                  identifier: add_to_flagset
+                  name: Add Flag to Flagset
+                  type: FmeFlagAddRemoveFlagsets
+                  spec:
+                    flagName: dark_mode
+                    environment: production
+                    addFlagsets:
+                      - q4_release
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure

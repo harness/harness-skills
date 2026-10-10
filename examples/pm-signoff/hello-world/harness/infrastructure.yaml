@@ -1,0 +1,11 @@
+infrastructureDefinition:
+  identifier: hello_world_k8s_dev
+  name: Hello World K8s Dev
+  orgIdentifier: default
+  projectIdentifier: PM_Signoff
+  environmentRef: hello_world_dev
+  deploymentType: Kubernetes
+  type: KubernetesDirect
+  spec:
+    connectorRef: kubernetes_connector
+    namespace: pm-signoff-hello-world

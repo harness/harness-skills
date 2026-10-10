@@ -1,0 +1,103 @@
+# Full CI/CD pipeline for the hello world application.
+# Prerequisites in PM_Signoff:
+#   - github_connector (source + manifests)
+#   - dockerhub_connector (container images)
+#   - hello_world_service, hello_world_dev, hello_world_k8s_dev
+
+pipeline:
+  identifier: hello_world_cicd
+  name: Hello World CI/CD
+  orgIdentifier: default
+  projectIdentifier: PM_Signoff
+  tags:
+    app: hello-world
+    project: PM_Signoff
+  properties:
+    ci:
+      codebase:
+        connectorRef: github_connector
+        repoName: harness-skills
+        build:
+          type: branch
+          spec:
+            branch: <+trigger.branch>
+  stages:
+    - stage:
+        identifier: build_and_test
+        name: Build and Test
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  identifier: install_and_test
+                  name: Install and Test
+                  type: Run
+                  spec:
+                    shell: Bash
+                    command: |
+                      set -euo pipefail
+                      cd examples/pm-signoff/hello-world/app
+                      npm test
+              - step:
+                  identifier: build_push_image
+                  name: Build and Push Image
+                  type: BuildAndPushDockerRegistry
+                  spec:
+                    connectorRef: dockerhub_connector
+                    repo: harness/pm-signoff-hello-world
+                    tags:
+                      - <+pipeline.sequenceId>
+                      - <+codebase.commitSha>
+                      - latest
+                    dockerfile: examples/pm-signoff/hello-world/app/Dockerfile
+                    context: examples/pm-signoff/hello-world/app
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+
+    - stage:
+        identifier: deploy_dev
+        name: Deploy to Dev
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: hello_world_service
+          environment:
+            environmentRef: hello_world_dev
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: hello_world_k8s_dev
+          execution:
+            steps:
+              - step:
+                  identifier: rollout
+                  name: Rollout Deployment
+                  type: K8sRollingDeploy
+                  spec:
+                    skipDryRun: false
+                  timeout: 10m
+            rollbackSteps:
+              - step:
+                  identifier: rollback
+                  name: Rollback
+                  type: K8sRollingRollback
+                  spec: {}
+                  timeout: 10m
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback

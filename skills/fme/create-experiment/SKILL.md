@@ -13,7 +13,7 @@ description: >-
   new experiment for X.
 metadata:
   author: Harness
-  version: 1.0.0
+  version: 1.0.1
   mcp-server: harness-mcp
   summary: Creation-only entry point to the manage-experiments workflow
 license: Apache-2.0
@@ -26,6 +26,11 @@ Compatibility entrypoint kept for direct `/create-experiment` invocation. This
 skill does not duplicate any workflow - it hands the entire creation flow to
 [manage-experiments](../manage-experiments/SKILL.md)'s **Create experiment**
 section and returns once that flow completes.
+
+## Tools
+
+Performs no operations of its own; it uses the operations of manage-experiments'
+Create experiment flow, named in [tool-map.md](../../../references/fme/tool-map.md).
 
 ## Instructions
 

@@ -13,7 +13,7 @@ description: >-
   replace segment keys, segment definition, check segment usage, delete segment.
 metadata:
   author: Harness
-  version: 1.3.0
+  version: 1.3.1
   mcp-server: harness-mcp
   summary: Segment metadata, STANDARD membership, and RULE_BASED editor workflows with mandatory pre-write reference checks
 license: Apache-2.0
@@ -99,7 +99,7 @@ Follow [standard-membership.md](references/standard-membership.md) for parsing, 
 
 #### Usage check
 
-Follow [usage-check.md](references/usage-check.md) before every mutation. Scan **all ACTIVE and ARCHIVED project flags and all environments**, including rule matchers, treatment memberships and indirect RULE_BASED dependencies. Above 50 flags, obtain cost approval **before** definition reads; do not narrow a write's safety scan. Failed, skipped or unparsed coverage blocks the write. References require an explicit impact review; deletion is blocked until dependencies are separately resolved and the gate rerun.
+Follow [usage-check.md](../../../references/fme/usage-check.md) before every mutation. Scan **all ACTIVE and ARCHIVED project flags and all environments**, including rule matchers, treatment memberships and indirect RULE_BASED dependencies. Above 50 flags, obtain cost approval **before** definition reads; do not narrow a write's safety scan. Failed, skipped or unparsed coverage blocks the write. References require an explicit impact review; deletion is blocked until dependencies are separately resolved and the gate rerun.
 
 #### Replace All Keys (STANDARD, Destructive)
 

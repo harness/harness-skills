@@ -7,7 +7,7 @@ This is the shared reference for FME resource names and CLI/MCP operation mappin
 - Load this map, [concepts.md](concepts.md), and the skill-local references needed for the selected operation. Load [write-safety.md](write-safety.md) before any mutation. Missing file/tool access is a stop condition, not permission to guess.
 - Choose CLI or MCP before planning and confirm the selected operation's command/schema. CLI flags and mutation field IDs are not mechanically derived from JSON names; consult operation-specific help rather than generic flags alone. Keep the same confirmed scope, payload, approval and verification requirements on either transport. Never switch transport to bypass authorization or governance.
 - CLI discovery: consult `harness <verb> <noun> --help` and the installed command specification for that operation. MCP discovery: use `harness_describe` when available. If neither source establishes a required payload, ask for the schema or stop; do not probe by writing guessed payloads.
-- A skill handoff means load the linked workflow, not assume a host-specific slash-command tool exists. Carry confirmed account/org/project, transport, resource/environment IDs, intended change, approved payload/decisions, inventory completeness and unresolved risks. Return exact IDs, readback/test evidence and remaining unverified work. Approval applies only to the original plan, not a new mutation in the next skill.
+- A skill handoff means load the linked workflow, not assume a host-specific slash-command tool exists. Carry confirmed account/org/project, transport, resource/environment IDs, intended change, approved payload/decisions, inventory completeness and unresolved risks. Return exact IDs, readback/test evidence and remaining unverified work. Approval applies only to the original plan, not a new mutation in the next skill. When these skills are installed as a Claude Code plugin, they are namespaced by plugin, so `/manage-segments` and `/harness-fme:manage-segments` name the same workflow; other tools may show them without the prefix.
 
 ## Translation Rules
 
@@ -100,7 +100,7 @@ Skills must pass `compact: false` on any list whose config fields you read or wh
 
 To find segment usage, inspect rule matchers **and** each treatment's `segments`, `largeSegments`, and `ruleBasedSegments` memberships, matching the exact segment name and type; individual `keys` also live inside treatments. There is no generic top-level `targets` array. Include indirect dependencies through RULE_BASED rules/exclusions using authoritative configuration and preserve negated references. To find IN_SPLIT dependents, scan rules for `depends.splitName`. To find metric usage, scan experiments for both parent types' `keyMetrics`/`supportingMetrics`.
 
-**Cost guard:** one paginated definition inventory per flag; if >50 flags, ask before any definition reads. Read-only discovery may narrow the inventory or obtain cost approval. A [segment mutation's usage gate](../../skills/fme/manage-segments/references/usage-check.md) must cover the full project flag inventory, including ACTIVE and ARCHIVED flags and all environment definitions: no narrowing or incomplete-scan override. Declined cost approval blocks the write. Finish all relevant pages and dependency checks; report "unchecked" or "incomplete" when skipped or interrupted, never "unused". Structural pattern matching follows [rule-patterns.md](../../skills/fme/discover-feature-flags/references/rule-patterns.md); a reference is not proof of effective targeting.
+**Cost guard:** one paginated definition inventory per flag; if >50 flags, ask before any definition reads. Read-only discovery may narrow the inventory or obtain cost approval. A [segment mutation's usage gate](usage-check.md) must cover the full project flag inventory, including ACTIVE and ARCHIVED flags and all environment definitions: no narrowing or incomplete-scan override. Declined cost approval blocks the write. Finish all relevant pages and dependency checks; report "unchecked" or "incomplete" when skipped or interrupted, never "unused". Structural pattern matching follows [rule-patterns.md](rule-patterns.md); a reference is not proof of effective targeting.
 
 ### Updates (JSON Merge Patch RFC 7396)
 
@@ -219,7 +219,7 @@ Harness supports **STANDARD, LARGE and RULE_BASED**. Select the workflow by memb
 | LARGE | List/get/create/update/delete | Metadata and reference-impact checks |
 | RULE_BASED | List/get/create/update/delete | Metadata and reference-impact checks; prepare and verify approved rule/exclusion edits in the Harness rule editor |
 
-[manage-segments](../../skills/fme/manage-segments/SKILL.md) defines the confirmation and verification steps. Use STANDARD definition/key routes only for STANDARD segments. Preserve native org/project scope; do not substitute legacy workspace contracts.
+`/manage-segments` defines the confirmation and verification steps. Use STANDARD definition/key routes only for STANDARD segments. Preserve native org/project scope; do not substitute legacy workspace contracts.
 
 ## fme_segment_definition
 

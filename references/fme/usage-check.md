@@ -20,7 +20,7 @@ For all rows: resolve native account/org/project, exact segment name **and type*
 
 1. Fully paginate **all project flags**, including ACTIVE and ARCHIVED. Remove name, tag, owner, traffic-type and rollout-status filters. Explicitly include both statuses if the selected list form filters status. Deduplicate by stable identity only after advancing offsets by the raw page length.
 2. Fully paginate environments and segment metadata for **every type and every status, including ACTIVE and ARCHIVED**. Confirm status coverage rather than accepting a default ACTIVE-only list. Keep exact case-sensitive name/type identities; STANDARD `beta` and LARGE `beta` are different segments.
-3. Apply [pagination completeness checks](../../../../references/fme/tool-map.md#pagination). A full page with a page-length `total` still needs another request, including an empty page for exact multiples. Any failed, skipped or non-advancing page makes coverage incomplete.
+3. Apply [pagination completeness checks](tool-map.md#pagination). A full page with a page-length `total` still needs another request, including an empty page for exact multiples. Any failed, skipped or non-advancing page makes coverage incomplete.
 4. If **more than 50 flags**, STOP **before any flag-definition reads** and ask approval for the full cost: one paginated definition inventory per flag, pre-write revalidation, and applicable experiment checks, potentially more requests. **Do not offer narrowing for a pre-write gate.** Declined cost approval blocks the mutation. A filtered read-only usage report must never be reused as write clearance.
 
 ## 2. Direct flag references
@@ -49,10 +49,10 @@ Report `Usage: checked — N of M flags; all environment pages complete` only wh
 
 Show a concise impact table: `| Consumer flag/segment | Env | Direct or via segment | Rule/treatment/exclusion location | State |`. Redact personal keys. A reference is not proof that users match it.
 
-- For membership/rule/enable-state changes, explain the effect on each consumer and run the [experiment check](../../../../references/fme/write-safety.md#experiment-check) for every affected flag/environment, including indirect consumers. Complete ACTIVE/PAUSED pages and apply the targeting-change acknowledgement policy before approval; metadata-only edits do not need this experiment check.
+- For membership/rule/enable-state changes, explain the effect on each consumer and run the [experiment check](write-safety.md#experiment-check) for every affected flag/environment, including indirect consumers. Complete ACTIVE/PAUSED pages and apply the targeting-change acknowledgement policy before approval; metadata-only edits do not need this experiment check.
 - For metadata-only changes, state that membership/targeting is unchanged; do not invent a live-traffic effect.
 - For deletion, **references block the delete before execution**. Use `update-flag-targeting` or the rule-editor workflow under separate approval to resolve them, then rerun the gate. No automatic cascade or deletion workaround.
-- Apply the [write-safety protocol](../../../../references/fme/write-safety.md), with explicit production wording for evaluation-affecting changes. User confirmation must cover this exact plan and its affected environments.
+- Apply the [write-safety protocol](write-safety.md), with explicit production wording for evaluation-affecting changes. User confirmation must cover this exact plan and its affected environments.
 
 ## 5. Revalidate and verify
 

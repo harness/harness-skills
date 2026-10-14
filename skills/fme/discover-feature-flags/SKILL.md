@@ -17,7 +17,7 @@ description: >-
   pipeline rollouts (fme-pipeline), or code removal (cleanup-feature-flags).
 metadata:
   author: Harness
-  version: 1.3.0
+  version: 1.3.1
   mcp-server: harness-mcp
   summary: Inventory, targeting-pattern search, promotion-aware rollout report, and stale-flag audit (read-only)
 license: Apache-2.0
@@ -54,7 +54,7 @@ Fixed shape per mode:
 
 **Stale audit:** `| Flag | Bucket | Last Impression Per Env | Config | Next Step |` (buckets: stale / active / unknown / never evaluated; verdicts: ready / caution / blocked)
 
-**Pattern search:** `| Flag | Env | Rule # | Combiner | Negated | Matcher type | Predicate match | Status | Notes |` (coverage footer: matched N / no-match M / unparsed P / unchecked U; see [rule-patterns.md](references/rule-patterns.md))
+**Pattern search:** `| Flag | Env | Rule # | Combiner | Negated | Matcher type | Predicate match | Status | Notes |` (coverage footer: matched N / no-match M / unparsed P / unchecked U; see [rule-patterns.md](../../../references/fme/rule-patterns.md))
 
 Summary: counts per class, truncation line if paginated, hand-offs to sibling skills.
 
@@ -71,7 +71,7 @@ Ask only for missing items relevant to the user's goal:
 - **Filters:** name substring, tag, rollout status name, traffic type, status (ACTIVE / ARCHIVED), owner — apply server-side where declared; client-side otherwise on the complete inventory.
 - **Environment subset** (rollout-report / stale-audit / pattern-search): default all.
 - **Staleness threshold** (stale-audit only): default 30 days per [concepts.md](../../../references/fme/concepts.md#staleness-and-readiness).
-- **Pattern-search predicates:** collect per [rule-patterns.md §Clarification](references/rule-patterns.md#clarification-protocol).
+- **Pattern-search predicates:** collect per [rule-patterns.md §Clarification](../../../references/fme/rule-patterns.md#clarification-protocol).
 - **Promotion check:** both the environment sequence and intended target treatment must be confirmed before promotion classifications; otherwise show neutral differences. See [promotion-check.md §Inputs](references/promotion-check.md#required-inputs).
 
 ### Phase 3: List environments and rollout statuses
@@ -92,7 +92,7 @@ For each flag, list definitions (all pages, `filters.limit: 100`, advance offset
 
 **Stale-audit:** Buckets per [concepts.md §Staleness](../../../references/fme/concepts.md#staleness-and-readiness). `impressions.lastImpressionAt`: ISO-8601 (`null` = never evaluated; absent = unknown). For ready/caution candidates, run the experiment check (ACTIVE and PAUSED) per [write-safety.md](../../../references/fme/write-safety.md#experiment-check). Next Step: hand off to `cleanup-feature-flags` (code) or `manage-flag-lifecycle` (archive).
 
-**Pattern-search:** Apply structural rule matching per [rule-patterns.md](references/rule-patterns.md). To resolve a segment name to its type, list that segment type's metadata via List segments (one complete paginated inventory per type; reuse across all flags). Killed flag definitions: scan rules but annotate matches `inactive (killed)`. Archived flags included by the requested status filter: retain structural matches and annotate `inactive (archived)`; do not imply live exposure.
+**Pattern-search:** Apply structural rule matching per [rule-patterns.md](../../../references/fme/rule-patterns.md). To resolve a segment name to its type, list that segment type's metadata via List segments (one complete paginated inventory per type; reuse across all flags). Killed flag definitions: scan rules but annotate matches `inactive (killed)`. Archived flags included by the requested status filter: retain structural matches and annotate `inactive (archived)`; do not imply live exposure.
 
 ### Phase 6: Output
 
@@ -128,7 +128,7 @@ Present the fixed table for the mode. Summary counts per class or bucket. Pagina
 | `impressions.lastImpressionAt` absent | Treat as `unknown` bucket; never infer "unused" |
 | Definitions call fails with 404 | Re-list flags; confirm exact name (case-sensitive) |
 | "Too many requests" or timeout | Narrow by tag, rollout status, or name; or process in batches |
-| Pattern-search returns unparsed rows | See [rule-patterns.md §Unparsed Shapes](references/rule-patterns.md#unparsed-shapes) |
+| Pattern-search returns unparsed rows | See [rule-patterns.md §Unparsed Shapes](../../../references/fme/rule-patterns.md#unparsed-shapes) |
 | Promotion check cannot compare | Confirm env IDs, sequence, and intended treatment per [promotion-check.md](references/promotion-check.md) |
 
 See [tool-map.md](../../../references/fme/tool-map.md#common-errors) for generic errors.

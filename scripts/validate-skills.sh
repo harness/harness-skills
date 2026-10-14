@@ -45,6 +45,8 @@ SKILLS_DIR="$ROOT/skills"
 CATEGORIES_FILE="$SKILLS_DIR/categories.json"
 FME_TOOL_MAP="$ROOT/references/fme/tool-map.md"
 FME_CATEGORY="fme"
+# Exact relative path from skills/fme/<skill>/SKILL.md to references/fme/tool-map.md, optional anchor.
+FME_TOOL_MAP_LINK_RE='\]\(\.\./\.\./\.\./references/fme/tool-map\.md(#[^()[:space:]]*)?\)'
 ALLOWED_KEYS="name description license compatibility metadata allowed-tools"
 MAX_LINES=500
 ERRORS=0
@@ -88,10 +90,39 @@ extract_description() {
 body_without_code_fences() {
   local file="$1"
   local start_line="$2"
+  # A closing fence must use the same character as the opener, be at least as
+  # long, and have nothing but whitespace after the fence characters -- a line
+  # like "```yaml" only opens or continues a block, it never closes one.
   awk -v start="$start_line" '
+    function fence_run_len(s, c,   n, i) {
+      n = length(s)
+      i = 1
+      while (i <= n && substr(s, i, 1) == c) i++
+      return i - 1
+    }
     NR < start { next }
-    /^```/ { in_code = !in_code; next }
-    !in_code { print }
+    {
+      line = $0
+      ch = substr(line, 1, 1)
+      if (ch == "`" || ch == "~") {
+        flen = fence_run_len(line, ch)
+        if (flen >= 3) {
+          rest = substr(line, flen + 1)
+          if (in_code) {
+            if (ch == fence_char && flen >= fence_min && rest ~ /^[ \t]*$/) {
+              in_code = 0
+            }
+            next
+          } else {
+            in_code = 1
+            fence_char = ch
+            fence_min = flen
+            next
+          }
+        }
+      }
+      if (!in_code) print
+    }
   ' "$file"
 }
 
@@ -131,10 +162,33 @@ if ! CATEGORIES="$(read_categories)"; then
   exit 1
 fi
 
-# FME resource types: names before the "Do Not Use" heading are current; names only in that section are legacy.
+# FME resource types: names before the "Do Not Use" heading are current; names
+# only in that section are legacy. If any FME skill exists, the tool map must
+# be present, have the heading, and yield at least one known type -- any other
+# outcome is a validator error, never a silent skip of the resource-type check.
 FME_KNOWN=""
 FME_LEGACY=""
-if [[ -f "$FME_TOOL_MAP" ]]; then
+FME_SKILLS_EXIST=0
+if [[ -d "$SKILLS_DIR/$FME_CATEGORY" ]]; then
+  for fme_sub in "$SKILLS_DIR/$FME_CATEGORY"/*; do
+    [[ -d "$fme_sub" && -f "$fme_sub/SKILL.md" ]] && FME_SKILLS_EXIST=1
+  done
+fi
+
+if [[ $FME_SKILLS_EXIST -eq 1 ]]; then
+  if [[ ! -f "$FME_TOOL_MAP" ]]; then
+    check_fail "references/fme/tool-map.md: not found, but FME skills exist (cannot validate FME resource types)"
+  elif ! grep -q '^## Do Not Use' "$FME_TOOL_MAP"; then
+    check_fail "references/fme/tool-map.md: missing '## Do Not Use' heading (cannot separate current from legacy FME resource types)"
+  else
+    FME_KNOWN="$(awk '/^## Do Not Use/ { exit } { print }' "$FME_TOOL_MAP" | grep -oE 'fme_[a-z_]*[a-z]' | sort -u || true)"
+    if [[ -z "$FME_KNOWN" ]]; then
+      check_fail "references/fme/tool-map.md: no known fme_* resource types found before '## Do Not Use'"
+    else
+      FME_LEGACY="$(awk '/^## Do Not Use/ { f = 1 } f' "$FME_TOOL_MAP" | grep -oE 'fme_[a-z_]*[a-z]' | sort -u | grep -vxF -f <(printf '%s\n' "$FME_KNOWN") || true)"
+    fi
+  fi
+elif [[ -f "$FME_TOOL_MAP" ]]; then
   FME_KNOWN="$(awk '/^## Do Not Use/ { exit } { print }' "$FME_TOOL_MAP" | grep -oE 'fme_[a-z_]*[a-z]' | sort -u || true)"
   FME_LEGACY="$(awk '/^## Do Not Use/ { f = 1 } f' "$FME_TOOL_MAP" | grep -oE 'fme_[a-z_]*[a-z]' | sort -u | grep -vxF -f <(printf '%s\n' "$FME_KNOWN") || true)"
 fi
@@ -336,8 +390,8 @@ if [[ ${#SKILL_DIRS[@]} -gt 0 ]]; then
       check_warn "$skill_label: no '## Troubleshooting' or '## Error Handling' section found outside code fences"
     fi
 
-    if [[ "$skill_category" == "$FME_CATEGORY" ]] && ! grep -qE '\]\([^)]*references/fme/tool-map\.md' "$skill_file"; then
-      check_fail "$skill_label: FME skill must link references/fme/tool-map.md"
+    if [[ "$skill_category" == "$FME_CATEGORY" ]] && ! printf '%s\n' "$sanitized_body" | grep -qE "$FME_TOOL_MAP_LINK_RE"; then
+      check_fail "$skill_label: FME skill must link ../../../references/fme/tool-map.md (exact relative path from skills/fme/$skill_name/SKILL.md), outside any fenced code block"
     fi
 
     if [[ -n "$FME_KNOWN" ]] && grep -q 'references/fme/tool-map.md' "$skill_file"; then

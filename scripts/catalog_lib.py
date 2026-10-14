@@ -230,6 +230,27 @@ def _parse_block_scalar(lines: list[str], start: int, base_indent: int, header: 
     return body + "\n", next_i  # clip (default)
 
 
+_PLAIN_SCALAR_BAD_START = "@`&*!%#|>"
+
+
+def _reject_unquotable_plain_scalar(rest: str) -> None:
+    """A plain (unquoted) scalar that a real YAML parser would not read the
+    way this value implies -- it would end the mapping value early (": "),
+    start a comment (" #" or trailing ":"), or begin with a character YAML
+    reserves and cannot start a plain scalar with."""
+    hint = "quote the value or use a block scalar"
+    if ": " in rest:
+        raise CatalogError(f"plain scalar contains ': ', {hint}: {rest!r}")
+    if rest.endswith(":"):
+        raise CatalogError(f"plain scalar ends with ':', {hint}: {rest!r}")
+    if " #" in rest:
+        raise CatalogError(f"plain scalar contains ' #', {hint}: {rest!r}")
+    if rest and rest[0] in _PLAIN_SCALAR_BAD_START:
+        raise CatalogError(f"plain scalar starts with reserved character {rest[0]!r}, {hint}: {rest!r}")
+    if rest.startswith("? ") or rest.startswith(": "):
+        raise CatalogError(f"plain scalar starts with {rest[:2]!r}, {hint}: {rest!r}")
+
+
 def _parse_scalar(rest: str) -> str:
     if rest.startswith('"'):
         return _parse_double_quoted(rest)
@@ -239,6 +260,7 @@ def _parse_scalar(rest: str) -> str:
         raise CatalogError(f"flow collections are not supported: {rest!r}")
     if rest.startswith("- ") or rest == "-":
         raise CatalogError(f"list values are not supported: {rest!r}")
+    _reject_unquotable_plain_scalar(rest)
     return rest
 
 
@@ -264,6 +286,9 @@ def _parse_level(
             raise CatalogError(f"cannot parse frontmatter line: {raw_line!r}")
         key, rest = m.group(1), (m.group(2) or "").strip()
         i += 1
+
+        if key in mapping:
+            raise CatalogError(f"duplicate key {key!r} in frontmatter")
 
         if rest == "":
             j = i
@@ -474,9 +499,14 @@ def load_catalog(root: Path | None = None) -> Catalog:
                 mcp_server = ""
 
             compatibility = fm.get("compatibility")
-            compatibility = compatibility if isinstance(compatibility, str) else ""
+            if not isinstance(compatibility, str) or compatibility.strip() == "":
+                errors.append(f"{rel_path}/SKILL.md: 'compatibility' is missing")
+                compatibility = ""
+
             license_ = fm.get("license")
-            license_ = license_ if isinstance(license_, str) else ""
+            if not isinstance(license_, str) or license_.strip() == "":
+                errors.append(f"{rel_path}/SKILL.md: 'license' is missing")
+                license_ = ""
 
             skills_list.append(
                 Skill(

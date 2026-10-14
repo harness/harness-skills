@@ -2,7 +2,7 @@
 
 Model-agnostic AI coding skills for the [Harness.io](https://harness.io) CI/CD platform. Generate pipeline YAML, manage resources, debug failures, analyze costs, and more from natural language.
 
-This repository is designed as a workflow system, not just a folder of prompts. The top-level instructions (`AGENTS.md`, with `CLAUDE.md` importing it for Claude Code, plus `.cursor/rules/harness.mdc` and `.github/copilot-instructions.md`) establish shared behavior when you work from a clone, while individual skills specialize in creation, debugging, governance, and reporting tasks. Plugin installs ship the skills but not those instruction files; see [Install as a Claude Code Plugin](#install-as-a-claude-code-plugin).
+This repository is designed as a workflow system, not just a folder of prompts. The top-level instructions (`AGENTS.md`, with `CLAUDE.md` importing it for Claude Code, plus `.cursor/rules/harness.mdc` and `.github/copilot-instructions.md`) establish shared behavior when you work from a clone, while individual skills specialize in creation, debugging, governance, and reporting tasks. Plugin installs ship those instruction files but do not load them; see [Install as a Claude Code Plugin](#install-as-a-claude-code-plugin).
 
 ## Prerequisites
 
@@ -192,7 +192,7 @@ Invoke an installed skill as `/<plugin>:<skill>`:
 Explain the new_checkout flag in production
 ```
 
-To update, run `/plugin marketplace update harness-skills`. Plugins are versioned by git commit. Each installed plugin caches a full copy of this repository (about 12 MB), because skills link to the shared `references/` and `templates/` at the repo root.
+To update, run `/plugin marketplace update harness-skills`. Plugins are versioned by git commit. Each installed plugin caches a full copy of this repository (about 8 MB), because skills link to the shared `references/` and `templates/` at the repo root. Installing all nine plugins stores nine copies.
 
 **Known gap:** plugin installs do not load the repo-level `AGENTS.md` rules (scope establishment, dependency checks, schema validation). FME skills load their shared rules through `references/fme/`; other skills rely on their own instructions. To get the repo-level rules, work from a clone (see [Quick Start without a plugin](#quick-start-without-a-plugin)).
 
@@ -339,7 +339,7 @@ The Harness MCP server is not bundled with any plugin; configure it for each too
 
 ### Claude Code
 
-Add a project-level `.mcp.json` at the repo root. Claude Code expands `${VAR}` from your environment, so the key stays out of the file:
+Add a `.mcp.json` at the root of your own project (not this repo's root). Claude Code expands `${VAR}` from your environment, so the key stays out of the file:
 
 ```json
 {

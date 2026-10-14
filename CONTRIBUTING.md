@@ -39,6 +39,8 @@ templates/                # Shared output contracts reused across many skills
 template/                 # Copy-ready SKILL.md skeleton for new skills
 ```
 
+The repo root must not contain a `.mcp.json`, `hooks/`, `commands/`, `agents/`, or other plugin component files: every plugin's `source` is `.`, so a root-level file like that would ship to and load for all nine plugins (a test enforces this).
+
 ### Categories
 
 The nine categories are `pipelines`, `infrastructure`, `access-control`, `fme`, `database`, `platform`, `security`, `observability-governance`, and `agents`. Pick the category for a new skill from `skills/categories.json`; each category is one Claude Code plugin named `harness-<category>`.
@@ -127,7 +129,7 @@ Keep the main `SKILL.md` body focused on core instructions.
 - Material used by exactly one skill lives in that skill's own `references/` (or `templates/`).
 - Material used by two or more skills lives at the repo root under `references/` (or `templates/`).
 - Link a shared file directly from `SKILL.md` with a relative path: `../../../references/<file>.md` from `skills/<category>/<skill>/SKILL.md`. Keep it one level deep: a `SKILL.md` links the shared file it needs; do not rely on a chain of shared files to reach it.
-- Never reach into another skill's folder. If two skills need a file, move it to the root `references/` instead; `scripts/check_links.py` warns on such paths.
+- Do not link into another skill's `references/`, `templates/`, `scripts/`, or `assets/`. If two skills need a file, move it to the root `references/` instead. A handoff link to another skill's `SKILL.md` is allowed as a workflow pointer, but it still breaks under `npx skills add` (which copies only the linking skill's folder). `scripts/check_links.py` warns on both kinds of cross-skill link; the existing reach-ins are known debt, not something to add to.
 - Shared files under `references/` and `templates/` must not link into skill folders.
 - Every skill under `skills/fme/` links `references/fme/tool-map.md` (validator error otherwise).
 
@@ -211,7 +213,7 @@ python3 -m unittest discover -s tests -v
 
 | Command | What it checks |
 |---------|----------------|
-| `scripts/validate-skills.sh` | Layout against `skills/categories.json`, frontmatter (allowed keys, required fields, `metadata.summary`, semver), `name` matches the directory and is unique, description rules (under 1024 chars, no angle brackets, contains "Use when" or "Trigger phrases"), required sections outside code fences, FME skills link `references/fme/tool-map.md`, no README.md inside skill folders. Warns on a SKILL.md over 500 lines or 5000 words |
+| `scripts/validate-skills.sh` | Layout against `skills/categories.json`, frontmatter (allowed keys, required fields, `metadata.summary`, semver), `name` matches the directory and is unique, description rules (under 1024 chars, no angle brackets, contains "Use when" or "Trigger phrases"), FME skills link `references/fme/tool-map.md`, no README.md inside skill folders. Warns (does not fail) on a missing H1 heading or required section (`## Instructions`, `## Examples`, `## Performance Notes`, `## Troubleshooting`/`## Error Handling`) outside code fences, or a SKILL.md over 500 lines or 5000 words |
 | `python3 scripts/generate_catalog.py` | Regenerates the plugin manifests, `skills.json`, and the skill tables. Commit the generated files. Add `--check` to verify without writing |
 | `python3 scripts/check_links.py` | Markdown links and backticked path mentions (`references/...`, `templates/...`, `skills/...`, `../...md`), including anchors. A path from one skill into a different skill's folder is a warning |
 | `python3 -m unittest discover -s tests -v` | Plugin manifest and link-checker tests |

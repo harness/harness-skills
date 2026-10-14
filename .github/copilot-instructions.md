@@ -2,11 +2,13 @@
 
 **Scope:** This file configures agents working in this repository and agents that load it from a clone. Plugin installs (Claude Code, Cursor, Codex) and `npx skills add` installs never load it, so runtime rules a skill needs must live in the skill or in a shared file it links (for example `references/fme/`).
 
-This repository contains model-agnostic workflows for AI coding tools working with Harness.io. Most skills use Harness MCP; a few support both MCP and the Harness CLI. Each skill documents its supported interfaces, prerequisites, and workflow.
+This repository contains model-agnostic workflow instructions for AI coding tools working with Harness.io. Most skills use Harness MCP; FME skills also support the Harness CLI for the operations explicitly listed in their Tools tables.
+
+For FME, load the selected SKILL.md, its applicable local references, and `references/fme/tool-map.md` plus `concepts.md`; load `write-safety.md` before writes. Keep shared references accessible when installing/copying skills. Follow the tool map's capability limits and handoff contract: a slash-skill name means read its linked workflow, not assume a model-specific invocation tool. Unsupported operations stop rather than falling back to guessed commands.
 
 ## Harness MCP Server
 
-The [Harness MCP server](https://github.com/harness/mcp-server) provides the following generic tools:
+The [Harness MCP server](https://github.com/harness/mcp-server) provides the generic tools below. CLI-only FME sessions use the verified equivalents in `references/fme/tool-map.md`; other skills retain their declared MCP requirements:
 
 | Tool | Purpose |
 |------|---------|

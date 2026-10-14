@@ -216,12 +216,12 @@ python3 -m unittest discover -s tests -v
 | `scripts/validate-skills.sh` | Layout against `skills/categories.json`, frontmatter (allowed keys, required fields, `metadata.summary`, semver), `name` matches the directory and is unique, description rules (under 1024 chars, no angle brackets, contains "Use when" or "Trigger phrases"), FME skills link `references/fme/tool-map.md`, no README.md inside skill folders. Warns (does not fail) on a missing H1 heading or required section (`## Instructions`, `## Examples`, `## Performance Notes`, `## Troubleshooting`/`## Error Handling`) outside code fences, or a SKILL.md over 500 lines or 5000 words |
 | `python3 scripts/generate_catalog.py` | Regenerates the plugin manifests, `skills.json`, and the skill tables. Commit the generated files. Add `--check` to verify without writing |
 | `python3 scripts/check_links.py` | Markdown links and backticked path mentions (`references/...`, `templates/...`, `skills/...`, `../...md`), including anchors. A path from one skill into a different skill's folder is a warning |
-| `python3 -m unittest discover -s tests -v` | Plugin manifest and link-checker tests |
+| `python3 -m unittest discover -s tests -v` | Catalog parser, generator, plugin manifest and link-checker tests |
 
 CI (`.github/workflows/validate-skills.yml`) runs on every pull request and on pushes to `main`:
 
 - **Skill Standards** (Ubuntu and macOS): the four checks above, with `generate_catalog.py --check`, so a PR with stale generated files fails.
-- **Plugin Install** (Ubuntu): skills CLI discovery of all skills, a blocking `claude plugin validate`, and a Claude Code install smoke test that checks the shared files are present in the plugin cache.
+- **Plugin Install** (Ubuntu): skills CLI discovery of all skills, a blocking `claude plugin validate`, and a Claude Code install smoke test that installs every plugin and checks its skill count and the shared files in the plugin cache.
 
 ## Pull Request Process
 

@@ -28,7 +28,10 @@
 # - Description contains "Use when" or "Trigger phrases"
 # - No "claude" or "anthropic" in skill name
 # - No README.md inside skill folders
-# - Every skill under skills/fme/ links references/fme/tool-map.md
+# - When FME skills exist, references/fme/tool-map.md exists, has a
+#   '## Do Not Use' heading, and lists at least one fme_* type before it
+# - Every skill under skills/fme/ links ../../../references/fme/tool-map.md
+#   outside fenced code blocks
 # - Skills that link references/fme/tool-map.md only mention fme_* resource types listed there
 #
 # Warnings (non-blocking):

@@ -515,7 +515,7 @@ harness-skills/
 │   ├── gen_codex.py             # Codex plugin generator
 │   ├── check_links.py           # Markdown link and path-mention checker
 │   └── migrate_to_categories.py # Temporary flat-to-category migration helper
-├── tests/                       # Manifest and link-checker tests
+├── tests/                       # Catalog, generator, manifest and link-checker tests
 ├── examples/
 │   ├── v0/                      # v0 pipeline examples
 │   ├── v1/                      # v1 pipeline examples

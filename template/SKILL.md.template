@@ -1,0 +1,70 @@
+---
+name: my-skill
+description: >-
+  Replace this with what the skill does in one or two sentences. Use when the
+  user asks to do X, mentions Y, or needs Z. Do NOT use for a related task -
+  see other-skill-name instead. Trigger phrases: phrase one, phrase two,
+  phrase three.
+metadata:
+  author: Harness
+  version: 1.0.0
+  mcp-server: harness-mcp-v2
+  summary: Replace with a short one-line summary of what this skill does
+license: Apache-2.0
+compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
+---
+
+<!--
+Copy this file to skills/<category>/<skill>/SKILL.md, set name to the folder
+name, then delete these comments. Keep YAML comments out of the frontmatter:
+the catalog parser rejects them.
+
+description: state what the skill does, then "Use when ..." naming the
+request shapes that should route to it, especially ones an agent would
+otherwise attempt without the skill. No workflow summary here, that goes in
+the body. No angle brackets (the validator rejects them). At most 1024
+characters.
+
+metadata.summary: one line shown in the generated tables and skills.json. At
+most 120 characters, no pipe character.
+
+Size: keep this file under 500 lines (the validator warns past that). Move
+long tables, examples, or reference data into references/.
+-->
+
+# My Skill
+
+One or two sentences describing the operating mode and expected outcome.
+
+<!--
+Shared references: material used by only this skill lives in this skill's own
+references/ (or templates/) folder. Material used by two or more skills
+belongs at the repo root under references/ or templates/; move it there
+instead of linking into another skill's folder (check_links.py warns on
+that). Link a shared file directly from this SKILL.md with a relative path,
+one level deep, and do not rely on a chain of shared files to reach it. From
+skills/<category>/<skill>/SKILL.md:
+
+[scope-establishment.md](../../../references/scope-establishment.md)
+
+Plugin installs ship the whole repo, so this resolves. npx skills add copies
+only this skill's folder, so the link breaks there until bundling ships.
+-->
+
+## Instructions
+
+Phase-based steps for Claude to follow, for example: scope -> dependency
+verification -> schema discovery -> draft -> validate -> create/update ->
+summarize.
+
+## Examples
+
+Invocation examples and, for complex skills, brief worked examples.
+
+## Performance Notes
+
+Validation checks, tradeoffs, or speed/accuracy guidance.
+
+## Troubleshooting
+
+Common errors, recovery steps, and expected fallbacks.

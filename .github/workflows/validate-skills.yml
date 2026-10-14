@@ -2,34 +2,201 @@ name: Validate Skills
 
 on:
   pull_request:
-    branches: [main]
-    paths:
-      - 'skills/**'
-      - 'references/**'
-      - 'templates/**'
-      - 'AGENTS.md'
-      - 'README.md'
-      - '.github/workflows/validate-skills.yml'
-      - 'scripts/validate-skills.sh'
   push:
     branches: [main]
-    paths:
-      - 'skills/**'
-      - 'references/**'
-      - 'templates/**'
-      - 'AGENTS.md'
-      - 'README.md'
-      - '.github/workflows/validate-skills.yml'
-      - 'scripts/validate-skills.sh'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  validate:
+  skill-standards:
     name: Skill Standards
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate skill frontmatter and structure
+        run: scripts/validate-skills.sh
+
+      - name: Check generated files are up to date
+        run: python3 scripts/generate_catalog.py --check
+
+      - name: Check links and path mentions
+        run: python3 scripts/check_links.py
+
+      - name: Run tests
+        run: python3 -m unittest discover -s tests -v
+
+  plugin-install:
+    name: Plugin Install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate skill frontmatter and structure
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # The skills CLI prints a clack-style listing: "Found N skills", then one
+      # "│    <name>" line per skill followed by its description.
+      - name: Skills CLI discovery
         run: |
-          chmod +x scripts/validate-skills.sh
-          scripts/validate-skills.sh
+          npx -y skills@1.7.2 add . --list < /dev/null > "$RUNNER_TEMP/skills-list.txt" 2>&1 || {
+            cat "$RUNNER_TEMP/skills-list.txt"
+            exit 1
+          }
+          python3 -I - "$RUNNER_TEMP/skills-list.txt" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          text = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", Path(sys.argv[1]).read_text(encoding="utf-8"))
+          found = [int(n) for n in re.findall(r"Found (\d+) skills?", text)]
+          listed = re.findall(r"^│ {4}(\S+)\s*$", text, re.M)
+          on_disk = sorted(p.parent.name for p in Path("skills").glob("*/*/SKILL.md"))
+
+          problems = []
+          if found != [len(on_disk)]:
+              problems.append(f"CLI reported {found} skills, {len(on_disk)} SKILL.md files on disk")
+          if sorted(listed) != on_disk:
+              problems.append(
+                  f"missing from CLI listing: {sorted(set(on_disk) - set(listed))}; "
+                  f"unexpected in CLI listing: {sorted(set(listed) - set(on_disk))}; "
+                  f"listed {len(listed)} names"
+              )
+          if problems:
+              print(text)
+              sys.exit("skills CLI discovery mismatch: " + "; ".join(problems))
+          print(f"skills CLI found {found[0]} skills, matching skills/*/*/SKILL.md")
+          PY
+
+      - name: Install Claude Code CLI
+        run: |
+          npm install --prefix "$RUNNER_TEMP/claude-cli" --no-audit --no-fund @anthropic-ai/claude-code@2.1.299
+          echo "$RUNNER_TEMP/claude-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      # Claude Code keeps its state under HOME and CLAUDE_CONFIG_DIR; keep it out of the runner profile.
+      - name: Isolate Claude Code state
+        run: |
+          mkdir -p "$RUNNER_TEMP/claude-home" "$RUNNER_TEMP/claude-config"
+          echo "HOME=$RUNNER_TEMP/claude-home" >> "$GITHUB_ENV"
+          echo "CLAUDE_CONFIG_DIR=$RUNNER_TEMP/claude-config" >> "$GITHUB_ENV"
+
+      - name: Validate plugin marketplace
+        run: |
+          claude plugin validate . --strict --json < /dev/null > "$RUNNER_TEMP/plugin-validate.json" || {
+            cat "$RUNNER_TEMP/plugin-validate.json"
+            exit 1
+          }
+          python3 -I - "$RUNNER_TEMP/plugin-validate.json" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as f:
+              result = json.load(f)
+          manifest = result.get("manifest") or {}
+          contents = result.get("contents") or []
+          dirty_contents = [c for c in contents if c.get("errors") or c.get("warnings")]
+          if (
+              result.get("success") is not True
+              or manifest.get("errors")
+              or manifest.get("warnings")
+              or dirty_contents
+          ):
+              print(json.dumps(result, indent=2))
+              sys.exit("claude plugin validate did not come back clean")
+          print("claude plugin validate: success, no errors or warnings:", manifest.get("file"))
+          PY
+
+      - name: Install every plugin from this checkout
+        run: |
+          marketplace="$(python3 -I -c 'import json; print(json.load(open(".claude-plugin/marketplace.json"))["name"])')"
+          plugins="$(python3 -I -c 'import json; print("\n".join(p["name"] for p in json.load(open(".claude-plugin/marketplace.json"))["plugins"]))')"
+          claude plugin marketplace add "$GITHUB_WORKSPACE" --json < /dev/null
+          while IFS= read -r plugin; do
+            claude plugin install "$plugin@$marketplace" --json < /dev/null
+          done <<< "$plugins"
+          claude plugin list --json < /dev/null > "$RUNNER_TEMP/installed.json"
+          python3 scripts/generate_catalog.py --list-categories > "$RUNNER_TEMP/category-counts.txt"
+          python3 -I - "$RUNNER_TEMP/installed.json" "$marketplace" "$RUNNER_TEMP/category-counts.txt" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          installed_file, marketplace, counts_file = sys.argv[1:4]
+          with open(installed_file, encoding="utf-8") as f:
+              installed = {p["id"]: p for p in json.load(f)}
+          with open(".claude-plugin/marketplace.json", encoding="utf-8") as f:
+              entries = {p["name"]: p for p in json.load(f)["plugins"]}
+          config_dir = os.path.realpath(os.environ["CLAUDE_CONFIG_DIR"])
+
+          # Expected skill count per plugin, from the catalog ("<dir>\t<plugin>\t<n>" per line).
+          expected_counts = {}
+          with open(counts_file, encoding="utf-8") as f:
+              for line in f:
+                  line = line.rstrip("\n")
+                  if not line:
+                      continue
+                  _dir, plugin_name, n = line.split("\t")
+                  expected_counts[plugin_name] = int(n)
+
+          total_expected = sum(expected_counts.values())
+          on_disk = len(list(Path("skills").glob("*/*/SKILL.md")))
+          if total_expected != on_disk:
+              sys.exit(f"category counts total to {total_expected}, but {on_disk} SKILL.md files on disk")
+
+          # Shared files every plugin's install root carries, since the whole repo is
+          # copied for each plugin install.
+          shared_files = (
+              "references/fme/tool-map.md",
+              "references/scope-establishment.md",
+              "templates/operation-summary.md",
+          )
+
+          problems = []
+          for name, entry in entries.items():
+              plugin = installed.get(f"{name}@{marketplace}")
+              if plugin is None or not plugin.get("enabled"):
+                  problems.append(f"{name}: not installed and enabled")
+                  continue
+              root = Path(plugin["installPath"])
+              if not os.path.realpath(root).startswith(config_dir + os.sep):
+                  problems.append(f"{name}: installed at {root}, not copied under {config_dir}")
+                  continue
+              # Skills the installed copy exposes, from the entry's own skills paths.
+              count = sum(
+                  1
+                  for rel in entry.get("skills", [])
+                  for skill in (root / rel).iterdir()
+                  if (skill / "SKILL.md").is_file()
+              )
+              print(f"{name}: {root} ({count} skills)")
+              expected = expected_counts.get(name)
+              if expected is None:
+                  problems.append(f"{name}: no expected skill count in category list")
+              elif count != expected:
+                  problems.append(f"{name} exposes {count} skills, expected {expected}")
+              for rel in shared_files:
+                  if not (root / rel).is_file():
+                      problems.append(f"{name} install is missing {rel}")
+          if problems:
+              sys.exit("install smoke test failed:\n  " + "\n  ".join(problems))
+          print(f"installed {len(entries)} plugins from {marketplace}")
+          PY

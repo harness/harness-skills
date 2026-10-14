@@ -1,0 +1,800 @@
+{
+  "name": "harness-skills",
+  "version": "1.0.0",
+  "repository": "https://github.com/harness/harness-skills",
+  "plugins": [
+    {
+      "name": "harness-pipelines",
+      "dir": "skills/pipelines",
+      "title": "Harness Pipelines & Execution",
+      "description": "Create v0 and v1 pipelines, triggers, templates and freeze windows, then run, debug and migrate them.",
+      "category": "ci-cd",
+      "skills": [
+        "create-pipeline",
+        "create-pipeline-v1",
+        "create-template",
+        "create-trigger",
+        "debug-pipeline",
+        "manage-freeze-windows",
+        "migrate-pipeline",
+        "run-pipeline"
+      ]
+    },
+    {
+      "name": "harness-infrastructure",
+      "dir": "skills/infrastructure",
+      "title": "Harness Infrastructure & Resources",
+      "description": "Define services, environments, infrastructure, connectors and secrets for Harness deployments.",
+      "category": "infrastructure",
+      "skills": [
+        "create-connector",
+        "create-environment",
+        "create-infrastructure",
+        "create-secret",
+        "create-service"
+      ]
+    },
+    {
+      "name": "harness-access-control",
+      "dir": "skills/access-control",
+      "title": "Harness Access Control & Users",
+      "description": "Manage users, user groups, service accounts, roles, resource groups and RBAC assignments.",
+      "category": "security",
+      "skills": [
+        "manage-roles",
+        "manage-users"
+      ]
+    },
+    {
+      "name": "harness-fme",
+      "dir": "skills/fme",
+      "title": "Harness FME (Feature Flags & Experimentation)",
+      "description": "Discover, create, target, roll out, clean up and experiment with Harness FME feature flags, segments and metrics.",
+      "category": "feature-flags",
+      "skills": [
+        "choose-metric",
+        "cleanup-feature-flags",
+        "create-experiment",
+        "create-feature-flag",
+        "create-metric",
+        "discover-feature-flags",
+        "explain-flag",
+        "feature-flag-onboarding",
+        "fme-pipeline",
+        "instrument-feature-flag",
+        "instrument-metric",
+        "manage-experiments",
+        "manage-flag-lifecycle",
+        "manage-segments",
+        "review-experiment-results",
+        "update-flag-targeting"
+      ]
+    },
+    {
+      "name": "harness-database",
+      "dir": "skills/database",
+      "title": "Harness Database DevOps",
+      "description": "Generate, review and run Liquibase changesets with Harness Database DevOps.",
+      "category": "database",
+      "skills": [
+        "dbops-changeset"
+      ]
+    },
+    {
+      "name": "harness-platform",
+      "dir": "skills/platform",
+      "title": "Harness Platform Operations",
+      "description": "Operate delegates, IaCM workspaces, cloud development environments, artifact registries, SBOMs, supply chain and pull requests.",
+      "category": "platform",
+      "skills": [
+        "create-sbom",
+        "enforce-sbom",
+        "manage-artifacts",
+        "manage-cde",
+        "manage-delegates",
+        "manage-iacm",
+        "manage-pull-requests",
+        "manage-supply-chain"
+      ]
+    },
+    {
+      "name": "harness-security",
+      "dir": "skills/security",
+      "title": "Harness Security Testing & Supply Chain",
+      "description": "Add STO code, secret, container and DAST scans, SLSA provenance and artifact signing, and manage exemptions and PR attestation.",
+      "category": "security",
+      "skills": [
+        "approve-exempt",
+        "configure-agent-pr-attestation",
+        "configure-container-scan",
+        "configure-dast-scan",
+        "configure-repo-scan",
+        "configure-secret-scan",
+        "enforce-slsa",
+        "exempt-vuln",
+        "generate-slsa",
+        "sign-artifact",
+        "verify-sign"
+      ]
+    },
+    {
+      "name": "harness-observability-governance",
+      "dir": "skills/observability-governance",
+      "title": "Harness Observability & Governance",
+      "description": "Costs, DORA, SLOs, chaos, scorecards, audits, OPA policies, IDP, SEI analytics and deployment risk insights.",
+      "category": "observability",
+      "skills": [
+        "ai-operations",
+        "analyze-costs",
+        "audit-report",
+        "chaos-dr-test",
+        "chaos-experiment",
+        "create-policy",
+        "deployment-readiness",
+        "dora-metrics",
+        "gitops-status",
+        "incident-response",
+        "manage-idp",
+        "manage-slos",
+        "optimize-pipeline",
+        "pr-analysis",
+        "scorecard-review",
+        "security-report",
+        "sei-analytics",
+        "template-usage"
+      ]
+    },
+    {
+      "name": "harness-agents",
+      "dir": "skills/agents",
+      "title": "Harness AI Agents",
+      "description": "Create Harness AI agents and agent templates for agentic pipeline workflows.",
+      "category": "ai-agents",
+      "skills": [
+        "create-agent",
+        "create-agent-template"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "create-pipeline",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/create-pipeline",
+      "summary": "Generate v0 pipeline YAML (CI, CD, combined, approvals)",
+      "version": "2.2.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-pipeline-v1",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/create-pipeline-v1",
+      "summary": "Generate v1 simplified pipeline YAML",
+      "version": "3.1.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-template",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/create-template",
+      "summary": "Create reusable step, stage, pipeline, and step group templates",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-trigger",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/create-trigger",
+      "summary": "Create webhook, scheduled, and artifact triggers",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "debug-pipeline",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/debug-pipeline",
+      "summary": "Diagnose pipeline execution failures",
+      "version": "2.1.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-freeze-windows",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/manage-freeze-windows",
+      "summary": "Create, toggle, and manage deployment freeze windows and the project-level global freeze",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP server (harness-mcp-v2)"
+    },
+    {
+      "name": "migrate-pipeline",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/migrate-pipeline",
+      "summary": "Convert v0 pipelines to v1 format",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "run-pipeline",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/run-pipeline",
+      "summary": "Execute and monitor pipeline runs",
+      "version": "2.1.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-connector",
+      "plugin": "harness-infrastructure",
+      "path": "skills/infrastructure/create-connector",
+      "summary": "Create connectors (GitHub, AWS, GCP, Azure, Docker, K8s)",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-environment",
+      "plugin": "harness-infrastructure",
+      "path": "skills/infrastructure/create-environment",
+      "summary": "Create environments (PreProduction, Production) with overrides",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-infrastructure",
+      "plugin": "harness-infrastructure",
+      "path": "skills/infrastructure/create-infrastructure",
+      "summary": "Define infrastructure (K8s, ECS, Serverless)",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-secret",
+      "plugin": "harness-infrastructure",
+      "path": "skills/infrastructure/create-secret",
+      "summary": "Manage secrets (SecretText, SecretFile, SSHKey, WinRM)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-service",
+      "plugin": "harness-infrastructure",
+      "path": "skills/infrastructure/create-service",
+      "summary": "Define services (Kubernetes, Helm, ECS) with artifact sources",
+      "version": "2.0.1",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-roles",
+      "plugin": "harness-access-control",
+      "path": "skills/access-control/manage-roles",
+      "summary": "RBAC roles, assignments, permissions, and resource groups",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-users",
+      "plugin": "harness-access-control",
+      "path": "skills/access-control/manage-users",
+      "summary": "Manage users, user groups, and service accounts",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "choose-metric",
+      "plugin": "harness-fme",
+      "path": "skills/fme/choose-metric",
+      "summary": "Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist",
+      "version": "1.3.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "cleanup-feature-flags",
+      "plugin": "harness-fme",
+      "path": "skills/fme/cleanup-feature-flags",
+      "summary": "Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle",
+      "version": "1.2.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "create-experiment",
+      "plugin": "harness-fme",
+      "path": "skills/fme/create-experiment",
+      "summary": "Creation-only entry point to the manage-experiments workflow",
+      "version": "1.0.1",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "create-feature-flag",
+      "plugin": "harness-fme",
+      "path": "skills/fme/create-feature-flag",
+      "summary": "Create an FME flag that follows project conventions, with safe-default definitions",
+      "version": "1.2.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "create-metric",
+      "plugin": "harness-fme",
+      "path": "skills/fme/create-metric",
+      "summary": "Design and create an FME metric, with intent-to-config guidance, traffic type, events, cap, and owners",
+      "version": "1.4.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "discover-feature-flags",
+      "plugin": "harness-fme",
+      "path": "skills/fme/discover-feature-flags",
+      "summary": "Inventory, targeting-pattern search, promotion-aware rollout report, and stale-flag audit (read-only)",
+      "version": "1.3.1",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "explain-flag",
+      "plugin": "harness-fme",
+      "path": "skills/fme/explain-flag",
+      "summary": "Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only)",
+      "version": "1.3.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "feature-flag-onboarding",
+      "plugin": "harness-fme",
+      "path": "skills/fme/feature-flag-onboarding",
+      "summary": "Set up and verify a first feature flag in an existing project; resume partial onboarding",
+      "version": "1.0.1",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI, plus local application code access and (for live proof) runtime/build access; guidance-only or partial if application/runtime access is unavailable"
+    },
+    {
+      "name": "fme-pipeline",
+      "plugin": "harness-fme",
+      "path": "skills/fme/fme-pipeline",
+      "summary": "Generate FME pipelines for rollout scenarios, gates, and flag lifecycle",
+      "version": "1.2.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "instrument-feature-flag",
+      "plugin": "harness-fme",
+      "path": "skills/fme/instrument-feature-flag",
+      "summary": "Gate application code through an extensible flag abstraction, after stack detection and clarification",
+      "version": "1.0.1",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI for flag reads, plus local application code access to make edits; guidance-only (no edits) if application access is unavailable"
+    },
+    {
+      "name": "instrument-metric",
+      "plugin": "harness-fme",
+      "path": "skills/fme/instrument-metric",
+      "summary": "Wire up a track() call for a metric's event, placed at the real outcome, and verify it arrives",
+      "version": "1.2.4",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "manage-experiments",
+      "plugin": "harness-fme",
+      "path": "skills/fme/manage-experiments",
+      "summary": "Feature-flag experiment design/lifecycle; delegates metrics and states CLI update limitations",
+      "version": "2.1.0",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "manage-flag-lifecycle",
+      "plugin": "harness-fme",
+      "path": "skills/fme/manage-flag-lifecycle",
+      "summary": "Flag metadata, archive readiness, archive/unarchive, and delete",
+      "version": "1.2.1",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "manage-segments",
+      "plugin": "harness-fme",
+      "path": "skills/fme/manage-segments",
+      "summary": "Segment metadata, STANDARD membership, and RULE_BASED editor workflows with mandatory pre-write reference checks",
+      "version": "1.3.1",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires Harness MCP or CLI; RULE_BASED rule changes use the Harness rule editor"
+    },
+    {
+      "name": "review-experiment-results",
+      "plugin": "harness-fme",
+      "path": "skills/fme/review-experiment-results",
+      "summary": "Explain experiment results, including winner, significance, guardrail impact, and data-quality caveats",
+      "version": "2.1.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "update-flag-targeting",
+      "plugin": "harness-fme",
+      "path": "skills/fme/update-flag-targeting",
+      "summary": "Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions",
+      "version": "1.2.2",
+      "mcp_server": "harness-mcp",
+      "compatibility": "Requires the Harness MCP server or the Harness CLI"
+    },
+    {
+      "name": "dbops-changeset",
+      "plugin": "harness-database",
+      "path": "skills/database/dbops-changeset",
+      "summary": "Generate, refine, review, and execute Liquibase changesets with Harness DBOPS",
+      "version": "2.1.1",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 `dbops` toolset (resource types: database_schema, database_instance, database_default_authoring_instance, database_snapshot_object, database_execute_llm_authoring_pipeline). Connector lookup uses the `connectors` toolset `connector` resource. Review is done in chat (Accept / Deny / Accept & Commit)."
+    },
+    {
+      "name": "create-sbom",
+      "plugin": "harness-platform",
+      "path": "skills/platform/create-sbom",
+      "summary": "Add SBOM Orchestration (generation/attestation) to existing pipelines",
+      "version": "1.0.1",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "enforce-sbom",
+      "plugin": "harness-platform",
+      "path": "skills/platform/enforce-sbom",
+      "summary": "Add SBOM Policy Enforcement (verify attestation + OPA policy sets)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-artifacts",
+      "plugin": "harness-platform",
+      "path": "skills/platform/manage-artifacts",
+      "summary": "Artifact registry setup, security scanning, and cross-region replication",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-cde",
+      "plugin": "harness-platform",
+      "path": "skills/platform/manage-cde",
+      "summary": "Cloud development environments, workspace templates, and auto-hibernation",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-delegates",
+      "plugin": "harness-platform",
+      "path": "skills/platform/manage-delegates",
+      "summary": "Monitor delegate health and manage registration tokens",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-iacm",
+      "plugin": "harness-platform",
+      "path": "skills/platform/manage-iacm",
+      "summary": "Terraform workspaces, drift detection, cost estimation, and approval workflows",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-pull-requests",
+      "plugin": "harness-platform",
+      "path": "skills/platform/manage-pull-requests",
+      "summary": "List, create, update, merge, review, and comment on Harness Code pull requests",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-supply-chain",
+      "plugin": "harness-platform",
+      "path": "skills/platform/manage-supply-chain",
+      "summary": "SBOM generation, artifact signing, and supply chain policy enforcement",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "approve-exempt",
+      "plugin": "harness-security",
+      "path": "skills/security/approve-exempt",
+      "summary": "Approve pending STO exemptions at current scope or elevate to Project, Org, or Account",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "configure-agent-pr-attestation",
+      "plugin": "harness-security",
+      "path": "skills/security/configure-agent-pr-attestation",
+      "summary": "Install and configure the Claude Code PR attestation hook for signed in-toto attestations to the Harness Evidence Vault",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires harness-scs CLI binary and cosign for signing. Currently supports Claude Code as the agent runtime."
+    },
+    {
+      "name": "configure-container-scan",
+      "plugin": "harness-security",
+      "path": "skills/security/configure-container-scan",
+      "summary": "Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "configure-dast-scan",
+      "plugin": "harness-security",
+      "path": "skills/security/configure-dast-scan",
+      "summary": "Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "configure-repo-scan",
+      "plugin": "harness-security",
+      "path": "skills/security/configure-repo-scan",
+      "summary": "Configure code scanning in pipelines with STO security scanners",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "configure-secret-scan",
+      "plugin": "harness-security",
+      "path": "skills/security/configure-secret-scan",
+      "summary": "Add secret detection scanning to pipelines to find exposed credentials and API keys (Gitleaks, Semgrep, Snyk, and more)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "enforce-slsa",
+      "plugin": "harness-security",
+      "path": "skills/security/enforce-slsa",
+      "summary": "Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "exempt-vuln",
+      "plugin": "harness-security",
+      "path": "skills/security/exempt-vuln",
+      "summary": "Create STO vulnerability exemptions (waivers) scoped to Project, Pipeline, or Target",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "generate-slsa",
+      "plugin": "harness-security",
+      "path": "skills/security/generate-slsa",
+      "summary": "Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "sign-artifact",
+      "plugin": "harness-security",
+      "path": "skills/security/sign-artifact",
+      "summary": "Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "verify-sign",
+      "plugin": "harness-security",
+      "path": "skills/security/verify-sign",
+      "summary": "Add Artifact Verification (verify Cosign signature) to existing pipelines (SSCA)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "ai-operations",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/ai-operations",
+      "summary": "Predictive failure analysis and intelligent alert correlation (AIDA)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "analyze-costs",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/analyze-costs",
+      "summary": "Cloud cost analysis, recommendations, and anomaly detection",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "audit-report",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/audit-report",
+      "summary": "Audit trails and compliance evidence (SOC2, GDPR, HIPAA)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "chaos-dr-test",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/chaos-dr-test",
+      "summary": "Create and edit DR Test pipelines with chaos steps",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "chaos-experiment",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/chaos-experiment",
+      "summary": "Create, edit, and reference chaos experiments (faults, probes, actions)",
+      "version": "3.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-policy",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/create-policy",
+      "summary": "Create OPA governance policies for supply chain security",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "deployment-readiness",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/deployment-readiness",
+      "summary": "Pre-deployment readiness checks, environment drift, and canary decisions",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "dora-metrics",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/dora-metrics",
+      "summary": "DORA metrics and engineering performance reports",
+      "version": "2.1.1",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2). All six DORA metric variants are served by a single consolidated `sei_dora_metric` resource; pick the variant via the `metric` parameter."
+    },
+    {
+      "name": "gitops-status",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/gitops-status",
+      "summary": "GitOps application health, sync status, and pod logs",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "incident-response",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/incident-response",
+      "summary": "Deployment-incident correlation, blast radius analysis, and postmortems",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-idp",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/manage-idp",
+      "summary": "Service catalog, self-service workflows, documentation, and developer onboarding (IDP)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "manage-slos",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/manage-slos",
+      "summary": "SLO definition, error budgets, incident detection, and operational runbooks",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2).\nNOTE: SRM CRUD resources (`slo`, `slo_alert`, `monitored_service`) are NOT currently exposed\nby the MCP server. Creating/managing SLOs and monitored services must be done in the Harness\nUI. This skill focuses on the incident-correlation and reporting workflows that the MCP server\ndoes support today (via `execution`, `service`, `environment`).\n"
+    },
+    {
+      "name": "optimize-pipeline",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/optimize-pipeline",
+      "summary": "Pipeline speed optimization, parallel testing, caching, and monorepo builds",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "pr-analysis",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/pr-analysis",
+      "summary": "PR pipeline impact, security review, and PR-to-production tracking",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "scorecard-review",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/scorecard-review",
+      "summary": "IDP scorecards and service maturity review",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "security-report",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/security-report",
+      "summary": "Security vulnerabilities, SBOMs, and compliance reports",
+      "version": "2.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "sei-analytics",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/sei-analytics",
+      "summary": "Sprint analytics, investment allocation, capacity forecasting, and release readiness",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "template-usage",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/template-usage",
+      "summary": "Template dependency tracking, impact analysis, and adoption",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-agent",
+      "plugin": "harness-agents",
+      "path": "skills/agents/create-agent",
+      "summary": "Create and update Harness AI agent instances for agentic pipeline workflows",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "create-agent-template",
+      "plugin": "harness-agents",
+      "path": "skills/agents/create-agent-template",
+      "summary": "Generate AI agent templates (metadata.json, pipeline.yaml, wiki.MD)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "No MCP server required. Generates YAML files locally."
+    }
+  ]
+}

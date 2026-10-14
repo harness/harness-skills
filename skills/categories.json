@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "categories": [
+    {"dir": "pipelines", "plugin": "harness-pipelines", "title": "Harness Pipelines & Execution", "description": "Create v0 and v1 pipelines, triggers, templates and freeze windows, then run, debug and migrate them.", "category": "ci-cd", "keywords": ["harness", "pipelines", "ci-cd", "triggers", "templates"]},
+    {"dir": "infrastructure", "plugin": "harness-infrastructure", "title": "Harness Infrastructure & Resources", "description": "Define services, environments, infrastructure, connectors and secrets for Harness deployments.", "category": "infrastructure", "keywords": ["harness", "services", "environments", "connectors", "secrets"]},
+    {"dir": "access-control", "plugin": "harness-access-control", "title": "Harness Access Control & Users", "description": "Manage users, user groups, service accounts, roles, resource groups and RBAC assignments.", "category": "security", "keywords": ["harness", "rbac", "users", "roles"]},
+    {"dir": "fme", "plugin": "harness-fme", "title": "Harness FME (Feature Flags & Experimentation)", "description": "Discover, create, target, roll out, clean up and experiment with Harness FME feature flags, segments and metrics.", "category": "feature-flags", "keywords": ["harness", "fme", "feature-flags", "experimentation", "split"]},
+    {"dir": "database", "plugin": "harness-database", "title": "Harness Database DevOps", "description": "Generate, review and run Liquibase changesets with Harness Database DevOps.", "category": "database", "keywords": ["harness", "database", "liquibase", "dbops"]},
+    {"dir": "platform", "plugin": "harness-platform", "title": "Harness Platform Operations", "description": "Operate delegates, IaCM workspaces, cloud development environments, artifact registries, SBOMs, supply chain and pull requests.", "category": "platform", "keywords": ["harness", "delegates", "iacm", "cde", "artifacts", "sbom"]},
+    {"dir": "security", "plugin": "harness-security", "title": "Harness Security Testing & Supply Chain", "description": "Add STO code, secret, container and DAST scans, SLSA provenance and artifact signing, and manage exemptions and PR attestation.", "category": "security", "keywords": ["harness", "sto", "security", "slsa", "signing"]},
+    {"dir": "observability-governance", "plugin": "harness-observability-governance", "title": "Harness Observability & Governance", "description": "Costs, DORA, SLOs, chaos, scorecards, audits, OPA policies, IDP, SEI analytics and deployment risk insights.", "category": "observability", "keywords": ["harness", "observability", "governance", "chaos", "slo", "opa"]},
+    {"dir": "agents", "plugin": "harness-agents", "title": "Harness AI Agents", "description": "Create Harness AI agents and agent templates for agentic pipeline workflows.", "category": "ai-agents", "keywords": ["harness", "agents", "ai"]}
+  ]
+}

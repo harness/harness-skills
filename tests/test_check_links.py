@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -194,6 +196,50 @@ class TestLinks(TreeCase):
         self.assertIn("#nope (missing anchor)", out)
         self.assertIn("links-checked=2", out)
         self.assertIn("broken=2", out)
+
+
+class TestUsageErrors(TreeCase):
+    def test_nonexistent_path_argument_is_an_error(self):
+        self.write({"README.md": "# A\n"})
+        missing = self.root / "nope.md"
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = check_links.main(["--root", str(self.root), str(missing)])
+        self.assertEqual(code, 2)
+        self.assertIn(f"error: no such file or directory: {missing}", err.getvalue())
+
+    def test_empty_file_set_is_an_error(self):
+        # No files written: an empty root dir has nothing to check.
+        with contextlib.redirect_stderr(io.StringIO()):
+            code, out = run_main(self.root)
+        self.assertEqual(code, 2, out)
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root ignores file permissions")
+    def test_unreadable_file_is_reported_as_broken(self):
+        self.skill("See [broken](nope.md).\n")
+        path = self.root / "skills/cat/a/SKILL.md"
+        path.chmod(0o000)
+        try:
+            code, out = run_main(self.root)
+        finally:
+            path.chmod(0o644)
+        self.assertEqual(code, 1, out)
+        self.assertIn("skills/cat/a/SKILL.md:0 ->  (unreadable:", out)
+        self.assertIn("broken=1", out)
+
+
+class TestGitDiscovery(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
+
+    def test_non_ascii_filename_is_discovered_via_git(self):
+        (self.root / "café.md").write_text("# X\n\n[broken](nope.md)\n", encoding="utf-8")
+        code, out = run_main(self.root, discover=True)
+        self.assertEqual(code, 1, out)
+        self.assertIn("café.md:3 -> nope.md (missing file)", out)
 
 
 class TestRealRepo(unittest.TestCase):

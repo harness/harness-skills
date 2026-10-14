@@ -253,19 +253,19 @@ def _walk_markdown(base: Path) -> list[Path]:
 def _git_or_walk_markdown(root: Path) -> list[Path]:
     try:
         proc = subprocess.run(
-            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md", "*.mdc"],
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "*.md", "*.mdc"],
             cwd=root,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     except (subprocess.CalledProcessError, OSError):
         return _walk_markdown(root)
     files = []
-    for line in proc.stdout.splitlines():
-        line = line.strip()
-        if line:
-            files.append(root / line)
+    for name in proc.stdout.split("\0"):
+        if name:
+            files.append(root / name)
     return files
 
 
@@ -288,6 +288,8 @@ def markdown_files(root: Path, paths: Sequence[str] = ()) -> list[Path]:
                 collected.extend(_walk_markdown(fp))
             elif fp.is_file():
                 collected.append(fp)
+            else:
+                raise FileNotFoundError(f"no such file or directory: {p}")
         candidates = collected
     else:
         candidates = _git_or_walk_markdown(root)
@@ -367,13 +369,7 @@ def check_all(root: Path, files: Iterable[Path]) -> tuple[list[Problem], list[Cr
 
     for file_path in files:
         stats["md-files"] += 1
-        try:
-            text = file_path.read_text(encoding="utf-8")
-        except OSError:
-            continue
         resolved_self = file_path.resolve()
-        anchor_cache.setdefault(resolved_self, heading_anchors(text))
-
         try:
             rel_self = resolved_self.relative_to(root)
             rel_str = rel_self.as_posix()
@@ -381,6 +377,13 @@ def check_all(root: Path, files: Iterable[Path]) -> tuple[list[Problem], list[Cr
         except ValueError:
             rel_str = resolved_self.as_posix()
             self_skill = None
+
+        try:
+            text = file_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            problems.append(Problem(rel_str, 0, "", f"unreadable: {exc}"))
+            continue
+        anchor_cache.setdefault(resolved_self, heading_anchors(text))
 
         def note_reach(line: int, target: Path) -> None:
             if self_skill is None:
@@ -480,6 +483,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         files = markdown_files(root, args.paths)
     except OSError as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    if not files:
+        print("error: no markdown files found", file=sys.stderr)
         return 2
 
     problems, warnings, stats = check_all(root, files)

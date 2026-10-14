@@ -3,13 +3,14 @@ name: create-metric
 description: >-
   Create a Harness FME metric: helps decide what to measure, suggests candidate
   metrics from application code, resolves traffic type and event type IDs,
-  drafts the payload, then creates. Doesn't attach metrics to experiments
-  (manage-experiments) or add the tracking call (instrument-metric). Trigger
-  phrases: create/define a metric, new metric, what metrics should we create,
-  suggest metrics.
+  drafts the payload, then creates. Use when asked to create or define a new
+  metric, decide what to measure, or get metric suggestions from application
+  code. Doesn't attach metrics to experiments (manage-experiments) or add the
+  tracking call (instrument-metric). Trigger phrases: create/define a metric,
+  new metric, what metrics should we create, suggest metrics.
 metadata:
   author: Harness
-  version: 1.4.1
+  version: 1.4.2
   mcp-server: harness-mcp
   summary: Design and create an FME metric, with intent-to-config guidance, traffic type, events, cap, and owners
 license: Apache-2.0

@@ -8,7 +8,7 @@ description: >-
   service definition, Kubernetes service, Helm service, ECS service, deployment service, artifact source.
 metadata:
   author: Harness
-  version: 2.0.0
+  version: 2.0.1
   mcp-server: harness-mcp-v2
   summary: Define services (Kubernetes, Helm, ECS) with artifact sources
 license: Apache-2.0
@@ -30,7 +30,7 @@ Generate Harness Service YAML and push to Harness via MCP.
    - `function.json` (Azure) → `AzureWebApp`
    - `.NET` + Windows → `WinRm`
    - Traditional app (JAR/WAR) without containers → `Ssh`
-   - See `create-pipeline/references/codebase-analysis.md` Step 4 for the full decision tree
+   - See [codebase-analysis.md](../../pipelines/create-pipeline/references/codebase-analysis.md) Step 4 for the full decision tree
 2. **Detect artifact source** - Match Dockerfile registry references to artifact source type:
    - Docker Hub → `DockerRegistry`
    - `*.dkr.ecr.*.amazonaws.com` → `Ecr`

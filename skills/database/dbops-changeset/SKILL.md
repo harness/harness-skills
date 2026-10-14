@@ -4,12 +4,14 @@ description: >-
   Generates Liquibase database changesets via a structured workflow:
   resolve schema+instance (from context or via API discovery),
   confirm DB engine type, generate Liquibase YAML, and present for
-  HITL review with Accept / Deny / Accept & Commit actions.
-  Supports update mode (refine existing changeset) and error-recovery
-  mode (fix a failed migration).
+  HITL review with Accept / Deny / Accept & Commit actions. Use when
+  asked to create, modify, or drop database tables, columns, indexes,
+  or constraints as a Liquibase changeset, generate a database
+  migration, or fix a failed migration. Supports update mode (refine
+  existing changeset) and error-recovery mode (fix a failed migration).
 metadata:
   author: Harness
-  version: 2.1.0
+  version: 2.1.1
   mcp-server: harness-mcp-v2
   module: DBOPS
   summary: Generate, refine, review, and execute Liquibase changesets with Harness DBOPS

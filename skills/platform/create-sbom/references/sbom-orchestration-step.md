@@ -80,7 +80,7 @@ attestation:
 
 Omit `attestation` only if the user unchecks **Attest SBOM** in Step 4.
 
-Keyless limitations: not supported on SMP; Rekor may be off when SCS Airgap is enabled. See `skills/security/sign-artifact/references/keyless-signing.md` for non-harness OIDC setup.
+Keyless limitations: not supported on SMP; Rekor may be off when SCS Airgap is enabled. See [Keyless - Non-Harness OIDC](../../../security/sign-artifact/references/artifact-signing-step.md#keyless--non-harness-oidc) in the sign-artifact skill for non-harness OIDC setup.
 
 ## Full example — matches reference UI
 

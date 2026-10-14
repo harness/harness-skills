@@ -270,7 +270,7 @@
       "plugin": "harness-infrastructure",
       "path": "skills/infrastructure/create-service",
       "summary": "Define services (Kubernetes, Helm, ECS) with artifact sources",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
     },
@@ -333,7 +333,7 @@
       "plugin": "harness-fme",
       "path": "skills/fme/create-metric",
       "summary": "Design and create an FME metric, with intent-to-config guidance, traffic type, events, cap, and owners",
-      "version": "1.4.1",
+      "version": "1.4.2",
       "mcp_server": "harness-mcp",
       "compatibility": "Requires the Harness MCP server or the Harness CLI"
     },
@@ -441,7 +441,7 @@
       "plugin": "harness-database",
       "path": "skills/database/dbops-changeset",
       "summary": "Generate, refine, review, and execute Liquibase changesets with Harness DBOPS",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 `dbops` toolset (resource types: database_schema, database_instance, database_default_authoring_instance, database_snapshot_object, database_execute_llm_authoring_pipeline). Connector lookup uses the `connectors` toolset `connector` resource. Review is done in chat (Accept / Deny / Accept & Commit)."
     },
@@ -450,7 +450,7 @@
       "plugin": "harness-platform",
       "path": "skills/platform/create-sbom",
       "summary": "Add SBOM Orchestration (generation/attestation) to existing pipelines",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
     },

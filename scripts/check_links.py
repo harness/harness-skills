@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Markdown links and anchors.
+"""Check Markdown links, anchors and backticked path mentions.
 
 Usage: scripts/check_links.py [path ...] [--root DIR]
 
@@ -9,8 +9,19 @@ knows about or would add, starting from the repo root. Positional arguments
 of files checked. --root overrides the repo root used for file discovery
 and for resolving "outside root" links.
 
-Prints one line per broken link or anchor, then a SUMMARY line. Exit 1 if
-anything is broken, 0 if clean, 2 on usage or tree errors.
+Besides [text](dest) links, checks inline code spans outside fenced blocks
+whose whole content is a repo path to a Markdown file (`references/x.md`,
+`templates/x.md#anchor`, `skills/<category>/<skill>/...` written out, or
+`<skill>/references/x.md`); agents follow these as links. A mention
+resolves relative to the containing file, then (for references/, templates/
+and skills/ paths) the containing skill's folder and the repo root, then (for
+<skill>/references/ paths) the containing skill's category directory. Spans with placeholders (<, *, {) are
+ignored.
+
+Prints one line per broken link, mention or anchor, then one "warning:" line
+per link or mention that reaches into a different skill's folder, then a
+SUMMARY line. Warnings never change the exit code. Exit 1 if anything is
+broken, 0 if clean, 2 on usage or tree errors.
 """
 from __future__ import annotations
 
@@ -43,6 +54,15 @@ HTML_TAG_RE = re.compile(r"<[^>]+>")
 HTML_A_NAME_RE = re.compile(r'<a\b[^>]*\bname\s*=\s*(?:"([^"]*)"|\'([^\']*)\')', re.IGNORECASE)
 HTML_ID_ATTR_RE = re.compile(r'\bid\s*=\s*(?:"([^"]*)"|\'([^\']*)\')', re.IGNORECASE)
 LINE_FRAGMENT_RE = re.compile(r"^L\d+(-L\d+)?$")
+# A whole code span that is a repo path to a Markdown file: shared
+# references/templates, a skill's own references/, or "<skill>/references/".
+PATH_MENTION_RE = re.compile(
+    r"^(\.\./)*(\./)?((references|templates|skills)/|[a-z0-9-]+/references/)"
+    r"[A-Za-z0-9_./-]+\.md(#[A-Za-z0-9_-]+)?$"
+)
+ROOT_PREFIXES = ("references/", "templates/", "skills/")
+SKILL_REFERENCES_RE = re.compile(r"^[a-z0-9-]+/references/")
+SKILLS_DIR = "skills"
 
 
 @dataclass(frozen=True)
@@ -61,6 +81,13 @@ class Problem:
     reason: str  # "missing file" | "missing anchor"
 
 
+@dataclass(frozen=True)
+class CrossSkill:
+    path: str  # file containing the link or mention, relative to root
+    line: int
+    target: str  # resolved target inside another skill, relative to root
+
+
 def _frontmatter_end(lines: list[str]) -> int:
     """Return the index of the first line after YAML frontmatter, or 0 if none."""
     if not lines or lines[0].rstrip("\r\n") != "---":
@@ -76,12 +103,8 @@ def _mask_code_spans(line: str) -> str:
     return CODE_SPAN_RE.sub(lambda m: " " * len(m.group(0)), line)
 
 
-def iter_links(text: str) -> Iterator[Link]:
-    """Yield every inline link/image destination and reference definition.
-
-    Skips fenced code blocks, inline code spans, and YAML frontmatter. Does
-    not filter external or anchor-only destinations -- see is_external().
-    """
+def _prose_lines(text: str) -> Iterator[tuple[int, str]]:
+    """Yield (1-based line number, raw line) outside YAML frontmatter and fenced code."""
     lines = text.split("\n")
     skip_until = _frontmatter_end(lines)
     fence: tuple[str, int] | None = None
@@ -99,12 +122,37 @@ def iter_links(text: str) -> Iterator[Link]:
             continue
         if fence is not None:
             continue
+        yield i + 1, raw
+
+
+def iter_links(text: str) -> Iterator[Link]:
+    """Yield every inline link/image destination and reference definition.
+
+    Skips fenced code blocks, inline code spans, and YAML frontmatter. Does
+    not filter external or anchor-only destinations -- see is_external().
+    """
+    for lineno, raw in _prose_lines(text):
         masked = _mask_code_spans(raw)
         for m in LINK_DEST_RE.finditer(masked):
-            yield _link_from_match(i + 1, m, 1)
+            yield _link_from_match(lineno, m, 1)
         d = REF_DEF_RE.match(masked)
         if d:
-            yield _link_from_match(i + 1, d, 1)
+            yield _link_from_match(lineno, d, 1)
+
+
+def iter_path_mentions(text: str) -> Iterator[Link]:
+    """Yield inline code spans whose whole content is a repo path to a Markdown file.
+
+    Skips fenced code blocks and YAML frontmatter. dest is the span content
+    (with any "#anchor"). Spans with placeholders (<, *, {) never match.
+    """
+    for lineno, raw in _prose_lines(text):
+        for m in CODE_SPAN_RE.finditer(raw):
+            content = m.group(2)
+            dest = content.strip()
+            if PATH_MENTION_RE.match(dest):
+                start = m.start(2) + len(content) - len(content.lstrip())
+                yield Link(line=lineno, dest=dest, start=start, end=start + len(dest))
 
 
 def _link_from_match(line: int, m: re.Match, group: int) -> Link:
@@ -173,25 +221,9 @@ def heading_anchors(text: str) -> set[str]:
     attributes. Headings and anchors inside fenced code blocks or YAML
     frontmatter are ignored.
     """
-    lines = text.split("\n")
-    skip_until = _frontmatter_end(lines)
-    fence: tuple[str, int] | None = None
     anchors: set[str] = set()
     seen: dict[str, int] = {}
-    for i, raw in enumerate(lines):
-        if i < skip_until:
-            continue
-        f = FENCE_RE.match(raw)
-        if f:
-            token = f.group(1)
-            ch, length = token[0], len(token)
-            if fence is None:
-                fence = (ch, length)
-            elif ch == fence[0] and length >= fence[1]:
-                fence = None
-            continue
-        if fence is not None:
-            continue
+    for _, raw in _prose_lines(text):
         h = ATX_HEADING_RE.match(raw)
         if h:
             slug = _slugify_heading(h.group(2))
@@ -275,14 +307,50 @@ def markdown_files(root: Path, paths: Sequence[str] = ()) -> list[Path]:
     return result
 
 
-def check(root: Path, files: Iterable[Path]) -> tuple[list[Problem], dict[str, int]]:
-    """Check links and anchors in files. Returns (problems, stats).
+def _skill_of(rel: Path) -> tuple[str, str] | None:
+    """(category, skill) for a root-relative path inside skills/<category>/<skill>/, else None."""
+    parts = rel.parts
+    if len(parts) >= 3 and parts[0] == SKILLS_DIR:
+        return parts[1], parts[2]
+    return None
 
-    stats keys: md-files, links-checked, anchors-checked.
+
+def _resolve_mention(file_path: Path, root: Path, dest: str) -> Path | None:
+    """Resolve a path mention to an existing file under root, or None.
+
+    Tries, in order: relative to the containing file; relative to the
+    containing skill's folder and then the repo root (references/, templates/
+    and skills/ prefixes); relative to the containing skill's category folder
+    ("<skill>/references/..." paths).
+    """
+    candidates = [file_path.parent / dest]
+    resolved_self = file_path.resolve()
+    skill = _skill_of(resolved_self.relative_to(root)) if resolved_self.is_relative_to(root) else None
+    if dest.startswith(ROOT_PREFIXES):
+        if skill is not None:
+            candidates.append(root / SKILLS_DIR / skill[0] / skill[1] / dest)
+        candidates.append(root / dest)
+    if skill is not None and SKILL_REFERENCES_RE.match(dest):
+        candidates.append(root / SKILLS_DIR / skill[0] / dest)
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved.is_relative_to(root) and resolved.is_file():
+            return resolved
+    return None
+
+
+def check_all(root: Path, files: Iterable[Path]) -> tuple[list[Problem], list[CrossSkill], dict[str, int]]:
+    """Check links, anchors and path mentions in files.
+
+    Returns (problems, warnings, stats). Warnings are links or mentions that
+    resolve into a different skill's folder; they are not problems.
+    stats keys: md-files, links-checked, mentions-checked, anchors-checked,
+    warnings.
     """
     root = Path(root).resolve()
     problems: list[Problem] = []
-    stats = {"md-files": 0, "links-checked": 0, "anchors-checked": 0}
+    warnings: list[CrossSkill] = []
+    stats = {"md-files": 0, "links-checked": 0, "mentions-checked": 0, "anchors-checked": 0, "warnings": 0}
     anchor_cache: dict[Path, set[str] | None] = {}
 
     def get_anchors(path: Path) -> set[str] | None:
@@ -307,9 +375,19 @@ def check(root: Path, files: Iterable[Path]) -> tuple[list[Problem], dict[str, i
         anchor_cache.setdefault(resolved_self, heading_anchors(text))
 
         try:
-            rel_str = resolved_self.relative_to(root).as_posix()
+            rel_self = resolved_self.relative_to(root)
+            rel_str = rel_self.as_posix()
+            self_skill = _skill_of(rel_self)
         except ValueError:
             rel_str = resolved_self.as_posix()
+            self_skill = None
+
+        def note_reach(line: int, target: Path) -> None:
+            if self_skill is None:
+                return
+            rel_target = target.relative_to(root)
+            if _skill_of(rel_target) not in (None, self_skill):
+                warnings.append(CrossSkill(rel_str, line, rel_target.as_posix()))
 
         for link in iter_links(text):
             dest = link.dest
@@ -330,6 +408,7 @@ def check(root: Path, files: Iterable[Path]) -> tuple[list[Problem], dict[str, i
                 if not in_root or not resolved.exists():
                     problems.append(Problem(rel_str, link.line, dest, "missing file"))
                     continue
+                note_reach(link.line, resolved)
                 if frag is None:
                     continue
                 decoded_frag = unquote(frag)
@@ -352,12 +431,38 @@ def check(root: Path, files: Iterable[Path]) -> tuple[list[Problem], dict[str, i
                 if anchors is None or decoded_frag not in anchors:
                     problems.append(Problem(rel_str, link.line, dest, "missing anchor"))
 
+        for mention in iter_path_mentions(text):
+            stats["mentions-checked"] += 1
+            path_part, _, frag = mention.dest.partition("#")
+            resolved = _resolve_mention(file_path, root, path_part)
+            if resolved is None:
+                problems.append(Problem(rel_str, mention.line, mention.dest, "missing file"))
+                continue
+            note_reach(mention.line, resolved)
+            if not frag:
+                continue
+            stats["anchors-checked"] += 1
+            anchors = get_anchors(resolved)
+            if anchors is None or frag not in anchors:
+                problems.append(Problem(rel_str, mention.line, mention.dest, "missing anchor"))
+
     problems.sort(key=lambda p: (p.path, p.line))
+    warnings.sort(key=lambda w: (w.path, w.line, w.target))
+    stats["warnings"] = len(warnings)
+    return problems, warnings, stats
+
+
+def check(root: Path, files: Iterable[Path]) -> tuple[list[Problem], dict[str, int]]:
+    """Check links, anchors and path mentions in files. Returns (problems, stats).
+
+    See check_all() for the warnings and the stats keys.
+    """
+    problems, _, stats = check_all(root, files)
     return problems, stats
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Check Markdown links and anchors.")
+    parser = argparse.ArgumentParser(description="Check Markdown links, anchors and backticked path mentions.")
     parser.add_argument("paths", nargs="*", help="files or directories to check, relative to cwd")
     parser.add_argument("--root", help="repo root (defaults to the parent of scripts/)")
     try:
@@ -377,13 +482,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    problems, stats = check(root, files)
+    problems, warnings, stats = check_all(root, files)
     for p in problems:
         print(f"{p.path}:{p.line} -> {p.dest} ({p.reason})")
+    for w in warnings:
+        print(f"warning: {w.path}:{w.line}: path into another skill: {w.target}")
     broken = len(problems)
     print(
         f"SUMMARY md-files={stats['md-files']} links-checked={stats['links-checked']} "
-        f"anchors-checked={stats['anchors-checked']} broken={broken}"
+        f"anchors-checked={stats['anchors-checked']} broken={broken} "
+        f"mentions-checked={stats['mentions-checked']} warnings={stats['warnings']}"
     )
     return 1 if broken else 0
 

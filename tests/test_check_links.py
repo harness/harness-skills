@@ -198,6 +198,73 @@ class TestLinks(TreeCase):
         self.assertIn("broken=2", out)
 
 
+class TestFences(TreeCase):
+    def test_fence_with_info_string_does_not_close(self):
+        # A closing fence takes no info string under CommonMark, so the
+        # ```yaml line must not close the block opened two lines above it.
+        self.skill(
+            "```\n"
+            "plain block\n"
+            "```yaml\n"
+            "still code per CommonMark (closing fences take no info string)\n"
+            "```\n"
+            "\n"
+            "[after](nope-after.md)\n"
+        )
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("nope-after.md (missing file)", out)
+        self.assertIn("links-checked=1", out)
+
+    def test_mismatched_fence_char_does_not_close(self):
+        # A ~~~ line inside a ``` block must not close it (regression guard:
+        # letting any fence type close any open fence would hide the link
+        # below while still passing a naive "does it close" check).
+        self.skill(
+            "```\n"
+            "~~~\n"
+            "[hidden](nope-hidden.md)\n"
+            "```\n"
+            "\n"
+            "[visible](nope-visible.md)\n"
+        )
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("nope-visible.md (missing file)", out)
+        self.assertNotIn("nope-hidden.md", out)
+        self.assertIn("links-checked=1", out)
+
+
+class TestHeadingSlugs(TreeCase):
+    def test_code_span_in_heading_strips_only_outside_code(self):
+        # GitHub keeps code span content literal: "<skill>" loses its
+        # angle brackets but keeps "skill", it is not HTML-tag-stripped
+        # as a whole.
+        self.skill(
+            "## The `<skill>` folder\n\n"
+            "Link to [good](#the-skill-folder).\n"
+            "Also [bad](#the--folder).\n"
+        )
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("#the--folder (missing anchor)", out)
+        self.assertNotIn("#the-skill-folder (missing anchor)", out)
+
+    def test_code_span_in_heading_keeps_underscores(self):
+        # "__init__" must not be treated as emphasis markers just because
+        # it sits inside a code span.
+        self.skill("## `__init__`\n\nLink to [good](#__init__).\nAlso [bad](#init).\n")
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("#init (missing anchor)", out)
+        self.assertNotIn("#__init__ (missing anchor)", out)
+
+    def test_emphasis_outside_code_span_still_stripped(self):
+        self.skill("## **Bold** heading\n\nLink to [good](#bold-heading).\n")
+        code, out = run_main(self.root)
+        self.assertEqual(code, 0, out)
+
+
 class TestUsageErrors(TreeCase):
     def test_nonexistent_path_argument_is_an_error(self):
         self.write({"README.md": "# A\n"})

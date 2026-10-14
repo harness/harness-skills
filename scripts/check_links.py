@@ -117,7 +117,9 @@ def _prose_lines(text: str) -> Iterator[tuple[int, str]]:
             ch, length = token[0], len(token)
             if fence is None:
                 fence = (ch, length)
-            elif ch == fence[0] and length >= fence[1]:
+            elif ch == fence[0] and length >= fence[1] and raw[f.end() :].strip() == "":
+                # A closing fence (unlike an opening one) takes no info string:
+                # under CommonMark only whitespace may follow the fence chars.
                 fence = None
             continue
         if fence is not None:
@@ -191,9 +193,8 @@ def _strip_one_emphasis(text: str) -> str | None:
     return None
 
 
-def _render_inline(text: str) -> str:
-    """Reduce inline Markdown markup to its plain-text content."""
-    text = CODE_SPAN_RE.sub(lambda m: m.group(2), text)
+def _render_outside_code(text: str) -> str:
+    """Reduce inline Markdown markup to plain text, assuming no code spans."""
     text = LINK_TEXT_RE.sub(lambda m: m.group(1), text)
     while True:
         stripped = _strip_one_emphasis(text)
@@ -202,6 +203,24 @@ def _render_inline(text: str) -> str:
         text = stripped
     text = HTML_TAG_RE.sub("", text)
     return text
+
+
+def _render_inline(text: str) -> str:
+    """Reduce inline Markdown markup to its plain-text content.
+
+    Code span content is kept literally -- GitHub does not interpret
+    emphasis markers or HTML tags inside inline code when slugifying
+    headings. Link syntax and emphasis/HTML stripping only apply outside
+    code spans.
+    """
+    out = []
+    pos = 0
+    for m in CODE_SPAN_RE.finditer(text):
+        out.append(_render_outside_code(text[pos : m.start()]))
+        out.append(m.group(2))
+        pos = m.end()
+    out.append(_render_outside_code(text[pos:]))
+    return "".join(out)
 
 
 def _slugify_heading(raw_text: str) -> str:

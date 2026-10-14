@@ -5,6 +5,7 @@ metadata:
   author: Harness
   version: 2.0.0
   mcp-server: harness-mcp-v2
+  summary: GitOps application health, sync status, and pod logs
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

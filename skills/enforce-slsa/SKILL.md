@@ -13,6 +13,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp-v2
+  summary: Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

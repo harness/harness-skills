@@ -11,6 +11,7 @@ metadata:
   author: Harness
   mcp-server: harness-mcp-v2
   version: 1.0.0
+  summary: Generate AI agent templates (metadata.json, pipeline.yaml, wiki.MD)
 license: Apache-2.0
 compatibility: No MCP server required. Generates YAML files locally.
 ---

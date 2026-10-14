@@ -12,6 +12,7 @@ metadata:
   author: Harness
   version: 3.1.0
   mcp-server: harness-mcp-v2
+  summary: Generate v1 simplified pipeline YAML
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

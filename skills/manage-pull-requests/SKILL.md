@@ -11,6 +11,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp-v2
+  summary: List, create, update, merge, review, and comment on Harness Code pull requests
 license: Apache-2.0
 compatibility: Requires Harness MCP server (harness-mcp-v2)
 ---

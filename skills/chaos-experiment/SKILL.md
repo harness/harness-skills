@@ -13,6 +13,7 @@ metadata:
   version: 3.0.0
   mcp-server: harness-mcp-v2
   module: CHAOS
+  summary: Create, edit, and reference chaos experiments (faults, probes, actions)
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

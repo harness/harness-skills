@@ -19,6 +19,7 @@ metadata:
   author: Harness
   version: 1.0.1
   mcp-server: harness-mcp
+  summary: Gate application code through an extensible flag abstraction, after stack detection and clarification
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI for flag reads, plus local application code access to make edits; guidance-only (no edits) if application access is unavailable
 ---

@@ -14,6 +14,7 @@ metadata:
   author: Harness
   version: 2.1.0
   mcp-server: harness-mcp
+  summary: Feature-flag experiment design/lifecycle; delegates metrics and states CLI update limitations
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

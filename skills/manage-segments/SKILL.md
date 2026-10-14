@@ -15,6 +15,7 @@ metadata:
   author: Harness
   version: 1.3.0
   mcp-server: harness-mcp
+  summary: Segment metadata, STANDARD membership, and RULE_BASED editor workflows with mandatory pre-write reference checks
 license: Apache-2.0
 compatibility: Requires Harness MCP or CLI; RULE_BASED rule changes use the Harness rule editor
 ---

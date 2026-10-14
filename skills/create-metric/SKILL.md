@@ -11,6 +11,7 @@ metadata:
   author: Harness
   version: 1.4.1
   mcp-server: harness-mcp
+  summary: Design and create an FME metric, with intent-to-config guidance, traffic type, events, cap, and owners
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

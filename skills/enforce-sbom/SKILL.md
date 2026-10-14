@@ -15,6 +15,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp-v2
+  summary: Add SBOM Policy Enforcement (verify attestation + OPA policy sets)
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

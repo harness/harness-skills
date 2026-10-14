@@ -14,6 +14,7 @@ metadata:
   version: 1.0.0
   mcp-server: harness-mcp-v2
   module: CHAOS
+  summary: Create and edit DR Test pipelines with chaos steps
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

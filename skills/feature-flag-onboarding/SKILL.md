@@ -19,6 +19,7 @@ metadata:
   author: Harness
   version: 1.0.1
   mcp-server: harness-mcp
+  summary: Set up and verify a first feature flag in an existing project; resume partial onboarding
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI, plus local application code access and (for live proof) runtime/build access; guidance-only or partial if application/runtime access is unavailable
 ---

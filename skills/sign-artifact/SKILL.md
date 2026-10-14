@@ -13,6 +13,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp-v2
+  summary: Add Artifact Signing (Cosign sign + optional .sig upload) to existing pipelines (SSCA)
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

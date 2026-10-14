@@ -10,6 +10,7 @@ metadata:
   author: Harness
   version: 1.3.2
   mcp-server: harness-mcp
+  summary: Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

@@ -14,6 +14,7 @@ metadata:
   author: Harness
   version: 1.2.2
   mcp-server: harness-mcp
+  summary: Generate FME pipelines for rollout scenarios, gates, and flag lifecycle
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

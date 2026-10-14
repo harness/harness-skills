@@ -9,6 +9,7 @@ metadata:
   author: Harness
   version: 1.2.4
   mcp-server: harness-mcp
+  summary: Wire up a track() call for a metric's event, placed at the real outcome, and verify it arrives
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

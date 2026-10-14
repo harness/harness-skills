@@ -10,6 +10,7 @@ metadata:
   author: Harness
   version: 2.0.0
   mcp-server: harness-mcp-v2
+  summary: Convert v0 pipelines to v1 format
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

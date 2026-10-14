@@ -19,6 +19,7 @@ metadata:
   author: Harness
   version: 1.3.0
   mcp-server: harness-mcp
+  summary: Inventory, targeting-pattern search, promotion-aware rollout report, and stale-flag audit (read-only)
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

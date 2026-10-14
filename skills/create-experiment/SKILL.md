@@ -15,6 +15,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp
+  summary: Creation-only entry point to the manage-experiments workflow
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

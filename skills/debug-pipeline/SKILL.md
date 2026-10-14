@@ -11,6 +11,7 @@ metadata:
   author: Harness
   version: 2.1.0
   mcp-server: harness-mcp-v2
+  summary: Diagnose pipeline execution failures
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

@@ -11,6 +11,7 @@ metadata:
   author: Harness
   version: 1.2.2
   mcp-server: harness-mcp
+  summary: Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

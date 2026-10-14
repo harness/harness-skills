@@ -14,6 +14,7 @@ metadata:
   author: Harness
   version: 1.2.2
   mcp-server: harness-mcp
+  summary: Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

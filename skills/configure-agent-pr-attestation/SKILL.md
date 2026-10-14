@@ -11,6 +11,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp-v2
+  summary: Install and configure the Claude Code PR attestation hook for signed in-toto attestations to the Harness Evidence Vault
 license: Apache-2.0
 compatibility: Requires harness-scs CLI binary and cosign for signing. Currently supports Claude Code as the agent runtime.
 ---

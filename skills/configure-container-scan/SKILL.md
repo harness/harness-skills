@@ -13,6 +13,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp-v2
+  summary: Add container image scanning to pipelines using Harness STO scanners (Trivy, Grype, Snyk, and more)
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

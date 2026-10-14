@@ -18,6 +18,7 @@ metadata:
   author: Harness
   version: 1.2.2
   mcp-server: harness-mcp
+  summary: Create an FME flag that follows project conventions, with safe-default definitions
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

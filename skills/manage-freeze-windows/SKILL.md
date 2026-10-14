@@ -11,6 +11,7 @@ metadata:
   author: Harness
   version: 1.0.0
   mcp-server: harness-mcp-v2
+  summary: Create, toggle, and manage deployment freeze windows and the project-level global freeze
 license: Apache-2.0
 compatibility: Requires Harness MCP server (harness-mcp-v2)
 ---

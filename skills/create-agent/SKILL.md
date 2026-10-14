@@ -7,6 +7,7 @@ metadata:
   version: 1.0.0
   mcp-server: harness-mcp-v2
   module: global
+  summary: Create and update Harness AI agent instances for agentic pipeline workflows
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---

@@ -5,6 +5,7 @@ metadata:
   author: Harness
   version: 2.1.0
   mcp-server: harness-mcp-v2
+  summary: DORA metrics and engineering performance reports
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2). All six DORA metric variants are served by a single consolidated `sei_dora_metric` resource — pick the variant via the `metric` parameter.
 ---

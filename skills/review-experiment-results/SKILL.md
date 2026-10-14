@@ -16,6 +16,7 @@ metadata:
   author: Harness
   version: 2.1.2
   mcp-server: harness-mcp
+  summary: Explain experiment results, including winner, significance, guardrail impact, and data-quality caveats
 license: Apache-2.0
 compatibility: Requires the Harness MCP server or the Harness CLI
 ---

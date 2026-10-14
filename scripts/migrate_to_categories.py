@@ -190,8 +190,8 @@ def categorized_skill_dirs(root: Path) -> list[tuple[str, str]]:
 
 def iter_markdown_files(root: Path) -> list[str]:
     """Repo-relative posix paths of every tracked *.md / *.mdc file."""
-    out = run_git(["ls-files", "--", "*.md", "*.mdc"], root=root).stdout
-    return [line for line in out.splitlines() if line.strip()]
+    out = run_git(["ls-files", "-z", "--", "*.md", "*.mdc"], root=root).stdout
+    return [name for name in out.split("\0") if name]
 
 
 def depth_counts(root: Path) -> tuple[int, int]:
@@ -270,6 +270,8 @@ def apply_edits(line: str, edits: list[tuple[int, int, str]]) -> str:
     out = []
     pos = 0
     for start, end, text in sorted(edits, key=lambda e: e[0]):
+        if start < pos:
+            abort(f"overlapping edits on line {line!r}: edit at {start} overlaps previous edit ending at {pos}")
         out.append(line[pos:start])
         out.append(text)
         pos = end
@@ -287,9 +289,11 @@ def apply_fixed_rewrites(old_path: str, text: str) -> tuple[str, bool]:
         return text, False
     old, new = pair
     count = text.count(old)
-    if count != 1:
-        abort(f"{old_path}: expected exactly one occurrence of fixed rewrite target, found {count}")
-    return text.replace(old, new), True
+    if count == 1:
+        return text.replace(old, new), True
+    if count == 0 and text.count(new) == 1:
+        return text, False  # already applied -- idempotent re-run (e.g. a dry run after the move)
+    abort(f"{old_path}: expected exactly one occurrence of fixed rewrite target, found {count}")
 
 
 # --------------------------------------------------------------------------
@@ -465,6 +469,10 @@ def run_post_checks(root: Path, full_map: dict[str, str], context: str) -> None:
 
 def cmd_dry_run(root: Path, full_map: dict[str, str]) -> int:
     flat_names = flat_skill_dirs(root)
+    if not flat_names:
+        print("No flat skill dirs found; tree is already categorized, nothing to move.")
+        return 0
+
     moves = [(n, full_map[n]) for n in flat_names if n in full_map]
     unmapped = [n for n in flat_names if n not in full_map]
 
@@ -687,30 +695,38 @@ def repair_broken_links(
 
     for rel_path, probs in broken_by_file.items():
         parts = rel_path.split("/")
-        if len(parts) < 3 or parts[0] != "skills":
-            unfixable.extend(probs)
-            continue
+        if len(parts) >= 3 and parts[0] == "skills":
+            name = parts[2]
+            sim_old_dir = posixpath.dirname("/".join(["skills", name, *parts[3:]]))
+        else:
+            # File outside skills/ (or not deep enough to have moved): it kept
+            # its own path, but any "skills/<name>/..." target it points at
+            # still needs remapping to the new category path.
+            sim_old_dir = posixpath.dirname(rel_path)
+        actual_dir = posixpath.dirname(rel_path)
 
         file_path = root / rel_path
         text = file_path.read_text(encoding="utf-8")
         lines = text.split("\n")
-
-        name = parts[2]
-        sim_old_dir = posixpath.dirname("/".join(["skills", name, *parts[3:]]))
-        actual_dir = posixpath.dirname(rel_path)
 
         links_by_line: dict[int, list] = {}
         for link in check_links.iter_links(text):
             links_by_line.setdefault(link.line, []).append(link)
 
         edits_by_line: dict[int, list[tuple[int, int, str]]] = {}
+        used_links: set[tuple[int, int]] = set()
 
         for p in probs:
-            candidates = [l for l in links_by_line.get(p.line, []) if l.dest == p.dest]
+            candidates = [
+                l
+                for l in links_by_line.get(p.line, [])
+                if l.dest == p.dest and (l.line, l.start) not in used_links
+            ]
             if not candidates:
                 unfixable.append(p)
                 continue
             link = candidates[0]
+            used_links.add((link.line, link.start))
             dest = link.dest
             path_part, suffix = split_dest(dest)
             if path_part == "":
@@ -874,6 +890,14 @@ def cmd_repair(root: Path, full_map: dict[str, str]) -> int:
         f"repair tree-check: broken-links={len(problems)} depth2={depth2} depth3={depth3} "
         f"flat-remaining={len(remaining_flat)} leftover-plain-paths={len(leftovers)}"
     )
+    if problems:
+        print(f"repair: {len(problems)} broken link(s)/anchor(s) remain unfixable:")
+        for p in problems:
+            print(f"  {p.path}:{p.line} -> {p.dest} ({p.reason})")
+    if leftovers:
+        print(f"repair: {len(leftovers)} leftover old-style skills/<name> path(s):")
+        for path, line, text in leftovers:
+            print(f"  {path}:{line} {text}")
 
     # Unlike --apply/--check, --repair's job is to let branches add new
     # skills across the move boundary, so depth3 legitimately grows beyond

@@ -1,0 +1,20 @@
+{
+  "name": "harness-skills",
+  "interface": {
+    "displayName": "Harness Skills"
+  },
+  "plugins": [
+    {
+      "name": "harness-skills",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer tools"
+    }
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "name": "harness-skills",
+  "owner": {
+    "name": "Harness"
+  },
+  "metadata": {
+    "description": "71 Harness skills for AI coding agents, as 9 domain plugins."
+  },
+  "plugins": [
+    {
+      "name": "harness-pipelines",
+      "displayName": "Harness Pipelines & Execution",
+      "description": "8 skills: Create v0 and v1 pipelines, triggers, templates and freeze windows, then run, debug and migrate them.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/pipelines"
+      ],
+      "category": "ci-cd",
+      "keywords": [
+        "harness",
+        "pipelines",
+        "ci-cd",
+        "triggers",
+        "templates"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-infrastructure",
+      "displayName": "Harness Infrastructure & Resources",
+      "description": "5 skills: Define services, environments, infrastructure, connectors and secrets for Harness deployments.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/infrastructure"
+      ],
+      "category": "infrastructure",
+      "keywords": [
+        "harness",
+        "services",
+        "environments",
+        "connectors",
+        "secrets"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-access-control",
+      "displayName": "Harness Access Control & Users",
+      "description": "2 skills: Manage users, user groups, service accounts, roles, resource groups and RBAC assignments.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/access-control"
+      ],
+      "category": "security",
+      "keywords": [
+        "harness",
+        "rbac",
+        "users",
+        "roles"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-fme",
+      "displayName": "Harness FME (Feature Flags & Experimentation)",
+      "description": "16 skills: Discover, create, target, roll out, clean up and experiment with Harness FME feature flags, segments and metrics.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/fme"
+      ],
+      "category": "feature-flags",
+      "keywords": [
+        "harness",
+        "fme",
+        "feature-flags",
+        "experimentation",
+        "split"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-database",
+      "displayName": "Harness Database DevOps",
+      "description": "1 skill: Generate, review and run Liquibase changesets with Harness Database DevOps.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/database"
+      ],
+      "category": "database",
+      "keywords": [
+        "harness",
+        "database",
+        "liquibase",
+        "dbops"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-platform",
+      "displayName": "Harness Platform Operations",
+      "description": "8 skills: Operate delegates, IaCM workspaces, cloud development environments, artifact registries, SBOMs, supply chain and pull requests.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/platform"
+      ],
+      "category": "platform",
+      "keywords": [
+        "harness",
+        "delegates",
+        "iacm",
+        "cde",
+        "artifacts",
+        "sbom"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-security",
+      "displayName": "Harness Security Testing & Supply Chain",
+      "description": "11 skills: Add STO code, secret, container and DAST scans, SLSA provenance and artifact signing, and manage exemptions and PR attestation.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/security"
+      ],
+      "category": "security",
+      "keywords": [
+        "harness",
+        "sto",
+        "security",
+        "slsa",
+        "signing"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-observability-governance",
+      "displayName": "Harness Observability & Governance",
+      "description": "18 skills: Costs, DORA, SLOs, chaos, scorecards, audits, OPA policies, IDP, SEI analytics and deployment risk insights.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/observability-governance"
+      ],
+      "category": "observability",
+      "keywords": [
+        "harness",
+        "observability",
+        "governance",
+        "chaos",
+        "slo",
+        "opa"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-agents",
+      "displayName": "Harness AI Agents",
+      "description": "2 skills: Create Harness AI agents and agent templates for agentic pipeline workflows.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/agents"
+      ],
+      "category": "ai-agents",
+      "keywords": [
+        "harness",
+        "agents",
+        "ai"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    }
+  ]
+}

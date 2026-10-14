@@ -3,11 +3,11 @@ name: dora-metrics
 description: Generate DORA metrics and engineering performance reports using Harness SEI via MCP. Track deployment frequency, lead time, change failure rate, and MTTR. Use when user says "DORA metrics", "deployment frequency", "lead time", "engineering metrics", or asks about team performance.
 metadata:
   author: Harness
-  version: 2.1.0
+  version: 2.1.1
   mcp-server: harness-mcp-v2
   summary: DORA metrics and engineering performance reports
 license: Apache-2.0
-compatibility: Requires Harness MCP v2 server (harness-mcp-v2). All six DORA metric variants are served by a single consolidated `sei_dora_metric` resource — pick the variant via the `metric` parameter.
+compatibility: Requires Harness MCP v2 server (harness-mcp-v2). All six DORA metric variants are served by a single consolidated `sei_dora_metric` resource; pick the variant via the `metric` parameter.
 ---
 
 # DORA Metrics

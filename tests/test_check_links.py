@@ -265,6 +265,53 @@ class TestHeadingSlugs(TreeCase):
         self.assertEqual(code, 0, out)
 
 
+class TestCrossFileAnchorsAndDuplicateHeadings(TreeCase):
+    def test_cross_file_bad_anchor_is_reported(self):
+        self.skill("See [x](references/ref.md#nope).\n", {"skills/cat/a/references/ref.md": REF})
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("references/ref.md#nope (missing anchor)", out)
+        self.assertIn("anchors-checked=1", out)
+
+    def test_duplicate_heading_anchors_get_numeric_suffixes(self):
+        self.skill("## Setup\n\n## Setup\n\nLink to [a](#setup-1).\nLink to [b](#setup-2).\n")
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("#setup-2 (missing anchor)", out)
+        self.assertNotIn("#setup-1 (missing anchor)", out)
+
+
+class TestOutOfRootLinks(unittest.TestCase):
+    """root is a subdirectory of the temp dir, with a real file just outside it."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.outer = Path(self._tmp.name)
+        self.root = self.outer / "root"
+        self.root.mkdir()
+
+    def write(self, rel: str, content: str) -> None:
+        path = self.outer / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+    def test_link_outside_root_is_missing_file_even_if_target_exists(self):
+        self.write("outside.md", "# Outside\n")
+        self.write("root/README.md", "See [x](../outside.md)\n")
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("README.md:1 -> ../outside.md (missing file)", out)
+
+    def test_mention_outside_root_is_missing_file_even_if_target_exists(self):
+        self.write("outside/references/x.md", REF)
+        self.write("root/skills/cat/a/SKILL.md", "Mirror `../../../../outside/references/x.md`.\n")
+        code, out = run_main(self.root)
+        self.assertEqual(code, 1, out)
+        self.assertIn("../../../../outside/references/x.md (missing file)", out)
+        self.assertIn("mentions-checked=1", out)
+
+
 class TestUsageErrors(TreeCase):
     def test_nonexistent_path_argument_is_an_error(self):
         self.write({"README.md": "# A\n"})

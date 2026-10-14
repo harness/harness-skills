@@ -82,7 +82,7 @@ git clone https://github.com/harness/harness-skills.git
 4. Reference individual skills in your prompts using `@file`:
 
 ```
-@harness-skills/skills/create-pipeline/SKILL.md
+@harness-skills/skills/pipelines/create-pipeline/SKILL.md
 Create a CI pipeline for my Go service
 ```
 
@@ -115,7 +115,7 @@ git clone https://github.com/harness/harness-skills.git
 4. Reference individual skill files as context when prompting:
 
 ```
-Using the instructions in harness-skills/skills/debug-pipeline/SKILL.md,
+Using the instructions in harness-skills/skills/pipelines/debug-pipeline/SKILL.md,
 diagnose why my deploy pipeline failed
 ```
 
@@ -148,7 +148,7 @@ git clone https://github.com/harness/harness-skills.git
 4. Reference skill files in Copilot Chat using `#file`:
 
 ```
-#file:harness-skills/skills/create-pipeline/SKILL.md
+#file:harness-skills/skills/pipelines/create-pipeline/SKILL.md
 Create a CI pipeline for my Python service
 ```
 
@@ -215,103 +215,103 @@ Typical sequence:
 
 | Skill | Description |
 |-------|-------------|
-| [`/create-pipeline`](skills/create-pipeline/SKILL.md) | Generate v0 Pipeline YAML (CI, CD, approvals, matrix strategies) |
-| [`/create-pipeline-v1`](skills/create-pipeline-v1/SKILL.md) | Generate v1 simplified Pipeline YAML - **Alpha: internal testing only** |
-| [`/create-template`](skills/create-template/SKILL.md) | Create reusable Step, Stage, Pipeline, or StepGroup templates |
-| [`/create-trigger`](skills/create-trigger/SKILL.md) | Create webhook, scheduled, and artifact triggers |
-| [`/create-agent-template`](skills/create-agent-template/SKILL.md) | Create AI-powered agent templates - **Alpha: internal testing only** |
+| [`/create-pipeline`](skills/pipelines/create-pipeline/SKILL.md) | Generate v0 Pipeline YAML (CI, CD, approvals, matrix strategies) |
+| [`/create-pipeline-v1`](skills/pipelines/create-pipeline-v1/SKILL.md) | Generate v1 simplified Pipeline YAML - **Alpha: internal testing only** |
+| [`/create-template`](skills/pipelines/create-template/SKILL.md) | Create reusable Step, Stage, Pipeline, or StepGroup templates |
+| [`/create-trigger`](skills/pipelines/create-trigger/SKILL.md) | Create webhook, scheduled, and artifact triggers |
+| [`/create-agent-template`](skills/agents/create-agent-template/SKILL.md) | Create AI-powered agent templates - **Alpha: internal testing only** |
 
 ### Resource Management
 
 | Skill | Description |
 |-------|-------------|
-| [`/create-service`](skills/create-service/SKILL.md) | Create service definitions (K8s, Helm, ECS, Lambda) |
-| [`/create-environment`](skills/create-environment/SKILL.md) | Create environment definitions with overrides |
-| [`/create-infrastructure`](skills/create-infrastructure/SKILL.md) | Create infrastructure definitions |
-| [`/create-connector`](skills/create-connector/SKILL.md) | Create connectors (Git, cloud, registries, clusters) |
-| [`/create-secret`](skills/create-secret/SKILL.md) | Create secrets (text, file, SSH, WinRM) |
+| [`/create-service`](skills/infrastructure/create-service/SKILL.md) | Create service definitions (K8s, Helm, ECS, Lambda) |
+| [`/create-environment`](skills/infrastructure/create-environment/SKILL.md) | Create environment definitions with overrides |
+| [`/create-infrastructure`](skills/infrastructure/create-infrastructure/SKILL.md) | Create infrastructure definitions |
+| [`/create-connector`](skills/infrastructure/create-connector/SKILL.md) | Create connectors (Git, cloud, registries, clusters) |
+| [`/create-secret`](skills/infrastructure/create-secret/SKILL.md) | Create secrets (text, file, SSH, WinRM) |
 
 ### Database Operations (MCP)
 
 | Skill | Description |
 |-------|-------------|
-| [`/dbops-changeset`](skills/dbops-changeset/SKILL.md) | Generate, refine, review, and execute Liquibase changesets with Harness DBOPS |
+| [`/dbops-changeset`](skills/database/dbops-changeset/SKILL.md) | Generate, refine, review, and execute Liquibase changesets with Harness DBOPS |
 
 ### Access Control & Feature Flags
 
 | Skill | Description |
 |-------|-------------|
-| [`/manage-users`](skills/manage-users/SKILL.md) | Manage users, user groups, and service accounts |
-| [`/manage-roles`](skills/manage-roles/SKILL.md) | Manage role assignments and RBAC |
-| [`/discover-feature-flags`](skills/discover-feature-flags/SKILL.md) | Inventory, targeting-pattern search, promotion-aware rollout report, and stale-flag audit (read-only) |
-| [`/explain-flag`](skills/explain-flag/SKILL.md) | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
-| [`/create-feature-flag`](skills/create-feature-flag/SKILL.md) | Create an FME flag that follows project conventions, with safe-default definitions |
-| [`/instrument-feature-flag`](skills/instrument-feature-flag/SKILL.md) | Gate application code through an extensible flag abstraction, after stack detection and clarification |
-| [`/feature-flag-onboarding`](skills/feature-flag-onboarding/SKILL.md) | Set up and verify a first feature flag in an existing project; resume partial onboarding |
-| [`/update-flag-targeting`](skills/update-flag-targeting/SKILL.md) | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
-| [`/manage-flag-lifecycle`](skills/manage-flag-lifecycle/SKILL.md) | Flag metadata, archive readiness, archive/unarchive, and delete |
-| [`/manage-segments`](skills/manage-segments/SKILL.md) | Segment metadata, STANDARD membership, and RULE_BASED editor workflows with mandatory pre-write reference checks |
-| [`/cleanup-feature-flags`](skills/cleanup-feature-flags/SKILL.md) | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
-| [`/fme-pipeline`](skills/fme-pipeline/SKILL.md) | Generate FME pipelines for rollout scenarios (progressive ramp, multi-env promotion, beta cohorts, config promotion, bootstrap, retirement, segment sync, test targeting) with gates and lifecycle automation |
-| [`/create-experiment`](skills/create-experiment/SKILL.md) | Creation-only entry point to the manage-experiments workflow |
-| [`/manage-experiments`](skills/manage-experiments/SKILL.md) | Feature-flag experiment design/lifecycle; delegates metrics and states CLI update limitations |
-| [`/review-experiment-results`](skills/review-experiment-results/SKILL.md) | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
-| [`/choose-metric`](skills/choose-metric/SKILL.md) | Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist |
-| [`/create-metric`](skills/create-metric/SKILL.md) | Design and create an FME metric: intent-to-config guidance, code-based suggestions, traffic type, events, cap, owners |
-| [`/instrument-metric`](skills/instrument-metric/SKILL.md) | Wire up a track() call for a metric's event, placed at the real outcome, and verify it arrives |
+| [`/manage-users`](skills/access-control/manage-users/SKILL.md) | Manage users, user groups, and service accounts |
+| [`/manage-roles`](skills/access-control/manage-roles/SKILL.md) | Manage role assignments and RBAC |
+| [`/discover-feature-flags`](skills/fme/discover-feature-flags/SKILL.md) | Inventory, targeting-pattern search, promotion-aware rollout report, and stale-flag audit (read-only) |
+| [`/explain-flag`](skills/fme/explain-flag/SKILL.md) | Explain one flag's purpose, treatments, and per-environment targeting, flagging inconsistencies (read-only) |
+| [`/create-feature-flag`](skills/fme/create-feature-flag/SKILL.md) | Create an FME flag that follows project conventions, with safe-default definitions |
+| [`/instrument-feature-flag`](skills/fme/instrument-feature-flag/SKILL.md) | Gate application code through an extensible flag abstraction, after stack detection and clarification |
+| [`/feature-flag-onboarding`](skills/fme/feature-flag-onboarding/SKILL.md) | Set up and verify a first feature flag in an existing project; resume partial onboarding |
+| [`/update-flag-targeting`](skills/fme/update-flag-targeting/SKILL.md) | Ramp, rules, individual targets, allocation, treatments, kill/restore, env-to-env copy, and initializing definitions |
+| [`/manage-flag-lifecycle`](skills/fme/manage-flag-lifecycle/SKILL.md) | Flag metadata, archive readiness, archive/unarchive, and delete |
+| [`/manage-segments`](skills/fme/manage-segments/SKILL.md) | Segment metadata, STANDARD membership, and RULE_BASED editor workflows with mandatory pre-write reference checks |
+| [`/cleanup-feature-flags`](skills/fme/cleanup-feature-flags/SKILL.md) | Remove a launched FME flag from code and open a PR; archive is handed to manage-flag-lifecycle |
+| [`/fme-pipeline`](skills/fme/fme-pipeline/SKILL.md) | Generate FME pipelines for rollout scenarios (progressive ramp, multi-env promotion, beta cohorts, config promotion, bootstrap, retirement, segment sync, test targeting) with gates and lifecycle automation |
+| [`/create-experiment`](skills/fme/create-experiment/SKILL.md) | Creation-only entry point to the manage-experiments workflow |
+| [`/manage-experiments`](skills/fme/manage-experiments/SKILL.md) | Feature-flag experiment design/lifecycle; delegates metrics and states CLI update limitations |
+| [`/review-experiment-results`](skills/fme/review-experiment-results/SKILL.md) | Explain experiment results: winner, significance, guardrail impact, data-quality caveats |
+| [`/choose-metric`](skills/fme/choose-metric/SKILL.md) | Recommend primary/guardrail metrics for an experiment or rollout, judged against a good-metric checklist |
+| [`/create-metric`](skills/fme/create-metric/SKILL.md) | Design and create an FME metric: intent-to-config guidance, code-based suggestions, traffic type, events, cap, owners |
+| [`/instrument-metric`](skills/fme/instrument-metric/SKILL.md) | Wire up a track() call for a metric's event, placed at the real outcome, and verify it arrives |
 
 ### Operations & Debugging (MCP)
 
 | Skill | Description |
 |-------|-------------|
-| [`/run-pipeline`](skills/run-pipeline/SKILL.md) | Execute pipelines, monitor progress, handle approvals |
-| [`/debug-pipeline`](skills/debug-pipeline/SKILL.md) | Analyze execution failures, diagnose root causes |
-| [`/migrate-pipeline`](skills/migrate-pipeline/SKILL.md) | Convert pipelines from v0 to v1 format |
-| [`/optimize-pipeline`](skills/optimize-pipeline/SKILL.md) | Pipeline speed optimization, parallel testing, caching, monorepo builds |
-| [`/deployment-readiness`](skills/deployment-readiness/SKILL.md) | Pre-deployment readiness checks, environment drift, canary decisions |
-| [`/incident-response`](skills/incident-response/SKILL.md) | Deployment-incident correlation, blast radius, postmortems |
-| [`/pr-analysis`](skills/pr-analysis/SKILL.md) | PR pipeline impact, security review, PR-to-production tracking |
-| [`/template-usage`](skills/template-usage/SKILL.md) | Track template dependencies and adoption |
-| [`/manage-delegates`](skills/manage-delegates/SKILL.md) | Monitor delegate health and manage tokens |
+| [`/run-pipeline`](skills/pipelines/run-pipeline/SKILL.md) | Execute pipelines, monitor progress, handle approvals |
+| [`/debug-pipeline`](skills/pipelines/debug-pipeline/SKILL.md) | Analyze execution failures, diagnose root causes |
+| [`/migrate-pipeline`](skills/pipelines/migrate-pipeline/SKILL.md) | Convert pipelines from v0 to v1 format |
+| [`/optimize-pipeline`](skills/observability-governance/optimize-pipeline/SKILL.md) | Pipeline speed optimization, parallel testing, caching, monorepo builds |
+| [`/deployment-readiness`](skills/observability-governance/deployment-readiness/SKILL.md) | Pre-deployment readiness checks, environment drift, canary decisions |
+| [`/incident-response`](skills/observability-governance/incident-response/SKILL.md) | Deployment-incident correlation, blast radius, postmortems |
+| [`/pr-analysis`](skills/observability-governance/pr-analysis/SKILL.md) | PR pipeline impact, security review, PR-to-production tracking |
+| [`/template-usage`](skills/observability-governance/template-usage/SKILL.md) | Track template dependencies and adoption |
+| [`/manage-delegates`](skills/platform/manage-delegates/SKILL.md) | Monitor delegate health and manage tokens |
 
 ### Security
 
 | Skill | Description |
 |-------|-------------|
-| [`/configure-repo-scan`](skills/configure-repo-scan/SKILL.md) | Scan your code repositories for SAST and SCA vulnerabilities |
-| [`/configure-secret-scan`](skills/configure-secret-scan/SKILL.md) | Detect exposed secrets and credentials in your code repositories |
-| [`/configure-container-scan`](skills/configure-container-scan/SKILL.md) | Scan your container images for vulnerabilities |
-| [`/configure-dast-scan`](skills/configure-dast-scan/SKILL.md) | Test your running applications for security vulnerabilities with DAST |
-| [`/exempt-vuln`](skills/exempt-vuln/SKILL.md) | Exempt vulnerabilities with security waivers at Target, project or pipeline scope |
-| [`/approve-exempt`](skills/approve-exempt/SKILL.md) | Approve pending STO exemptions at current scope or elevate to project/org/account; mixed scopes per batch |
-| [`/generate-slsa`](skills/generate-slsa/SKILL.md) | Generate and attest SLSA provenance for your artifacts |
-| [`/enforce-slsa`](skills/enforce-slsa/SKILL.md) | Verify SLSA provenance attestations and enforce OPA policies on your artifacts |
-| [`/create-sbom`](skills/create-sbom/SKILL.md) | Generate and attest SBOM for your artifacts and code repositories |
-| [`/enforce-sbom`](skills/enforce-sbom/SKILL.md) | Verify SBOM attestations and enforce OPA policies on your artifacts and code repositories |
-| [`/sign-artifact`](skills/sign-artifact/SKILL.md) | Sign your artifacts to ensure integrity and authenticity in your supply chain |
-| [`/verify-sign`](skills/verify-sign/SKILL.md) | Verify artifact integrity and authenticity before deployment |
+| [`/configure-repo-scan`](skills/security/configure-repo-scan/SKILL.md) | Scan your code repositories for SAST and SCA vulnerabilities |
+| [`/configure-secret-scan`](skills/security/configure-secret-scan/SKILL.md) | Detect exposed secrets and credentials in your code repositories |
+| [`/configure-container-scan`](skills/security/configure-container-scan/SKILL.md) | Scan your container images for vulnerabilities |
+| [`/configure-dast-scan`](skills/security/configure-dast-scan/SKILL.md) | Test your running applications for security vulnerabilities with DAST |
+| [`/exempt-vuln`](skills/security/exempt-vuln/SKILL.md) | Exempt vulnerabilities with security waivers at Target, project or pipeline scope |
+| [`/approve-exempt`](skills/security/approve-exempt/SKILL.md) | Approve pending STO exemptions at current scope or elevate to project/org/account; mixed scopes per batch |
+| [`/generate-slsa`](skills/security/generate-slsa/SKILL.md) | Generate and attest SLSA provenance for your artifacts |
+| [`/enforce-slsa`](skills/security/enforce-slsa/SKILL.md) | Verify SLSA provenance attestations and enforce OPA policies on your artifacts |
+| [`/create-sbom`](skills/platform/create-sbom/SKILL.md) | Generate and attest SBOM for your artifacts and code repositories |
+| [`/enforce-sbom`](skills/platform/enforce-sbom/SKILL.md) | Verify SBOM attestations and enforce OPA policies on your artifacts and code repositories |
+| [`/sign-artifact`](skills/security/sign-artifact/SKILL.md) | Sign your artifacts to ensure integrity and authenticity in your supply chain |
+| [`/verify-sign`](skills/security/verify-sign/SKILL.md) | Verify artifact integrity and authenticity before deployment |
 
 ### Platform Intelligence (MCP)
 
 | Skill | Description |
 |-------|-------------|
-| [`/analyze-costs`](skills/analyze-costs/SKILL.md) | Cloud cost analysis and optimization (CCM) |
-| [`/security-report`](skills/security-report/SKILL.md) | Vulnerability reports, SBOMs, compliance (SCS/STO) |
-| [`/dora-metrics`](skills/dora-metrics/SKILL.md) | DORA metrics and engineering performance (SEI) |
-| [`/sei-analytics`](skills/sei-analytics/SKILL.md) | Sprint analytics, investment allocation, capacity forecasting, release readiness |
-| [`/manage-slos`](skills/manage-slos/SKILL.md) | SLO definition, error budgets, incident detection, runbooks (SRM) |
-| [`/ai-operations`](skills/ai-operations/SKILL.md) | Predictive failure analysis and intelligent alert correlation (AIDA) |
-| [`/gitops-status`](skills/gitops-status/SKILL.md) | GitOps application health and sync status |
-| [`/chaos-experiment`](skills/chaos-experiment/SKILL.md) | Create, edit, and reference chaos experiments (faults, probes, actions) |
-| [`/chaos-dr-test`](skills/chaos-dr-test/SKILL.md) | Create and edit DR Test pipelines with chaos steps |
-| [`/scorecard-review`](skills/scorecard-review/SKILL.md) | Service maturity scorecards (IDP) |
-| [`/manage-idp`](skills/manage-idp/SKILL.md) | Service catalog, self-service workflows, documentation, onboarding (IDP) |
-| [`/manage-iacm`](skills/manage-iacm/SKILL.md) | Terraform workspaces, drift detection, cost estimation (IaCM) |
-| [`/manage-cde`](skills/manage-cde/SKILL.md) | Cloud development environments and workspace templates (CDE) |
-| [`/manage-artifacts`](skills/manage-artifacts/SKILL.md) | Artifact registry, security scanning, replication (AR) |
-| [`/manage-supply-chain`](skills/manage-supply-chain/SKILL.md) | SBOM generation, artifact signing, supply chain policies (SSCA) |
-| [`/audit-report`](skills/audit-report/SKILL.md) | Audit trails and compliance reports |
-| [`/create-policy`](skills/create-policy/SKILL.md) | Create OPA governance policies for supply chain security |
+| [`/analyze-costs`](skills/observability-governance/analyze-costs/SKILL.md) | Cloud cost analysis and optimization (CCM) |
+| [`/security-report`](skills/observability-governance/security-report/SKILL.md) | Vulnerability reports, SBOMs, compliance (SCS/STO) |
+| [`/dora-metrics`](skills/observability-governance/dora-metrics/SKILL.md) | DORA metrics and engineering performance (SEI) |
+| [`/sei-analytics`](skills/observability-governance/sei-analytics/SKILL.md) | Sprint analytics, investment allocation, capacity forecasting, release readiness |
+| [`/manage-slos`](skills/observability-governance/manage-slos/SKILL.md) | SLO definition, error budgets, incident detection, runbooks (SRM) |
+| [`/ai-operations`](skills/observability-governance/ai-operations/SKILL.md) | Predictive failure analysis and intelligent alert correlation (AIDA) |
+| [`/gitops-status`](skills/observability-governance/gitops-status/SKILL.md) | GitOps application health and sync status |
+| [`/chaos-experiment`](skills/observability-governance/chaos-experiment/SKILL.md) | Create, edit, and reference chaos experiments (faults, probes, actions) |
+| [`/chaos-dr-test`](skills/observability-governance/chaos-dr-test/SKILL.md) | Create and edit DR Test pipelines with chaos steps |
+| [`/scorecard-review`](skills/observability-governance/scorecard-review/SKILL.md) | Service maturity scorecards (IDP) |
+| [`/manage-idp`](skills/observability-governance/manage-idp/SKILL.md) | Service catalog, self-service workflows, documentation, onboarding (IDP) |
+| [`/manage-iacm`](skills/platform/manage-iacm/SKILL.md) | Terraform workspaces, drift detection, cost estimation (IaCM) |
+| [`/manage-cde`](skills/platform/manage-cde/SKILL.md) | Cloud development environments and workspace templates (CDE) |
+| [`/manage-artifacts`](skills/platform/manage-artifacts/SKILL.md) | Artifact registry, security scanning, replication (AR) |
+| [`/manage-supply-chain`](skills/platform/manage-supply-chain/SKILL.md) | SBOM generation, artifact signing, supply chain policies (SSCA) |
+| [`/audit-report`](skills/observability-governance/audit-report/SKILL.md) | Audit trails and compliance reports |
+| [`/create-policy`](skills/observability-governance/create-policy/SKILL.md) | Create OPA governance policies for supply chain security |
 
 ## Project Structure
 

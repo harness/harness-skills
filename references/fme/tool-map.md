@@ -100,7 +100,7 @@ Skills must pass `compact: false` on any list whose config fields you read or wh
 
 To find segment usage, inspect rule matchers **and** each treatment's `segments`, `largeSegments`, and `ruleBasedSegments` memberships, matching the exact segment name and type; individual `keys` also live inside treatments. There is no generic top-level `targets` array. Include indirect dependencies through RULE_BASED rules/exclusions using authoritative configuration and preserve negated references. To find IN_SPLIT dependents, scan rules for `depends.splitName`. To find metric usage, scan experiments for both parent types' `keyMetrics`/`supportingMetrics`.
 
-**Cost guard:** one paginated definition inventory per flag; if >50 flags, ask before any definition reads. Read-only discovery may narrow the inventory or obtain cost approval. A [segment mutation's usage gate](../../skills/manage-segments/references/usage-check.md) must cover the full project flag inventory, including ACTIVE and ARCHIVED flags and all environment definitions: no narrowing or incomplete-scan override. Declined cost approval blocks the write. Finish all relevant pages and dependency checks; report "unchecked" or "incomplete" when skipped or interrupted, never "unused". Structural pattern matching follows [rule-patterns.md](../../skills/discover-feature-flags/references/rule-patterns.md); a reference is not proof of effective targeting.
+**Cost guard:** one paginated definition inventory per flag; if >50 flags, ask before any definition reads. Read-only discovery may narrow the inventory or obtain cost approval. A [segment mutation's usage gate](../../skills/fme/manage-segments/references/usage-check.md) must cover the full project flag inventory, including ACTIVE and ARCHIVED flags and all environment definitions: no narrowing or incomplete-scan override. Declined cost approval blocks the write. Finish all relevant pages and dependency checks; report "unchecked" or "incomplete" when skipped or interrupted, never "unused". Structural pattern matching follows [rule-patterns.md](../../skills/fme/discover-feature-flags/references/rule-patterns.md); a reference is not proof of effective targeting.
 
 ### Updates (JSON Merge Patch RFC 7396)
 
@@ -219,7 +219,7 @@ Harness supports **STANDARD, LARGE and RULE_BASED**. Select the workflow by memb
 | LARGE | List/get/create/update/delete | Metadata and reference-impact checks |
 | RULE_BASED | List/get/create/update/delete | Metadata and reference-impact checks; prepare and verify approved rule/exclusion edits in the Harness rule editor |
 
-[manage-segments](../../skills/manage-segments/SKILL.md) defines the confirmation and verification steps. Use STANDARD definition/key routes only for STANDARD segments. Preserve native org/project scope; do not substitute legacy workspace contracts.
+[manage-segments](../../skills/fme/manage-segments/SKILL.md) defines the confirmation and verification steps. Use STANDARD definition/key routes only for STANDARD segments. Preserve native org/project scope; do not substitute legacy workspace contracts.
 
 ## fme_segment_definition
 
@@ -348,7 +348,7 @@ Every FME skill declares the operations it performs, in both forms, right after 
 ```markdown
 ## Tools
 
-Works through the Harness MCP server or the Harness CLI; names are from [tool-map.md](../../references/fme/tool-map.md).
+Works through the Harness MCP server or the Harness CLI; names are from [tool-map.md](../../../references/fme/tool-map.md).
 
 | Operation | MCP | CLI |
 |-----------|-----|-----|

@@ -1,2 +1,5 @@
 # Local SBOM test fixtures (not part of skill definitions)
 sboms/
+
+# Bytecode written when skill scripts import each other
+__pycache__/

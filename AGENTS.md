@@ -143,6 +143,7 @@ Plugin `harness-observability-governance`, folder `skills/observability-governan
 | `/ai-operations` | Predictive failure analysis and intelligent alert correlation (AIDA) |
 | `/analyze-costs` | Cloud cost analysis, recommendations, and anomaly detection |
 | `/audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
+| `/chaos-code-risk-scan` | Scan a code repository for chaos-provable resilience risks and report them as a risk scan |
 | `/chaos-dr-test` | Create and edit DR Test pipelines with chaos steps |
 | `/chaos-experiment` | Create, edit, and reference chaos experiments (faults, probes, actions) |
 | `/create-policy` | Create OPA governance policies for supply chain security |

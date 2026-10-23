@@ -159,6 +159,14 @@ Plugin `harness-observability-governance`, folder `skills/observability-governan
 | `/sei-analytics` | Sprint analytics, investment allocation, capacity forecasting, and release readiness |
 | `/template-usage` | Template dependency tracking, impact analysis, and adoption |
 
+### Harness Unified Data Platform
+
+Plugin `harness-unified-data-platform`, folder `skills/unified-data-platform/`.
+
+| Skill | Description |
+|-------|-------------|
+| `/write-hql` | Discover queryable types and fields, then write, validate, and run HQL queries |
+
 ### Harness AI Agents
 
 Plugin `harness-agents`, folder `skills/agents/`.

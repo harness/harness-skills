@@ -4,7 +4,7 @@
     "name": "Harness"
   },
   "metadata": {
-    "description": "71 Harness skills for AI coding agents, as 9 domain plugins."
+    "description": "72 Harness skills for AI coding agents, as 10 domain plugins."
   },
   "plugins": [
     {
@@ -184,6 +184,28 @@
         "chaos",
         "slo",
         "opa"
+      ],
+      "author": {
+        "name": "Harness"
+      },
+      "repository": "https://github.com/harness/harness-skills",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "harness-unified-data-platform",
+      "displayName": "Harness Unified Data Platform",
+      "description": "1 skill: Query Harness data with HQL: discover queryable types and fields, then write, validate and run queries.",
+      "source": ".",
+      "strict": false,
+      "skills": [
+        "./skills/unified-data-platform"
+      ],
+      "category": "data",
+      "keywords": [
+        "harness",
+        "hql",
+        "analytics",
+        "udp"
       ],
       "author": {
         "name": "Harness"

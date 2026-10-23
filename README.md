@@ -148,6 +148,15 @@ Install in Claude Code: `/plugin install harness-observability-governance --mark
 | [sei-analytics](skills/observability-governance/sei-analytics/SKILL.md) | `/harness-observability-governance:sei-analytics` | Sprint analytics, investment allocation, capacity forecasting, and release readiness |
 | [template-usage](skills/observability-governance/template-usage/SKILL.md) | `/harness-observability-governance:template-usage` | Template dependency tracking, impact analysis, and adoption |
 
+### Harness Unified Data Platform
+
+Plugin `harness-unified-data-platform` (1 skill), folder `skills/unified-data-platform/`.
+Install in Claude Code: `/plugin install harness-unified-data-platform --marketplace harness/harness-skills`.
+
+| Skill | Invoke in Claude Code | Description |
+|-------|------------------------|-------------|
+| [write-hql](skills/unified-data-platform/write-hql/SKILL.md) | `/harness-unified-data-platform:write-hql` | Discover queryable types and fields, then write, validate, and run HQL queries |
+
 ### Harness AI Agents
 
 Plugin `harness-agents` (2 skills), folder `skills/agents/`.

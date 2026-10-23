@@ -145,6 +145,16 @@
       ]
     },
     {
+      "name": "harness-unified-data-platform",
+      "dir": "skills/unified-data-platform",
+      "title": "Harness Unified Data Platform",
+      "description": "Query Harness data with HQL: discover queryable types and fields, then write, validate and run queries.",
+      "category": "data",
+      "skills": [
+        "write-hql"
+      ]
+    },
+    {
       "name": "harness-agents",
       "dir": "skills/agents",
       "title": "Harness AI Agents",
@@ -777,6 +787,15 @@
       "version": "1.0.0",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "write-hql",
+      "plugin": "harness-unified-data-platform",
+      "path": "skills/unified-data-platform/write-hql",
+      "summary": "Discover queryable types and fields, then write, validate, and run HQL queries",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2) with the knowledge-graph and semantic-layer toolsets enabled"
     },
     {
       "name": "create-agent",

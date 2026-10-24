@@ -4,7 +4,7 @@
     "name": "Harness"
   },
   "metadata": {
-    "description": "72 Harness skills for AI coding agents, as 10 domain plugins."
+    "description": "73 Harness skills for AI coding agents, as 10 domain plugins."
   },
   "plugins": [
     {
@@ -170,7 +170,7 @@
     {
       "name": "harness-observability-governance",
       "displayName": "Harness Observability & Governance",
-      "description": "18 skills: Costs, DORA, SLOs, chaos, scorecards, audits, OPA policies, IDP, SEI analytics and deployment risk insights.",
+      "description": "19 skills: Costs, DORA, SLOs, chaos, scorecards, audits, OPA policies, IDP, SEI analytics and deployment risk insights.",
       "source": ".",
       "strict": false,
       "skills": [

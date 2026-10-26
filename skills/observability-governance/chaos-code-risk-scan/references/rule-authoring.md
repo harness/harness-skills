@@ -1,6 +1,6 @@
 # Authoring an umbrella rule
 
-Rules are server-side data in the Harness project. During a repository scan the
+Rules are server-side data on the Harness account. During a repository scan the
 skill creates a missing catalog rule and continues. It does not update an existing
 rule. Creating or editing a rule because the user asked for that rule, outside a
 scan, still waits for confirmation in chat.
@@ -34,7 +34,7 @@ describe the same failure. Overlap means update, not create.
 | `spec.prompt` | `do` and `outcome` are non-empty lists; `dont` is optional. Each list has at most 10 entries of at most 500 characters |
 | `severity` | `Critical`, `High`, `Medium` or `Low` |
 | `category` | `Availability`, `Performance`, `Dependency`, `Resilience` or `Config` |
-| Count | At most 30 custom `SourceCode` rules per project |
+| Count | At most 100 custom `SourceCode` rules per account |
 
 `spec.isSystem` is always false for these rules; the server ignores any other value.
 

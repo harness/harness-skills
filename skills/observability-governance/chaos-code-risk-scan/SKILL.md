@@ -15,7 +15,7 @@ description: >-
   scan, resilience review of this service.
 metadata:
   author: Harness
-  version: 1.0.0
+  version: 1.0.1
   mcp-server: harness-mcp-v2
   module: CHAOS
   summary: Scan a code repository for chaos-provable resilience risks and report them as a risk scan
@@ -135,6 +135,7 @@ the previous scan; this run does not re-judge them.
 ### Phase 3: Fetch rules
 
 `harness_list(resource_type="chaos_risk_rule", filters={data_source: "SourceCode"}, compact=false)`, all pages.
+Custom rules are account-scoped, so this list is the account's custom rules plus the system rules. Do not pass an org or project.
 Save the bodies as `{"data": [...]}` in `$TMP/rules.json`. Call
 `harness_get(resource_type="chaos_risk_rule", resource_id=<identity>)` only for
 a rule whose `spec.faults` is missing. Read
@@ -450,7 +451,7 @@ module and 100 per scan; the validator enforces both.
 | `names none of the rule faults` | Mention one of the rule's `spec.faults` in `resilienceTestingRec` |
 | `rule ... is not in the fetched rule list` | Re-fetch rules after creating one in Phase 5 |
 | Rule create fails on identity | Identity must match `^code-[a-z0-9-]{3,60}$` and name a failure mode |
-| Rule create fails on limit | A project allows 30 custom SourceCode rules; update an overlapping rule instead |
+| Rule create fails on limit | An account allows 100 custom SourceCode rules; update an overlapping rule instead |
 | `submit_findings` returns 409 | The scan is no longer accepting findings; create a new scan |
 | `chaosServiceIdentity` not found | List `chaos_service` and use an existing identity, or leave the module unlinked |
 | Mapped service gets no experiment recommendation | The link is a Kubernetes Service (`namespace:Service:name`). Re-attach the Deployment, DaemonSet, or StatefulSet whose identity is `namespace:kind:name` |

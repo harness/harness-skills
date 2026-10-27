@@ -193,3 +193,11 @@ def rule_data_sources(rule: dict) -> List[str]:
 
 def rule_faults(rule: dict) -> List[str]:
     return list((rule.get("spec") or {}).get("faults") or [])
+
+
+def rule_in_passive_scan(rule: dict) -> bool:
+    """System rules are always eligible. A custom rule must opt in."""
+    spec = rule.get("spec") or {}
+    if spec.get("isSystem") is True:
+        return True
+    return spec.get("includeInPassiveScan") is True

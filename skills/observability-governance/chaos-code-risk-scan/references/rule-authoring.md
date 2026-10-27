@@ -30,6 +30,7 @@ describe the same failure. Overlap means update, not create.
 |---|---|
 | `identity` | `^code-[a-z0-9-]{3,60}$`. Names a failure mode: `code-outbound-call-without-timeout`, never `code-payments-http-client` |
 | `spec.dataSource` | `["SourceCode"]` |
+| `spec.includeInPassiveScan` | `true` when this scan creates the rule so its findings can be submitted. `false` stores the rule and leaves it out of passive scans. The server default is `false` |
 | `spec.faults` | Non-empty; every entry on the allowlist in `failure-modes.md` |
 | `spec.prompt` | `do` and `outcome` are non-empty lists; `dont` is optional. Each list has at most 10 entries of at most 500 characters |
 | `severity` | `Critical`, `High`, `Medium` or `Low` |
@@ -63,6 +64,7 @@ describe the same failure. Overlap means update, not create.
   "tags": ["code-scan", "timeouts"],
   "spec": {
     "dataSource": ["SourceCode"],
+    "includeInPassiveScan": true,
     "faults": ["pod-network-latency", "pod-http-latency"],
     "prompt": {
       "do": [

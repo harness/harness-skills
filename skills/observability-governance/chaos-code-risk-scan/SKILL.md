@@ -134,8 +134,8 @@ the previous scan; this run does not re-judge them.
 
 ### Phase 3: Fetch rules
 
-`harness_list(resource_type="chaos_risk_rule", filters={data_source: "SourceCode"}, compact=false)`, all pages.
-Custom rules are account-scoped, so this list is the account's custom rules plus the system rules. Do not pass an org or project.
+`harness_list(resource_type="chaos_risk_rule", filters={data_source: "SourceCode", include_in_passive_scan: true}, compact=false)`, all pages.
+That list is every system SourceCode rule plus this account's custom rules that opted into the passive scan. A custom rule with `spec.includeInPassiveScan` false is stored and is not used here. Do not pass an org or project.
 Save the bodies as `{"data": [...]}` in `$TMP/rules.json`. Call
 `harness_get(resource_type="chaos_risk_rule", resource_id=<identity>)` only for
 a rule whose `spec.faults` is missing. Read
@@ -206,7 +206,9 @@ cite the real usage).
 still exists, fetch its findings (`harness_execute(resource_type="chaos_risk_scan",
 action="report", resource_id=<baseline>)`). For each prior (rule, module), either this
 scan reports it again or you confirm at `HEAD` that the cited code changed or was
-fixed. Say which in the summary. A prior finding that vanished with unchanged code
+fixed. Say which in the summary. A prior finding whose rule is absent from the
+Phase 3 list was opted out of the passive scan: do not re-report it, and say so.
+A prior finding that vanished with unchanged code and a rule still in the list
 means you under-reported: go back and report it.
 
 ### Phase 5: Create missing catalog rules
@@ -215,10 +217,12 @@ If a confirmed risk has no matching rule, follow [rule-authoring.md](references/
 
 - An existing rule covers the failure mode: use it. Do not update it.
 - No rule exists, and the failure mode is in failure-modes.md: `harness_create` that
-  catalog rule with `confirm: true`. Do not show a confirmation message and do not wait.
+  catalog rule with `confirm: true` and `spec.includeInPassiveScan` set to true.
+  Do not show a confirmation message and do not wait.
 - Anything else: drop the finding and list it in the summary.
 
-After any create, re-fetch rules into `$TMP/rules.json`. The confirmation message in
+After any create, re-fetch rules into `$TMP/rules.json` the same way as Phase 3.
+The confirmation message in
 rule-authoring.md applies only when the user asked to add or edit a rule on its own.
 
 ### Phase 6: Draft findings
@@ -426,7 +430,8 @@ Follow this order. The Harness submit is a few seconds; the time is spent readin
    shows a kind was truncated, re-run once with a higher cap before reading source.
 4. One read per cited file, in a single batch. Decide every fact in that file from
    that read. On a `diff` scan, do not open a file the inventory did not cite.
-5. List rules with `compact: false`. `harness_get` a rule only when `spec.faults` is absent.
+5. List rules with `data_source: "SourceCode"`, `include_in_passive_scan: true`, and
+   `compact: false`. `harness_get` a rule only when `spec.faults` is absent.
 6. Create the missing custom services in one batch, then the chaos services in one
    batch. Submit findings once.
 
@@ -450,6 +455,7 @@ module and 100 per scan; the validator enforces both.
 | `snippet does not match the file` | Copy the snippet from the file at `HEAD`; check the line range covers it |
 | `names none of the rule faults` | Mention one of the rule's `spec.faults` in `resilienceTestingRec` |
 | `rule ... is not in the fetched rule list` | Re-fetch rules after creating one in Phase 5 |
+| `rule ... is not included in the passive risk scan` | The custom rule has `spec.includeInPassiveScan` false. Do not report it. A rule created in this scan sets the flag true |
 | Rule create fails on identity | Identity must match `^code-[a-z0-9-]{3,60}$` and name a failure mode |
 | Rule create fails on limit | An account allows 100 custom SourceCode rules; update an overlapping rule instead |
 | `submit_findings` returns 409 | The scan is no longer accepting findings; create a new scan |

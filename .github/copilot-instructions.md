@@ -166,7 +166,7 @@ Plugin `harness-unified-data-platform`, folder `skills/unified-data-platform/`.
 
 | Skill | Description |
 |-------|-------------|
-| `/write-hql` | Discover queryable types and fields, then write, validate, and run HQL queries |
+| `/write-hql` | Discover fields, then write, validate, and run dashboard-ready HQL queries |
 
 ### Harness AI Agents
 

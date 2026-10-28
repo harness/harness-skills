@@ -1,8 +1,8 @@
 {
   "name": "harness-skills",
   "displayName": "Harness Skills",
-  "version": "1.0.2",
-  "description": "All 72 Harness skills in one plugin: pipelines, deployments, access control, feature flags and experimentation, database, platform, security, observability and AI agents.",
+  "version": "1.1.0",
+  "description": "All 73 Harness skills in one plugin: pipelines, deployments, access control, feature flags and experimentation, database, platform, security, observability and AI agents.",
   "author": {
     "name": "Harness"
   },

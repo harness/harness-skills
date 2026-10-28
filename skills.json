@@ -1,6 +1,6 @@
 {
   "name": "harness-skills",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "repository": "https://github.com/harness/harness-skills",
   "plugins": [
     {
@@ -127,6 +127,7 @@
         "ai-operations",
         "analyze-costs",
         "audit-report",
+        "chaos-code-risk-scan",
         "chaos-dr-test",
         "chaos-experiment",
         "create-policy",
@@ -652,6 +653,15 @@
       "version": "1.0.0",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "chaos-code-risk-scan",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/chaos-code-risk-scan",
+      "summary": "Scan a code repository for chaos-provable resilience risks and report them as a risk scan",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2) with chaos_risk_rule create/update and chaos_risk_scan submit_findings, Python 3.9 or later, and git"
     },
     {
       "name": "chaos-dr-test",

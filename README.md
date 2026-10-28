@@ -124,7 +124,7 @@ Install in Claude Code: `/plugin install harness-security --marketplace harness/
 
 ### Harness Observability & Governance
 
-Plugin `harness-observability-governance` (18 skills), folder `skills/observability-governance/`.
+Plugin `harness-observability-governance` (19 skills), folder `skills/observability-governance/`.
 Install in Claude Code: `/plugin install harness-observability-governance --marketplace harness/harness-skills`.
 
 | Skill | Invoke in Claude Code | Description |
@@ -132,6 +132,7 @@ Install in Claude Code: `/plugin install harness-observability-governance --mark
 | [ai-operations](skills/observability-governance/ai-operations/SKILL.md) | `/harness-observability-governance:ai-operations` | Predictive failure analysis and intelligent alert correlation (AIDA) |
 | [analyze-costs](skills/observability-governance/analyze-costs/SKILL.md) | `/harness-observability-governance:analyze-costs` | Cloud cost analysis, recommendations, and anomaly detection |
 | [audit-report](skills/observability-governance/audit-report/SKILL.md) | `/harness-observability-governance:audit-report` | Audit trails and compliance evidence (SOC2, GDPR, HIPAA) |
+| [chaos-code-risk-scan](skills/observability-governance/chaos-code-risk-scan/SKILL.md) | `/harness-observability-governance:chaos-code-risk-scan` | Scan a code repository for chaos-provable resilience risks and report them as a risk scan |
 | [chaos-dr-test](skills/observability-governance/chaos-dr-test/SKILL.md) | `/harness-observability-governance:chaos-dr-test` | Create and edit DR Test pipelines with chaos steps |
 | [chaos-experiment](skills/observability-governance/chaos-experiment/SKILL.md) | `/harness-observability-governance:chaos-experiment` | Create, edit, and reference chaos experiments (faults, probes, actions) |
 | [create-policy](skills/observability-governance/create-policy/SKILL.md) | `/harness-observability-governance:create-policy` | Create OPA governance policies for supply chain security |

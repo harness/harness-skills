@@ -1,6 +1,6 @@
 {
   "name": "harness-skills",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "repository": "https://github.com/harness/harness-skills",
   "plugins": [
     {
@@ -792,8 +792,8 @@
       "name": "write-hql",
       "plugin": "harness-unified-data-platform",
       "path": "skills/unified-data-platform/write-hql",
-      "summary": "Discover queryable types and fields, then write, validate, and run HQL queries",
-      "version": "1.0.0",
+      "summary": "Discover fields, then write, validate, and run dashboard-ready HQL queries",
+      "version": "1.0.2",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2) with the knowledge-graph and semantic-layer toolsets enabled"
     },

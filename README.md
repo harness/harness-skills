@@ -155,7 +155,7 @@ Install in Claude Code: `/plugin install harness-unified-data-platform --marketp
 
 | Skill | Invoke in Claude Code | Description |
 |-------|------------------------|-------------|
-| [write-hql](skills/unified-data-platform/write-hql/SKILL.md) | `/harness-unified-data-platform:write-hql` | Discover queryable types and fields, then write, validate, and run HQL queries |
+| [write-hql](skills/unified-data-platform/write-hql/SKILL.md) | `/harness-unified-data-platform:write-hql` | Discover fields, then write, validate, and run dashboard-ready HQL queries |
 
 ### Harness AI Agents
 

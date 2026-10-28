@@ -3,23 +3,23 @@ name: write-hql
 description: >-
   Write, validate, and run HQL (Harness Query Language) queries against Harness data, and
   analyze pipeline, deployment, CI and security data with them. Use when asked to
-  write, fix, explain, or validate an HQL query, find which types and fields can
-  be queried, or answer "how many", "top N", trend or failure-rate questions over a time window
-  or many runs. Do NOT use for the current state of one named pipeline run (use debug-pipeline)
+  write, fix, explain, or validate an HQL query, create dashboard widget queries,
+  find which types and fields can be queried, or answer "how many", "top N", trend,
+  dashboard widget, or failure-rate questions over a time window or many runs. Do NOT use for the current state of one named pipeline run (use debug-pipeline)
   or for cloud cost totals (use analyze-costs). Trigger phrases: HQL, Harness Query Language,
   write a query, validate query, queryable types.
 metadata:
   author: Harness
-  version: 1.0.0
+  version: 1.0.2
   mcp-server: harness-mcp-v2
-  summary: Discover queryable types and fields, then write, validate, and run HQL queries
+  summary: Discover fields, then write, validate, and run dashboard-ready HQL queries
 license: Apache-2.0
 compatibility: Requires Harness MCP v2 server (harness-mcp-v2) with the knowledge-graph and semantic-layer toolsets enabled
 ---
 
 # Write HQL
 
-Write, validate, and run HQL queries against Harness data. This skill teaches the query language, the type discovery workflow, and the validation loop. For multi-query analysis (overview, drill-down, synthesis), also follow [analysis-workflow.md](references/analysis-workflow.md).
+Write, validate, and run HQL queries against Harness data, primarily for dashboard widget creation. This skill teaches the query language, the type discovery workflow, and the validation loop. For non-dashboard multi-query analysis (overview, drill-down, synthesis), also follow [analysis-workflow.md](references/analysis-workflow.md).
 
 ## Instructions
 
@@ -117,10 +117,30 @@ harness_execute(resource_type='hql_query', action='run',
 
 ### Default HQL constraints
 
-Unless the question is explicitly scope-agnostic or time-agnostic, every query must include:
+Assume generated HQL is for a dashboard widget unless the user explicitly asks for ad hoc analysis, a one-off query run, or a non-dashboard report. Unless the question is explicitly scope-agnostic or time-agnostic, every query must include:
 1. **Scope**: an `account_identifier` filter, plus `org_identifier` and `project_identifier` when the user names an org or project (or has configured default org/project for the MCP server). If the user gives a Harness UI URL, take the scope from it: `/projects/<id>` → project scope; `/orgs/<id>` without `/projects/` → org scope; otherwise account scope. If scope is unclear, ask the user rather than guessing.
-2. **Time window**: default `ago(7d)` when the question implies recency. Maximum is `ago(30d)` — do NOT exceed 30 days unless the user explicitly asks for a longer range and confirms they want to bypass this limit.
+2. **Time window**: for dashboard widget queries, default to the dashboard predicates on the widget Time Field: `{time_field} >= ${start_time} and {time_field} <= ${end_time}`. Use `ago(...)` only for non-dashboard/ad hoc analysis. For non-dashboard recency, default to `ago(7d)` and do not exceed `ago(30d)` unless the user explicitly asks for a longer range and confirms they want to bypass this limit.
 3. **Status filter**: `status = 'FAILED'` for failure-diagnosis questions.
+
+### Dashboard widget time range predicates
+
+When writing HQL for a dashboard widget, the query must include the dashboard time predicates on the widget's selected Time Field by default. Do not rely on the widget UI alone, and do not replace this with `ago(...)` unless the user is not building a dashboard widget.
+
+Use this shape, substituting the discovered field name selected in the widget's Time Field control:
+
+```
+| filter <time_field> >= ${start_time} and <time_field> <= ${end_time}
+```
+
+Generic dashboard widget query shape:
+
+```
+find entity "{module}:{entity}" | filter {required_predicates} and {time_field} >= ${start_time} and {time_field} <= ${end_time} | select { {aggregate_expression} as {alias} }
+```
+
+Keep any required business predicates in the same filter as the dashboard time predicate.
+
+When reviewing or sharing a dashboard query with a customer, check whether the query already includes the `${start_time}` and `${end_time}` predicate on the same field selected as the widget Time Field. If it is missing, suggest adding that predicate so the dashboard time range applies to the query.
 
 ### Query shape patterns
 

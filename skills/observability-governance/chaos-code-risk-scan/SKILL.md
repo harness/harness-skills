@@ -15,7 +15,7 @@ description: >-
   scan, resilience review of this service.
 metadata:
   author: Harness
-  version: 1.0.0
+  version: 1.0.1
   mcp-server: harness-mcp-v2
   module: CHAOS
   summary: Scan a code repository for chaos-provable resilience risks and report them as a risk scan
@@ -134,7 +134,8 @@ the previous scan; this run does not re-judge them.
 
 ### Phase 3: Fetch rules
 
-`harness_list(resource_type="chaos_risk_rule", filters={data_source: "SourceCode"}, compact=false)`, all pages.
+`harness_list(resource_type="chaos_risk_rule", filters={data_source: "SourceCode", include_in_passive_scan: true}, compact=false)`, all pages.
+That list is every system SourceCode rule plus this account's custom rules that opted into the passive scan. A custom rule with `spec.includeInPassiveScan` false is stored and is not used here. Do not pass an org or project: custom rules are account scoped, and a create that sends them still stores an account rule. Custom rules created at project scope before rules became account scoped are not in this list; Phase 5 checks for them before it creates anything.
 Save the bodies as `{"data": [...]}` in `$TMP/rules.json`. Call
 `harness_get(resource_type="chaos_risk_rule", resource_id=<identity>)` only for
 a rule whose `spec.faults` is missing. Read
@@ -205,7 +206,13 @@ cite the real usage).
 still exists, fetch its findings (`harness_execute(resource_type="chaos_risk_scan",
 action="report", resource_id=<baseline>)`). For each prior (rule, module), either this
 scan reports it again or you confirm at `HEAD` that the cited code changed or was
-fixed. Say which in the summary. A prior finding that vanished with unchanged code
+fixed. Say which in the summary. A prior finding whose rule is absent from the
+Phase 3 list is not re-reported. Find out why with
+`harness_get(resource_type="chaos_risk_rule", resource_id=<rule>)` and say so in
+the summary: the rule was opted out only when it still exists with
+`spec.includeInPassiveScan` false; a not-found rule was deleted; a rule whose
+`spec.dataSource` is not `SourceCode` does not apply to code.
+A prior finding that vanished with unchanged code and a rule still in the list
 means you under-reported: go back and report it.
 
 ### Phase 5: Create missing catalog rules
@@ -213,11 +220,25 @@ means you under-reported: go back and report it.
 If a confirmed risk has no matching rule, follow [rule-authoring.md](references/rule-authoring.md).
 
 - An existing rule covers the failure mode: use it. Do not update it.
-- No rule exists, and the failure mode is in failure-modes.md: `harness_create` that
-  catalog rule with `confirm: true`. Do not show a confirmation message and do not wait.
+- No rule exists, and the failure mode is in failure-modes.md: first
+  `harness_get(resource_type="chaos_risk_rule", resource_id=<catalog identity>, org_id, project_id)`
+  with the scan's org and project. If it returns a custom rule, that rule is an
+  older project-scoped rule or one stored with `spec.includeInPassiveScan` false.
+  Do not create a second rule for the same failure mode: drop the finding and
+  name the rule in the summary as needing to be moved to account scope or opted
+  in. Otherwise `harness_create` the catalog rule with `spec.includeInPassiveScan`
+  set to true and `confirm: true`. `confirm` only skips the MCP approval card; it
+  is not the API's `confirmNewRule`. Do not show a confirmation message and do
+  not wait.
+- A create that returns 409 with `matches` means an existing rule already covers
+  the failure mode. During a scan never resend with `confirmNewRule`. Use the
+  match that is a system rule or is in `$TMP/rules.json`, cite its `identity`,
+  and keep the finding. If no match is usable, drop the finding and list the
+  matches in the summary.
 - Anything else: drop the finding and list it in the summary.
 
-After any create, re-fetch rules into `$TMP/rules.json`. The confirmation message in
+After any create, re-fetch rules into `$TMP/rules.json` the same way as Phase 3.
+The confirmation message in
 rule-authoring.md applies only when the user asked to add or edit a rule on its own.
 
 ### Phase 6: Draft findings
@@ -425,7 +446,8 @@ Follow this order. The Harness submit is a few seconds; the time is spent readin
    shows a kind was truncated, re-run once with a higher cap before reading source.
 4. One read per cited file, in a single batch. Decide every fact in that file from
    that read. On a `diff` scan, do not open a file the inventory did not cite.
-5. List rules with `compact: false`. `harness_get` a rule only when `spec.faults` is absent.
+5. List rules with `data_source: "SourceCode"`, `include_in_passive_scan: true`, and
+   `compact: false`. `harness_get` a rule only when `spec.faults` is absent.
 6. Create the missing custom services in one batch, then the chaos services in one
    batch. Submit findings once.
 
@@ -449,8 +471,10 @@ module and 100 per scan; the validator enforces both.
 | `snippet does not match the file` | Copy the snippet from the file at `HEAD`; check the line range covers it |
 | `names none of the rule faults` | Mention one of the rule's `spec.faults` in `resilienceTestingRec` |
 | `rule ... is not in the fetched rule list` | Re-fetch rules after creating one in Phase 5 |
-| Rule create fails on identity | Identity must match `^code-[a-z0-9-]{3,60}$` and name a failure mode |
-| Rule create fails on limit | A project allows 30 custom SourceCode rules; update an overlapping rule instead |
+| `rule ... is not included in the passive risk scan` | The custom rule has `spec.includeInPassiveScan` false. Do not report it. A rule created in this scan sets the flag true |
+| Rule create fails on identity | Identity must match `^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$` (no leading or trailing hyphen, at most 64 characters) and name a failure mode. The `code-` prefix is a convention, not required |
+| Rule create fails on limit | An account allows 100 custom SourceCode rules; update an overlapping rule instead, resending its `description`, `tags` and `spec.includeInPassiveScan` from `harness_get` |
+| Rule create returns 409 with `matches` | An existing rule covers the failure mode. During a scan use the usable match and do not resend with `confirmNewRule` |
 | `submit_findings` returns 409 | The scan is no longer accepting findings; create a new scan |
 | `chaosServiceIdentity` not found | List `chaos_service` and use an existing identity, or leave the module unlinked |
 | Mapped service gets no experiment recommendation | The link is a Kubernetes Service (`namespace:Service:name`). Re-attach the Deployment, DaemonSet, or StatefulSet whose identity is `namespace:kind:name` |

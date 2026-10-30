@@ -13,7 +13,10 @@ Work through this in order and stop at the first match:
    not create anything.
 2. **An existing rule covers the failure mode but misses this language or
    library.** Propose an **update** that adds one `prompt.do` bullet. Same
-   confirmation as a create.
+   confirmation as a create. Update replaces the whole rule: start from the
+   `harness_get` body and resend every field, including `description`, `tags`
+   and `spec.includeInPassiveScan`. An omitted flag is stored as `false` and
+   takes the rule out of later scans.
 3. **No rule covers it, and the failure mode is in `failure-modes.md`.**
    Propose a **create** using that entry's identity, category, severity and
    faults.
@@ -28,9 +31,9 @@ describe the same failure. Overlap means update, not create.
 
 | Field | Constraint |
 |---|---|
-| `identity` | `^code-[a-z0-9-]{3,60}$`. Names a failure mode: `code-outbound-call-without-timeout`, never `code-payments-http-client` |
+| `identity` | `^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$`: 1-64 lowercase letters, digits and hyphens, starting and ending with a letter or digit. No prefix is required |
 | `spec.dataSource` | `["SourceCode"]` |
-| `spec.includeInPassiveScan` | `true` when this scan creates the rule so its findings can be submitted. `false` stores the rule and leaves it out of passive scans. The server default is `false` |
+| `spec.includeInPassiveScan` | On create, `true` when this scan creates the rule so its findings can be submitted. `false` stores the rule and leaves it out of passive scans. The server default is `false`, and update stores the default when the key is omitted, so an update resends the value from the fetched rule |
 | `spec.faults` | Non-empty; every entry on the allowlist in `failure-modes.md` |
 | `spec.prompt` | `do` and `outcome` are non-empty lists; `dont` is optional. Each list has at most 10 entries of at most 500 characters |
 | `severity` | `Critical`, `High`, `Medium` or `Low` |
@@ -41,6 +44,9 @@ describe the same failure. Overlap means update, not create.
 
 ## Soft constraints (the skill enforces these)
 
+- **Identity names a failure mode.** Use the identity from `failure-modes.md`.
+  By convention SourceCode rules start with `code-`, such as
+  `code-outbound-call-without-timeout`, never `code-payments-http-client`.
 - **Generic.** No repo, service, file, team or company names anywhere in the
   rule. Library names belong only in `prompt.do` bullets.
 - **Severity reflects blast radius.** `Critical` is reserved for failures that

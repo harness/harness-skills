@@ -473,7 +473,7 @@ module and 100 per scan; the validator enforces both.
 | `rule ... is not in the fetched rule list` | Re-fetch rules after creating one in Phase 5 |
 | `rule ... is not included in the passive risk scan` | The custom rule has `spec.includeInPassiveScan` false. Do not report it. A rule created in this scan sets the flag true |
 | Rule create fails on identity | Identity must match `^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$` (no leading or trailing hyphen, at most 64 characters) and name a failure mode. The `code-` prefix is a convention, not required |
-| Rule create fails on limit | An account allows 100 custom SourceCode rules; update an overlapping rule instead, resending its `description`, `tags` and `spec.includeInPassiveScan` from `harness_get` |
+| Rule create fails on limit | An account allows 100 custom SourceCode rules; update an overlapping rule instead, resending its `description`, `tags`, `spec.dataSource` and `spec.includeInPassiveScan` from `harness_get` |
 | Rule create returns 409 with `matches` | An existing rule covers the failure mode. During a scan use the usable match and do not resend with `confirmNewRule` |
 | `submit_findings` returns 409 | The scan is no longer accepting findings; create a new scan |
 | `chaosServiceIdentity` not found | List `chaos_service` and use an existing identity, or leave the module unlinked |

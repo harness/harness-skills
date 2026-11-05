@@ -196,12 +196,12 @@ def rule_faults(rule: dict) -> List[str]:
 
 
 def rule_in_passive_scan(rule: dict) -> bool:
-    """System rules are always eligible. A custom rule must opt in.
+    """System rules are always eligible, independent of includeInPassiveScan.
 
-    Both fields live inside spec. The API sends spec.isSystem and
-    spec.includeInPassiveScan; the stored document uses spec.is_system and
-    spec.include_in_passive_scan. A system rule stays eligible when
-    includeInPassiveScan is false.
+    List and get put both fields inside spec. Read spec.isSystem and
+    spec.includeInPassiveScan only. A top-level isSystem is not this API
+    body and does not count. The flag applies only when spec.isSystem is
+    not true: a custom rule is in the scan only when it is true.
     """
     spec = rule.get("spec") or {}
     if spec.get("isSystem") is True:

@@ -41,7 +41,7 @@ describe the same failure. Overlap means update, not create.
 | `category` | `Availability`, `Performance`, `Dependency`, `Resilience` or `Config` |
 | Count | At most 100 custom `SourceCode` rules per account |
 
-`spec.isSystem` is always false for these rules; the server ignores any other value.
+`spec.isSystem` is false for these custom rules. The server ignores any other value.
 
 ## Soft constraints (the skill enforces these)
 

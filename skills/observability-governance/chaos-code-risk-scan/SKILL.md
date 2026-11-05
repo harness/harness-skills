@@ -209,8 +209,10 @@ scan reports it again or you confirm at `HEAD` that the cited code changed or wa
 fixed. Say which in the summary. A prior finding whose rule is absent from the
 Phase 3 list is not re-reported. Find out why with
 `harness_get(resource_type="chaos_risk_rule", resource_id=<rule>)` and say so in
-the summary. Do not pass org or project. The rule was opted out only when this
-get returns it with `spec.includeInPassiveScan` false. A not-found means the
+the summary. Do not pass org or project. A system rule (`spec.isSystem`
+true) is still eligible: `spec.includeInPassiveScan` does not change that. A
+custom rule was opted out only when this get returns it with
+`spec.includeInPassiveScan` false. A not-found means the
 account has no rule with that identity. It is not proof the rule was deleted:
 a project-scoped rule with the same identity is invisible to this get. A rule
 whose `spec.dataSource` is not `SourceCode` does not apply to code.
@@ -224,15 +226,18 @@ If a confirmed risk has no matching rule, follow [rule-authoring.md](references/
 - An existing rule covers the failure mode: use it. Do not update it.
 - No rule exists, and the failure mode is in failure-modes.md: first
   `harness_get(resource_type="chaos_risk_rule", resource_id=<catalog identity>)`.
-  Do not pass org or project. A not-found means the account has no rule with
-  that identity. A project-scoped rule with the same identity is invisible, and
-  this create can duplicate it. A rule this get returns is the account rule.
-  If `spec.includeInPassiveScan` is false, do not create another rule: drop the
-  finding and name the rule in the summary as needing to be opted in. That flag
-  is not evidence the rule is project-scoped. Otherwise `harness_create` the
-  catalog rule with `spec.includeInPassiveScan` set to true and `confirm: true`.
-  `confirm` only skips the MCP approval card; it is not the API's
-  `confirmNewRule`. Do not show a confirmation message and do not wait.
+  Do not pass org or project. Create only when that get is not found. A
+  not-found means the account has no rule with that identity. A project-scoped
+  rule with the same identity is invisible, and this create can duplicate it.
+  `harness_create` the catalog rule with `spec.includeInPassiveScan` set to true
+  and `confirm: true`. `confirm` only skips the MCP approval card; it is not
+  the API's `confirmNewRule`. Do not show a confirmation message and do not
+  wait. A rule this get returns is the account rule: use it and do not create
+  another. A system rule (`spec.isSystem` true) is usable even when
+  `spec.includeInPassiveScan` is false. A custom rule with that flag false or
+  omitted is stored and is not in the passive scan: drop the finding and name
+  the rule in the summary as needing to be opted in. That flag is not evidence
+  the rule is project-scoped.
 - A create that returns 409 with `matches` means an existing rule already covers
   the failure mode. During a scan never resend with `confirmNewRule`. Use the
   match that is a system rule or is in `$TMP/rules.json`, cite its `identity`,

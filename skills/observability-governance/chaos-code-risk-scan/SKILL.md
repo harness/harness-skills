@@ -135,7 +135,7 @@ the previous scan; this run does not re-judge them.
 ### Phase 3: Fetch rules
 
 `harness_list(resource_type="chaos_risk_rule", filters={data_source: "SourceCode", include_in_passive_scan: true}, compact=false)`, all pages.
-That list is every system SourceCode rule plus this account's custom rules that opted into the passive scan. A custom rule with `spec.includeInPassiveScan` false is stored and is not used here. Do not pass an org or project: custom rules are account scoped, and a create that sends them still stores an account rule. Custom rules created at project scope before rules became account scoped are not in this list; Phase 5 checks for them before it creates anything.
+That list is every system SourceCode rule plus this account's custom rules that opted into the passive scan. A custom rule with `spec.includeInPassiveScan` false is stored and is not used here. Do not pass an org or project: custom rules are account scoped, and a create that sends them still stores an account rule. A rule stored with an org and project is not in this list. `include_all_scope` is not a filter, so the skill cannot see it.
 Save the bodies as `{"data": [...]}` in `$TMP/rules.json`. Call
 `harness_get(resource_type="chaos_risk_rule", resource_id=<identity>)` only for
 a rule whose `spec.faults` is missing. Read
@@ -209,9 +209,11 @@ scan reports it again or you confirm at `HEAD` that the cited code changed or wa
 fixed. Say which in the summary. A prior finding whose rule is absent from the
 Phase 3 list is not re-reported. Find out why with
 `harness_get(resource_type="chaos_risk_rule", resource_id=<rule>)` and say so in
-the summary: the rule was opted out only when it still exists with
-`spec.includeInPassiveScan` false; a not-found rule was deleted; a rule whose
-`spec.dataSource` is not `SourceCode` does not apply to code.
+the summary. Do not pass org or project. The rule was opted out only when this
+get returns it with `spec.includeInPassiveScan` false. A not-found means the
+account has no rule with that identity. It is not proof the rule was deleted:
+a project-scoped rule with the same identity is invisible to this get. A rule
+whose `spec.dataSource` is not `SourceCode` does not apply to code.
 A prior finding that vanished with unchanged code and a rule still in the list
 means you under-reported: go back and report it.
 
@@ -221,15 +223,16 @@ If a confirmed risk has no matching rule, follow [rule-authoring.md](references/
 
 - An existing rule covers the failure mode: use it. Do not update it.
 - No rule exists, and the failure mode is in failure-modes.md: first
-  `harness_get(resource_type="chaos_risk_rule", resource_id=<catalog identity>, org_id, project_id)`
-  with the scan's org and project. If it returns a custom rule, that rule is an
-  older project-scoped rule or one stored with `spec.includeInPassiveScan` false.
-  Do not create a second rule for the same failure mode: drop the finding and
-  name the rule in the summary as needing to be moved to account scope or opted
-  in. Otherwise `harness_create` the catalog rule with `spec.includeInPassiveScan`
-  set to true and `confirm: true`. `confirm` only skips the MCP approval card; it
-  is not the API's `confirmNewRule`. Do not show a confirmation message and do
-  not wait.
+  `harness_get(resource_type="chaos_risk_rule", resource_id=<catalog identity>)`.
+  Do not pass org or project. A not-found means the account has no rule with
+  that identity. A project-scoped rule with the same identity is invisible, and
+  this create can duplicate it. A rule this get returns is the account rule.
+  If `spec.includeInPassiveScan` is false, do not create another rule: drop the
+  finding and name the rule in the summary as needing to be opted in. That flag
+  is not evidence the rule is project-scoped. Otherwise `harness_create` the
+  catalog rule with `spec.includeInPassiveScan` set to true and `confirm: true`.
+  `confirm` only skips the MCP approval card; it is not the API's
+  `confirmNewRule`. Do not show a confirmation message and do not wait.
 - A create that returns 409 with `matches` means an existing rule already covers
   the failure mode. During a scan never resend with `confirmNewRule`. Use the
   match that is a system rule or is in `$TMP/rules.json`, cite its `identity`,

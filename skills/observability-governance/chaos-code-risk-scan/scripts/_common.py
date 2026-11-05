@@ -198,7 +198,10 @@ def rule_faults(rule: dict) -> List[str]:
 def rule_in_passive_scan(rule: dict) -> bool:
     """System rules are always eligible. A custom rule must opt in.
 
-    The risk rule API returns isSystem and includeInPassiveScan inside spec.
+    Both fields live inside spec. The API sends spec.isSystem and
+    spec.includeInPassiveScan; the stored document uses spec.is_system and
+    spec.include_in_passive_scan. A system rule stays eligible when
+    includeInPassiveScan is false.
     """
     spec = rule.get("spec") or {}
     if spec.get("isSystem") is True:

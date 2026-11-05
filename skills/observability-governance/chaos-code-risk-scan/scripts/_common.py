@@ -32,7 +32,7 @@ MAX_BULLET = 1000
 MAX_PATH = 512
 SEVERITY_ORDER = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}
 
-SUPPRESSION_RE = re.compile(r"harness-chaos-ignore:\s*(code-[a-z0-9-]{3,60})\s+\S")
+SUPPRESSION_RE = re.compile(r"harness-chaos-ignore:\s*([a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)\s+\S")
 
 _EXCLUDED_DIR_PARTS = {
     "test", "tests", "__tests__", "testdata", "testing", "e2e", "it",
@@ -193,3 +193,17 @@ def rule_data_sources(rule: dict) -> List[str]:
 
 def rule_faults(rule: dict) -> List[str]:
     return list((rule.get("spec") or {}).get("faults") or [])
+
+
+def rule_in_passive_scan(rule: dict) -> bool:
+    """System rules are always eligible, independent of includeInPassiveScan.
+
+    List and get put both fields inside spec. Read spec.isSystem and
+    spec.includeInPassiveScan only. A top-level isSystem is not this API
+    body and does not count. The flag applies only when spec.isSystem is
+    not true: a custom rule is in the scan only when it is true.
+    """
+    spec = rule.get("spec") or {}
+    if spec.get("isSystem") is True:
+        return True
+    return spec.get("includeInPassiveScan") is True

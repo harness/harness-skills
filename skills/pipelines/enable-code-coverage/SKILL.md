@@ -1,10 +1,10 @@
 ---
 name: enable-code-coverage
 description: >-
-  Onboard a repository to Harness Code Coverage (HCC): inspect test setups, wire the codeCoverage step
+  Onboard a repository to Harness Code Coverage (HCC) in Harness CI: inspect test setups, wire the codeCoverage step
   immediately after unit tests, verify multi-module coverage reports, set up PR and baseline triggers,
-  and configure exclusions. Use when asked to enable code coverage, onboard a repository to code coverage,
-  add coverage gating, or set up PR patch coverage checks. Trigger phrases: enable code coverage,
+  and configure exclusions via Harness MCP. Use when asked to enable code coverage, onboard a repository to code coverage,
+  add coverage gating, or set up PR patch coverage checks in Harness CI. Trigger phrases: enable code coverage,
   onboard code coverage, add code coverage, patch coverage gate, baseline coverage.
 metadata:
   author: Harness
@@ -17,7 +17,15 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 
 # Enable Code Coverage
 
-Onboard any repository or pipeline to Harness Code Coverage (HCC) end-to-end. The skill inspects the build and test setup, verifies report generation across all modules, adds the `codeCoverage` step immediately after tests, and configures PR and default-branch baseline triggers.
+Onboard any repository or pipeline to Harness Code Coverage (HCC) in Harness CI end-to-end. The skill inspects the build and test setup, verifies report generation across all modules, adds the `codeCoverage` step immediately after tests, and configures PR and default-branch baseline triggers.
+
+## Scope & Platform Requirements
+
+- **Platform Target:** **Harness CI only** (not GitHub Actions, GitLab CI, or Jenkins). The conceptual pattern (detect tests → verify multi-module reports → upload via `hcli cov upload` → evaluate patch gate via `hcli cov wait-until` → configure PR & baseline triggers) is extensible and can be replicated on other platforms, but this skill specifically manages Harness CI pipelines and triggers.
+- **Autonomous Execution:** Explicitly requires the **Harness MCP Server (`harness-mcp-v2` / `harness-mcp`)** for autonomous discovery and write operations (inspecting repositories, checking PR checks, reading/updating pipeline YAML, and provisioning triggers).
+- **Build Infrastructure Compatibility:** Compatible with all Harness CI build infrastructures:
+  - **Harness Cloud (Hosted VMs):** `hcli` is pre-installed on the system `PATH`.
+  - **Kubernetes Build Clusters & Docker Runners:** The Harness Delegate / Lite-Engine automatically bind-mounts the versioned `hcli` helper binary into step containers on `PATH`. No custom binary download or installation step is required in the pipeline.
 
 Detail lives in `references/` — read a reference only when needed:
 

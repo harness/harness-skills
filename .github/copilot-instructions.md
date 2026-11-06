@@ -45,6 +45,7 @@ Plugin `harness-pipelines`, folder `skills/pipelines/`.
 | `/create-template` | Create reusable step, stage, pipeline, and step group templates |
 | `/create-trigger` | Create webhook, scheduled, and artifact triggers |
 | `/debug-pipeline` | Diagnose pipeline execution failures |
+| `/enable-code-coverage` | Onboard repositories to Harness Code Coverage with PR gating and baseline triggers |
 | `/manage-freeze-windows` | Create, toggle, and manage deployment freeze windows and the project-level global freeze |
 | `/migrate-pipeline` | Convert v0 pipelines to v1 format |
 | `/run-pipeline` | Execute and monitor pipeline runs |

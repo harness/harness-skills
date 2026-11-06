@@ -1,0 +1,54 @@
+template:
+  name: codeCoverage
+  identifier: codeCoverage
+  versionLabel: v1
+  type: Step
+  spec:
+    type: Run
+    spec:
+      shell: Bash
+      command: |-
+        set -e
+
+        PATCH_COVERAGE="${patch_coverage_percent:-80}"
+        OVERALL_COVERAGE="${overall_coverage_percent:-}"
+        FILE_PATH="${file_path:-}"
+        TIMEOUT="${timeout:-5m}"
+        DEBUG="${debug:-false}"
+
+        if [ "$DEBUG" = "true" ]; then
+          set -x
+        fi
+
+        # 1. Upload coverage report(s)
+        UPLOAD_CMD="hcli cov upload"
+        if [ "$DEBUG" = "true" ]; then
+          UPLOAD_CMD="$UPLOAD_CMD --verbose=true --log-level=debug"
+        fi
+        if [ -n "$FILE_PATH" ] && [ "$FILE_PATH" != "null" ]; then
+          UPLOAD_CMD="$UPLOAD_CMD --file=$FILE_PATH"
+        fi
+
+        echo "Uploading coverage report to Harness Code Coverage..."
+        $UPLOAD_CMD
+
+        # 2. Evaluate coverage gate (patch coverage target; optional overall coverage)
+        echo "Evaluating coverage gate (target patch: ${PATCH_COVERAGE}%)..."
+        WAIT_CMD="hcli cov wait-until --patch-gt=$PATCH_COVERAGE --timeout=$TIMEOUT"
+        if [ -n "$OVERALL_COVERAGE" ] && [ "$OVERALL_COVERAGE" != "null" ] && [ "$OVERALL_COVERAGE" != "0" ]; then
+          WAIT_CMD="$WAIT_CMD --gt=$OVERALL_COVERAGE"
+        fi
+
+        $WAIT_CMD
+      envVariables:
+        patch_coverage_percent: <+input>.default(80)
+        overall_coverage_percent: <+input>
+        file_path: <+input>
+        timeout: <+input>.default("5m")
+        debug: <+input>.default(false).selectOneFrom(true,false)
+    failureStrategies:
+      - onFailure:
+          errors:
+            - AllErrors
+          action:
+            type: Ignore

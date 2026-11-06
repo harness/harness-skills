@@ -17,7 +17,7 @@ The tables below are generated from `skills/categories.json` and each skill's fr
 
 ### Harness Pipelines & Execution
 
-Plugin `harness-pipelines` (8 skills), folder `skills/pipelines/`.
+Plugin `harness-pipelines` (9 skills), folder `skills/pipelines/`.
 Install in Claude Code: `/plugin install harness-pipelines --marketplace harness/harness-skills`.
 
 | Skill | Invoke in Claude Code | Description |
@@ -27,6 +27,7 @@ Install in Claude Code: `/plugin install harness-pipelines --marketplace harness
 | [create-template](skills/pipelines/create-template/SKILL.md) | `/harness-pipelines:create-template` | Create reusable step, stage, pipeline, and step group templates |
 | [create-trigger](skills/pipelines/create-trigger/SKILL.md) | `/harness-pipelines:create-trigger` | Create webhook, scheduled, and artifact triggers |
 | [debug-pipeline](skills/pipelines/debug-pipeline/SKILL.md) | `/harness-pipelines:debug-pipeline` | Diagnose pipeline execution failures |
+| [enable-code-coverage](skills/pipelines/enable-code-coverage/SKILL.md) | `/harness-pipelines:enable-code-coverage` | Onboard repositories to Harness Code Coverage with PR gating and baseline triggers |
 | [manage-freeze-windows](skills/pipelines/manage-freeze-windows/SKILL.md) | `/harness-pipelines:manage-freeze-windows` | Create, toggle, and manage deployment freeze windows and the project-level global freeze |
 | [migrate-pipeline](skills/pipelines/migrate-pipeline/SKILL.md) | `/harness-pipelines:migrate-pipeline` | Convert v0 pipelines to v1 format |
 | [run-pipeline](skills/pipelines/run-pipeline/SKILL.md) | `/harness-pipelines:run-pipeline` | Execute and monitor pipeline runs |

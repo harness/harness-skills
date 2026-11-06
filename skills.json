@@ -15,6 +15,7 @@
         "create-template",
         "create-trigger",
         "debug-pipeline",
+        "enable-code-coverage",
         "manage-freeze-windows",
         "migrate-pipeline",
         "run-pipeline"
@@ -210,6 +211,15 @@
       "path": "skills/pipelines/debug-pipeline",
       "summary": "Diagnose pipeline execution failures",
       "version": "2.1.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "enable-code-coverage",
+      "plugin": "harness-pipelines",
+      "path": "skills/pipelines/enable-code-coverage",
+      "summary": "Onboard repositories to Harness Code Coverage with PR gating and baseline triggers",
+      "version": "1.0.0",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
     },

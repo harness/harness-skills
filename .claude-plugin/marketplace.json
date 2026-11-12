@@ -4,13 +4,13 @@
     "name": "Harness"
   },
   "metadata": {
-    "description": "73 Harness skills for AI coding agents, as 10 domain plugins."
+    "description": "74 Harness skills for AI coding agents, as 10 domain plugins."
   },
   "plugins": [
     {
       "name": "harness-pipelines",
       "displayName": "Harness Pipelines & Execution",
-      "description": "8 skills: Create v0 and v1 pipelines, triggers, templates and freeze windows, then run, debug and migrate them.",
+      "description": "9 skills: Create v0 and v1 pipelines, triggers, templates and freeze windows, then run, debug and migrate them.",
       "source": ".",
       "strict": false,
       "skills": [

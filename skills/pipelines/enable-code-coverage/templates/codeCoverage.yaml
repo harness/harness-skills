@@ -1,0 +1,30 @@
+template:
+  name: codeCoverage
+  identifier: codeCoverage
+  versionLabel: v1
+  type: Step
+  spec:
+    type: Run
+    spec:
+      shell: Bash
+      command: |-
+        set -e
+
+        # 1. Upload coverage reports (auto-discovers standard reports & applies Dashboard exclusions)
+        if [ -n "${file_path:-}" ] && [ "$file_path" != "null" ]; then
+          hcli cov upload --file="$file_path"
+        else
+          hcli cov upload
+        fi
+
+        # 2. Evaluate patch coverage gate (defaults to 80% on PRs)
+        hcli cov wait-until --patch-gt="${patch_coverage_percent:-80}"
+      envVariables:
+        patch_coverage_percent: <+input>.default(80)
+        file_path: <+input>
+    failureStrategies:
+      - onFailure:
+          errors:
+            - AllErrors
+          action:
+            type: Ignore

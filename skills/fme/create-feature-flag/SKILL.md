@@ -16,7 +16,7 @@ description: >-
   add flag, new flag, set up flag, FME flag create, initialize flag.
 metadata:
   author: Harness
-  version: 1.2.2
+  version: 1.2.3
   mcp-server: harness-mcp
   summary: Create an FME flag that follows project conventions, with safe-default definitions
 license: Apache-2.0
@@ -38,7 +38,7 @@ Works through the Harness MCP server or the Harness CLI; names are from [tool-ma
 | List environments | `harness_list` · `fme_environment` · `compact: false` | `harness list fme_environment --json` |
 | List traffic types | `harness_list` · `fme_traffic_type` · `compact: false` | `harness list traffic_type --json` |
 | Get definition | `harness_get` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` | `harness get feature_flag:definition <flag> --env <env-id> --json` |
-| Create flag | `harness_create` · `fme_feature_flag` · `body: { name, trafficType, description?, tags?, owners? }` | `harness create feature_flag <name> --traffic-type <type> --set description="..."` plus `--add tags.<name>` per tag, or `-f flag.json` with the full approved body (CLI's `tags`/`owners` are collection fields — `--set tags=[...]` isn't valid syntax) |
+| Create flag | `harness_create` · `fme_feature_flag` · `body: { name, trafficType, description?, tags?, owners? }` | `harness create feature_flag <name> --traffic-type <type> --set description="..."` plus `--add tags.<name>` per tag and `--add owners.group:<identifier>` or `--add owners.user:<email-or-id>` per owner (preferred), or `-f flag.json` with the full approved body (CLI's `tags`/`owners` are collection fields — `--set tags=[...]` isn't valid syntax). In a file body use the write shape `{type: "USER", id or email}` / `{type: "GROUP", identifier}` — not the read shape `{id, name, type}`, which returns 400 |
 | Create definition | `harness_create` · `fme_feature_flag_definition` · `params: { feature_flag_name, environment_id }` · `body: { treatments, defaultTreatment, defaultRule, comment? }` | `harness create feature_flag:definition <flag> --env <env-id> -f def.json` |
 
 ## Instructions
@@ -115,6 +115,7 @@ This skill creates flag metadata and definitions only — it does not touch appl
 |---------|----------|
 | 409 "flag already exists" | Re-read state. When delegated, return the collision to the caller without mutation and require a reuse/new-name decision; otherwise offer `/update-flag-targeting` or a newly approved name. |
 | 400 "invalid name" or "invalid traffic type" | Use the API message to correct. Don't invent character rules. |
+| 400 "Invalid json structure" on owners | owners write shape is `{type: "GROUP", identifier}` or `{type: "USER", id or email}` — not the read shape `{id, name, type}`. CLI: `--add owners.group:<identifier>` avoids this entirely. |
 | User wants to update existing flag | STOP. Route to `/update-flag-targeting`. |
 
 See [tool-map.md](../../../references/fme/tool-map.md#common-errors) for generic errors.

@@ -1,6 +1,6 @@
 {
   "name": "harness-skills",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "repository": "https://github.com/harness/harness-skills",
   "plugins": [
     {
@@ -345,7 +345,7 @@
       "plugin": "harness-fme",
       "path": "skills/fme/create-feature-flag",
       "summary": "Create an FME flag that follows project conventions, with safe-default definitions",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "mcp_server": "harness-mcp",
       "compatibility": "Requires the Harness MCP server or the Harness CLI"
     },

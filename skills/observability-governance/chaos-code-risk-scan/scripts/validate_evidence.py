@@ -21,7 +21,7 @@ from _common import (
     MAX_BULLET, MAX_BULLETS, MAX_CODE_LOCATIONS, MAX_FINDINGS, MAX_NAME, MAX_SNIPPET, MAX_TEXT,
     SEVERITY_ORDER, SUPPRESSION_RE,
     git, is_excluded, is_safe_relative_path, load_json, normalize_module, parse_fault_names,
-    rule_data_sources, rule_faults, rules_by_identity, unwrap_list, write_json,
+    rule_data_sources, rule_faults, rule_in_passive_scan, rules_by_identity, unwrap_list, write_json,
 )
 
 BULLET_FIELDS = ("evidence", "remediation", "resilienceTestingRec")
@@ -113,6 +113,8 @@ def validate_one(finding: dict, rules: Dict[str, dict], files: FileCache) -> Tup
         return None, "rule {!r} is not in the fetched rule list".format(rule_id)
     if "SourceCode" not in rule_data_sources(rule):
         return None, "rule {} is not a SourceCode rule".format(rule_id)
+    if not rule_in_passive_scan(rule):
+        return None, "rule {} is not included in the passive risk scan".format(rule_id)
     faults = rule_faults(rule)
     if not faults:
         return None, "rule {} lists no faults".format(rule_id)

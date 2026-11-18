@@ -65,7 +65,7 @@ MCP: `harness_execute` with `resource_type: chaos_risk_scan`,
 
 | Field | Local check (`validate_evidence.py`) | Server check |
 |---|---|---|
-| `riskRuleId` | Exists in the fetched rule list | Rule exists in scope (or is a system rule) and `spec.dataSource == SourceCode` |
+| `riskRuleId` | Exists in the fetched rule list. A custom rule must have `spec.includeInPassiveScan` true; system rules are eligible without the flag | Rule exists in scope (or is a system rule), `spec.dataSource == SourceCode`, and a custom rule has `spec.includeInPassiveScan` true |
 | `riskName`, `evidence`, `remediation` | Non-empty | Non-empty |
 | `resilienceTestingRec` | Names at least one fault from the rule | Names at least one fault from the rule's `spec.faults` |
 | `codeLocations` | 1 to 5 entries; file inside the repo and not excluded by scope; snippet appears verbatim within the line range at `commitSHA` | 1 to 5 entries; relative path with no `..`; `1 <= startLine <= endLine`; snippet at most 2000 characters |

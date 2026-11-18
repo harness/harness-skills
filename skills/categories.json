@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "categories": [
     {"dir": "pipelines", "plugin": "harness-pipelines", "title": "Harness Pipelines & Execution", "description": "Create v0 and v1 pipelines, triggers, templates and freeze windows, then run, debug and migrate them.", "category": "ci-cd", "keywords": ["harness", "pipelines", "ci-cd", "triggers", "templates"]},
     {"dir": "infrastructure", "plugin": "harness-infrastructure", "title": "Harness Infrastructure & Resources", "description": "Define services, environments, infrastructure, connectors and secrets for Harness deployments.", "category": "infrastructure", "keywords": ["harness", "services", "environments", "connectors", "secrets"]},

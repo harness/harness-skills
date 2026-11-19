@@ -2,9 +2,9 @@
 name: dependency-firewall
 description: >-
   Check whether a package/version is safe to add, and diagnose an install or build failure
-  caused by Harness Dependency Firewall (artifact_scan / firewall_exception), for any package
-  type. Covers listing registries/packages/versions, CVE/license/policy checks, fix-version
-  suggestions, and firewall exception (waiver) lifecycle.
+  caused by Harness Dependency Firewall (artifact_scan_v3 / firewall_exception_v3), for any
+  package type. Covers listing registries/packages/versions, CVE/license/policy checks,
+  fix-version suggestions, and firewall exception (waiver) lifecycle.
   Use when a user asks whether a package is safe to add ("can I use dayjs?"), or an install or
   build fails with a 403 on a Harness registry artifact — worth checking even if the error
   doesn't say "firewall". Also covers "no matching version", "blocked by policy", and "my waiver
@@ -23,7 +23,7 @@ compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 # Dependency Firewall
 
 Helps a developer get an answer before they hit a block, and a plain-language cause after they
-do. This is Harness's own Dependency Firewall (`artifact_scan` / `firewall_exception`), not JFrog
+do. This is Harness's own Dependency Firewall (`artifact_scan_v3` / `firewall_exception_v3`), not JFrog
 curation — don't assume JFrog's exact mechanics apply here without checking.
 
 You need the account, and which org/project/registry the package lives in — ask if not given.
@@ -51,14 +51,14 @@ the policy engine refused to serve the bytes. That holds regardless of:
   enforcement path. Docker is the exception: Dependency Firewall is not enabled for Docker pulls,
   so a 403 there has a different cause — don't point a Docker-pull failure at this skill.
 
-Once confirmed as a 403, pull the `artifact_scan` record for that exact package + version +
+Once confirmed as a 403, pull the `artifact_scan_v3` record for that exact package + version +
 registry rather than guessing from the error text, and get the real policy/CVE/license reason
 before telling the developer anything. Don't say "it's probably the firewall" without pulling
 that record.
 
 A 403 is not automatically a firewall block — it's just the signal worth checking first. Also
 possible: a registry-level permission/RBAC issue (the caller's token lacks access to that
-registry), or an auth/credential problem on the registry itself. If the `artifact_scan` record
+registry), or an auth/credential problem on the registry itself. If the `artifact_scan_v3` record
 shows no `BLOCKED` status for that package + version + registry, say so and point the
 investigation at permissions/auth instead of insisting it must be the firewall.
 
@@ -78,15 +78,26 @@ A newer `registries-v3` toolset exposes the same data as `package`/`package_vers
 `package_file` (flatter v3 paths, project-scoped), but it's opt-in — fall back to the table above
 if `harness_describe` shows it isn't enabled.
 
+Dependency Firewall itself lives under a separate toolset, `registries-firewall`, with
+`resource_type`s `artifact_scan_v3`, `firewall_exception_v3`, `firewall_exception_version_v3`, and
+`bulk_scan_evaluation_v3`. This toolset is still rolling out — run `harness_describe()` first and
+confirm it's listed before using any of these; if it isn't, say so rather than guessing at a
+non-`_v3` fallback name (none exists). `artifact_scan_v3` defaults to project scope; pass
+`resource_scope: "account"` with `filters: {scope: "descendants"}` to search across every org and
+project at once.
+
 ### Path A1 — A specific package and version was named
 
 For "is dayjs@1.11.13 safe?" style requests, resolve that exact pair, don't list versions:
 
-1. Check its firewall scan status with `resource_type: "artifact_scan"` (`harness_list` filtered
-   by `package_name`/`version`/`registry_id`, or `harness_get`).
-2. If no scan record exists yet, trigger one (`harness_execute` evaluate, or a bulk evaluation for
-   several at once) and wait for/poll the result — don't report "unknown" without running the
-   check.
+1. Check its firewall scan status with `resource_type: "artifact_scan_v3"`. There's no exact
+   `package_name`/`version` filter — use `harness_list` with `filters: {search_term: "<package
+   name>", registry_ids: "<registry id>"}` and match the exact `version` client-side from the
+   results, or `harness_get` if you already have the `scan_id`.
+2. If no scan record exists yet, trigger one with `harness_execute(resource_type:
+   "artifact_scan_v3", action: "evaluate", params: {version_id: "<artifact version id>"})` — this
+   is async (`PENDING`/`PROCESSING`/`SUCCESS`/`FAILED`); poll `harness_get` on the resulting scan
+   until it settles. Don't report "unknown" without running the check.
 3. Report the status (`ALLOWED`/`BLOCKED`/`WARN`) with the policy/CVE/license detail if blocked or
    warned. If blocked or warned, also read that same scan's `fixVersionDetails`
    (`currentVersion`/`fixVersion`/`fixVersionAvailable`) — it comes back on the scan record
@@ -125,12 +136,20 @@ dependencies in bulk rather than one at a time:
    Prefer a lockfile's resolved versions over a manifest's ranges when one exists
    (`package-lock.json`/`yarn.lock`, pinned `requirements.txt`, a Maven effective-pom, etc.) — a
    range doesn't tell you which actual version would be installed.
-2. Evaluate them in bulk against the firewall, not one-by-one:
-   - **≤50 packages**: synchronous bulk evaluate — returns one scan detail per artifact
-     immediately, nothing is stored.
-   - **>50, up to 10000**: async bulk evaluate — returns an `evaluationId`; poll `harness_get` on
-     `resource_type: "bulk_scan_evaluation"` with that id until `status` is `SUCCESS` or
-     `FAILURE`, then read its `scans` (paginated, 100/page, non-`ALLOWED` by default).
+2. There is currently **no MCP action to kick off a new bulk evaluation** —
+   `bulk_scan_evaluation_v3` only supports `list`/`get` (for polling an evaluation that was
+   started some other way, e.g. the REST API directly), and `artifact_scan_v3`'s only execute
+   action, `evaluate`, re-evaluates one artifact at a time (`scanId` or `versionId`). So for a
+   whole manifest via MCP today:
+   - First `harness_list resource_type=artifact_scan_v3` (filtered by `registry_ids` and, if
+     useful, `search_term`) to pick up any package+version pairs that already have a recent scan
+     — don't re-trigger those.
+   - For every remaining pair with no scan (or a stale one), resolve its artifact `version_id`
+     (via `artifact_version`/`package_version`) and call `evaluate` for each — this is a loop of
+     single-artifact calls, not a true bulk call, so expect it to be slow for a large manifest.
+   - If the manifest is large enough that this loop is impractical, say so explicitly and suggest
+     the direct `bulk-evaluate`/`bulk-evaluate-sync` REST endpoints as the faster path outside MCP,
+     rather than silently looping hundreds of times.
 3. For every result that's `BLOCKED` or `WARN`, read that scan's `fixVersionDetails` — it comes
    back directly in the same evaluation response, so don't separately list versions to hunt for a
    replacement.
@@ -148,14 +167,16 @@ First figure out which failure mode this is — they have different causes on Ha
 
 | Symptom | What it means |
 |---|---|
-| Package manager says a version doesn't exist, but you can see it upstream | Possible index-time hiding — don't assume it's active, it depends on registry type, firewall mode, and what's deployed in this environment. Check directly: query `artifact_scan` for that exact package + version + registry and see if it's `BLOCKED` or quarantined, then check whether the version still appears in the index/listing response. Missing from the index → index-time hiding is active. Still listed → the 403 below is the only enforcement. |
-| `403` with "Artifact is blocked due to policy violations" (or similar), but the version *was* listed | Download-time block — always enforced, independent of any flag or environment. Pull the `artifact_scan` record to get the policy name, category (Security/License/MaliciousPackage/PackageAge/OssRiskLevel) and matched rule. |
+| Package manager says a version doesn't exist, but you can see it upstream | Possible index-time hiding — don't assume it's active, it depends on registry type, firewall mode, and what's deployed in this environment. Check directly: query `artifact_scan_v3` for that exact package + version + registry and see if it's `BLOCKED` or quarantined, then check whether the version still appears in the index/listing response. Missing from the index → index-time hiding is active. Still listed → the 403 below is the only enforcement. |
+| `403` with "Artifact is blocked due to policy violations" (or similar), but the version *was* listed | Download-time block — always enforced, independent of any flag or environment. Pull the `artifact_scan_v3` record to get the policy name, category (Security/License/MaliciousPackage/PackageAge/OssRiskLevel) and matched rule. |
 | `404`/network error, or the package/version genuinely doesn't exist upstream | Not a firewall block — check the upstream source directly. |
 
 Then:
 
-1. Pull the scan/audit record for the exact `package_name` + `version` + `registryId` (not just
-   the package — different registries can have different outcomes for the same version).
+1. Pull the scan/audit record for the exact package + version + `registryId` (via
+   `search_term`/`registry_ids` on `artifact_scan_v3`, matching the exact version from the
+   results — not just the package, since different registries can have different outcomes for
+   the same version).
 2. Report the policy category and specific match (CVE ID, license name, age threshold, etc.) in
    plain language, with the registry/scan id as evidence.
 3. Read that same scan's `fixVersionDetails` — if `fixVersionAvailable` is true, suggest the given
@@ -165,7 +186,7 @@ Then:
 
 ### Firewall exceptions (waivers)
 
-A firewall exception (`resource_type: "firewall_exception"`) lets a specific, already-blocked
+A firewall exception (`resource_type: "firewall_exception_v3"`) lets a specific, already-blocked
 package + version(s) through on one registry:
 
 - **Required fields to create one**: `registryId` (the registry that blocked the artifact — not
@@ -196,13 +217,13 @@ package + version(s) through on one registry:
     Calling list with only `account_identifier` does not return the full account-wide set — it
     silently returns only exceptions on registries that themselves have no org/project, omitting
     project-scoped ones entirely.
-- `resource_type: "firewall_exception_version"` lists the versions of a package available to pick
+- `resource_type: "firewall_exception_version_v3"` lists the versions of a package available to pick
   from when authoring a new exception for it (needs `registry_id` + `package_name`).
 
 To diagnose "approved but still fails":
 
 1. Get the `BLOCKED` scan/403 for the artifact and read its `registryId`.
-2. List `firewall_exception` with `org_id`/`project_id` set to that registry's own scope.
+2. List `firewall_exception_v3` with `org_id`/`project_id` set to that registry's own scope.
 3. Check: does an exception exist for that exact `registryId` + `packageName`? Is `status`
    `APPROVED` (not still `PENDING`)? Does the version fall in `versionList` (empty = all
    versions)?
@@ -225,8 +246,8 @@ evidence (policy name, CVE id, registryId, scan id, exception id), and the next 
 
 User: *"Is dayjs@1.11.13 safe to use?"*
 
-1. `harness_list resource_type=artifact_scan` filtered by `package_name: "dayjs"`,
-   `version: "1.11.13"`, `registry_id`.
+1. `harness_list resource_type=artifact_scan_v3` filtered by `search_term: "dayjs"` and
+   `registry_ids`, then match the exact `version: "1.11.13"` from the results.
 2. Status comes back `ALLOWED` → report it's safe to add, no further action.
 
 ### Example 2 — Blocked version with a fix available
@@ -244,7 +265,7 @@ User: *"Our CI build just failed with a 403 pulling some npm package, can you ch
 firewall?"*
 
 1. Confirm this is a 403 on the package fetch itself (not a login/auth 401) from the build log.
-2. Pull the `artifact_scan` record for the exact package + version + registry the CI step was
+2. Pull the `artifact_scan_v3` record for the exact package + version + registry the CI step was
    resolving.
 3. If `BLOCKED`: report the policy/CVE reason and `fixVersionDetails`. If no `BLOCKED` record
    exists for that exact triple: say this isn't a firewall block and point at registry
@@ -255,20 +276,21 @@ firewall?"*
 User: *"I got my exception approved for `left-pad@1.3.0` but install still 403s."*
 
 1. Re-pull the `BLOCKED` scan to confirm the exact `registryId` that blocked it.
-2. List `firewall_exception` scoped to that same registry's org/project.
+2. List `firewall_exception_v3` scoped to that same registry's org/project.
 3. Find the exception was approved against the virtual registry's id, not the upstream that
    actually served the artifact. Explain the mismatch and point at the correct `registryId` to
    re-raise the exception against.
 
 ## Performance Notes
 
-- Prefer bulk evaluation (`bulk-evaluate-sync` for ≤50 packages, async `bulk-evaluate` for up to
-  10000) over looping single scans when checking a whole manifest — one call instead of hundreds.
-- `fixVersionDetails` comes back directly on the scan record for both single and bulk evaluation
-  — never issue a separate lookup for it, and never manually walk a version list when
-  `fixVersionAvailable` is already `true`.
-- Async bulk evaluations write results to the database and support polling by `evaluationId`;
-  sync bulk evaluations do not persist anything, so don't try to look one up later by id.
+- There's no MCP bulk-create action today — list existing `artifact_scan_v3` records first and
+  only call `evaluate` for the pairs that are actually missing or stale, instead of looping
+  `evaluate` over every package in a large manifest unconditionally.
+- `fixVersionDetails` comes back directly on the scan record — never issue a separate lookup for
+  it, and never manually walk a version list when `fixVersionAvailable` is already `true`.
+- A scan record often already carries its exemption status inline as `exemptionStatus`
+  (`id`/`status`/`createdAt`/`expirationAt`) — check that before doing a separate
+  `firewall_exception_v3` list, it's frequently a free shortcut.
 - Listing firewall exceptions at account scope silently narrows to registries that have no
   org/project — always scope the list call to the blocking registry's own org/project to avoid
   missing project-scoped exceptions.
@@ -278,9 +300,9 @@ User: *"I got my exception approved for `left-pad@1.3.0` but install still 403s.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Reported "unknown" status for a package | No scan has been triggered yet for that exact package + version + registry. | Trigger an evaluation (single or bulk) and wait for/poll the result before reporting anything. |
-| 403 on download but no `BLOCKED` artifact_scan record exists | Not a firewall block. | Point the investigation at registry-level permissions/RBAC or an auth/credential problem instead. |
+| 403 on download but no `BLOCKED` artifact_scan_v3 record exists | Not a firewall block. | Point the investigation at registry-level permissions/RBAC or an auth/credential problem instead. |
 | 403 on a Docker pull | Dependency Firewall is not enabled for Docker. | Don't diagnose this as a firewall block; look elsewhere. |
 | "Approved but still fails" | The exception was raised against the wrong `registryId` — usually the virtual registry instead of the upstream that actually served the artifact. | Read the `registryId` off the `BLOCKED` scan record and re-raise or re-point the exception there. |
 | Listing exceptions at account scope returns fewer than expected | Account-scoped listing only returns exceptions on registries with no org/project. | Re-list scoped to the blocking registry's own org/project. |
-| Version listed in the package index but download still 403s | Download-time enforcement (the one always-active path) is blocking it even though index-time hiding isn't active here. | Pull the `artifact_scan` record for that exact triple to confirm and get the policy reason. |
+| Version listed in the package index but download still 403s | Download-time enforcement (the one always-active path) is blocking it even though index-time hiding isn't active here. | Pull the `artifact_scan_v3` record for that exact triple to confirm and get the policy reason. |
 | Every version of a package is `BLOCKED` with no fix version | No approved alternative exists yet. | Say so plainly; don't suggest an unapproved version as a workaround — offer a waiver as the only path forward. |

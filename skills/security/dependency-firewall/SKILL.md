@@ -13,11 +13,11 @@ description: >-
   package blocked by policy, firewall exception, waiver, 403 on install, fix version available.
 metadata:
   author: Harness
-  version: 2.2.0
-  mcp-server: harness-mcp-server
+  version: 1.0.0
+  mcp-server: harness-mcp-v2
   summary: Check package safety and diagnose Dependency Firewall blocks, fix versions, and waivers
 license: Apache-2.0
-compatibility: Requires a Harness MCP server connection exposing the registries-firewall toolset (artifact_scan, firewall_exception, bulk_scan_evaluation).
+compatibility: Requires Harness MCP v2 server (harness-mcp-v2)
 ---
 
 # Dependency Firewall
@@ -30,23 +30,6 @@ guess "account" scope just because a project-scoped lookup is more typing, and d
 from a prior conversation or a different environment).
 
 ## Instructions
-
-### Picking the right MCP server
-
-More than one Harness MCP connection can be present in a session (e.g. `harness`, `harness-qa`,
-`harness-qa-local`, `harness-docker`) — they point at different environments and don't all expose the same
-toolsets. `artifact_scan`/`firewall_exception`/`bulk_scan_evaluation` live in the `registries-firewall`
-toolset, which is **not guaranteed to be on every connected server**. If `harness_list`/`harness_describe`
-for these resource types errors or comes back empty on one server, don't conclude the feature or data doesn't
-exist — run `harness_describe(search_term: "firewall")` against the other connected MCP servers to find the
-one that actually has `registries-firewall`, or ask the user which server/environment to use. Once you've
-confirmed which server has the data (e.g. `pkg.qa0.harness.io` → the `harness-qa-local` connection), use that
-one for every call in the investigation rather than mixing servers.
-
-**Never fall back to raw `curl`/REST calls against the Harness gateway** (e.g. `/gateway/har/api/...`) to
-work around an MCP lookup that failed or came back empty on the wrong server — that's almost always a sign
-you're on the wrong MCP connection or using the wrong resource_scope, not that the data doesn't exist. Only
-drop to REST if no connected MCP server exposes `registries-firewall` at all.
 
 ### Recognizing a dependency-firewall block
 

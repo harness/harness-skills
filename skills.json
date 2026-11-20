@@ -598,9 +598,9 @@
       "plugin": "harness-security",
       "path": "skills/security/dependency-firewall",
       "summary": "Check package safety and diagnose Dependency Firewall blocks, fix versions, and waivers",
-      "version": "2.2.0",
-      "mcp_server": "harness-mcp-server",
-      "compatibility": "Requires a Harness MCP server connection exposing the registries-firewall toolset (artifact_scan, firewall_exception, bulk_scan_evaluation)."
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
     },
     {
       "name": "enforce-slsa",

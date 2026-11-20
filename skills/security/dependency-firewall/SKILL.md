@@ -13,7 +13,7 @@ description: >-
   package blocked by policy, firewall exception, waiver, 403 on install, fix version available.
 metadata:
   author: Harness
-  version: 2.0.0
+  version: 2.1.0
   mcp-server: harness-mcp-server
   summary: Check package safety and diagnose Dependency Firewall blocks, fix versions, and waivers
 license: Apache-2.0
@@ -113,10 +113,15 @@ non-empty result.
 
 | Want | resource_type | Scope needed | Notes |
 |---|---|---|---|
-| List registries in a project/org/account | `registry` | account + org + project (or `resource_scope: "account"` with `filters: {scope: "descendants"}` to search every org/project at once) | Filters: `search_term`, `type` (`UPSTREAM`/`VIRTUAL`), `package_type` |
-| List packages in a registry | `artifact` | account + org + project + `registry_id` | `search_term` filter |
-| List versions of a package | `artifact_version` | account + org + project + `registry_id` + `artifact_id` | `search_term` filter |
-| List files in a version | `artifact_file` | + `version` | |
+| List registries | `registry` | Supports all three: `resource_scope: "account"`, `"org"` (+ `org_id`), or `"project"` (+ `org_id`+`project_id`). `get`/`create`/`update` remain project-scoped, keyed by the registry's slug. | Filters: `search_term`, `type` (`UPSTREAM`/`VIRTUAL`), `package_type`, `sort_field`, `sort_order`, and `scope` (`none`/`ancestors`/`descendants`) — `scope` widens the list *relative to* `resource_scope`: `ancestors` adds parent levels, `descendants` adds child orgs/projects. Combine `resource_scope: "account"` + `scope: "descendants"` + `search_term` to find a registry by name anywhere in the account without knowing its org/project first. |
+| List packages in a registry | `artifact` | project-scoped only: account + org + project + `registry_id` | `search_term` filter |
+| List versions of a package | `artifact_version` | project-scoped only: account + org + project + `registry_id` + `artifact_id` | `search_term` filter |
+| List files in a version | `artifact_file` | project-scoped only: + `version` | |
+
+`registry` is the one resource type here with real multi-scope support — don't assume a registry must be
+project-scoped. `artifact`/`artifact_version`/`artifact_file` are always project-scoped (they hang off a
+specific `registry_id`, resolved first via `registry` list/get) — for these three, don't guess a default
+`org_id`/`project_id`; omitting them silently returns an empty result (wrong scope, not "not found").
 
 A newer `registries-v3` toolset exposes the same data as `package`/`package_version`/
 `package_file` (flatter v3 paths, project-scoped), but it's opt-in — fall back to the table above

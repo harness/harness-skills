@@ -1,0 +1,484 @@
+# CI Risk Scan pipeline (Harness Cloud).
+#
+# Identifier: ci_risk_scan. Agent step (not Plugin). Skills live under
+# /harness so the Agent step can see them. build is <+input>: Scan now
+# uses type branch; a PR trigger uses type PR.
+#
+# When scanIdentity is empty (webhook), prepare_scan creates one CIRiskScan
+# with source.pipeline.pipelineExecutionID and source.codeRepository.
+# After a successful Agent on a PR build, comment_on_pr GETs the scan, requires
+# COMPLETED, upserts one GitHub comment (<!-- harness-ci-risk-scan --> marker)
+# with the risk count and Build Scan risks URL (pr_summary_github_pat).
+#
+# Requires project secret ci_risk_scan_harness_pat (Harness API key with
+# chaos risk-scan create/get/abort) on prepare_scan, comment_on_pr, abort_scan.
+
+pipeline:
+  name: CI Risk Scan
+  identifier: ci_risk_scan
+  orgIdentifier: PMOrg
+  projectIdentifier: PMDemo
+  tags:
+    product: chaos
+    scanType: CIRiskScan
+  stages:
+    - stage:
+        name: Scan
+        identifier: scan
+        type: CI
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Prepare scan context
+                  identifier: prepare_scan
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: python:3.12-alpine
+                    shell: Sh
+                    envVariables:
+                      SCAN_IDENTITY: <+pipeline.variables.scanIdentity>
+                      SCAN_SCOPE: <+pipeline.variables.scope>
+                      CONNECTOR_REPO: <+pipeline.variables.repoURL>
+                      ORG_ID: <+org.identifier>
+                      PROJECT_ID: <+project.identifier>
+                      ACCOUNT_ID: <+account.identifier>
+                      PIPELINE_ID: <+pipeline.identifier>
+                      PIPELINE_EXECUTION_ID: <+pipeline.executionId>
+                      BRANCH_INPUT: <+pipeline.variables.branch>
+                      HARNESS_API_KEY: <+secrets.getValue("ci_risk_scan_harness_pat")>
+                    command: |
+                      set -e
+                      apk add --no-cache git >/dev/null
+                      SKILLS_REF="ecfb3c6eaea380413444272a9b6b4adab8830bd3"
+                      git init /harness/harness-skills
+                      git -C /harness/harness-skills remote add origin https://github.com/harness/harness-skills.git
+                      git -C /harness/harness-skills fetch --depth 1 origin "$SKILLS_REF"
+                      git -C /harness/harness-skills checkout --detach FETCH_HEAD
+                      SKILL_DIR=/harness/harness-skills/skills/observability-governance/chaos-code-risk-scan
+                      if [ -n "${HARNESS_ENV:-}" ]; then
+                        echo "SKILL_DIR=$SKILL_DIR" >> "$HARNESS_ENV"
+                      fi
+                      python3 - <<'PY'
+                      import json, os, re, subprocess, time, urllib.error, urllib.request
+
+                      def normalize_repo_url(url):
+                          url = (url or "").strip()
+                          if not url:
+                              return ""
+                          m = re.match(r"^[\w.-]+@([^:]+):(.+)$", url)
+                          if m:
+                              host, path = m.group(1), m.group(2)
+                          else:
+                              url = re.sub(r"^[a-z][a-z0-9+.-]*://", "", url)
+                              url = url.split("@", 1)[-1]
+                              host, _, path = url.partition("/")
+                              host = host.split(":", 1)[0]
+                          path = path.strip("/")
+                          if path.endswith(".git"):
+                              path = path[:-4]
+                          return "{}/{}".format(host.lower(), path) if path else host.lower()
+
+                      def git(*args):
+                          return subprocess.check_output(["git"] + list(args), text=True).strip()
+
+                      def git_ok(*args):
+                          try:
+                              return git(*args)
+                          except subprocess.CalledProcessError:
+                              return ""
+
+                      drone_commit = (os.environ.get("DRONE_COMMIT") or os.environ.get("DRONE_COMMIT_SHA") or "").strip()
+                      head = git("rev-parse", "HEAD")
+                      if drone_commit and head != drone_commit:
+                          raise SystemExit("HEAD %s is not DRONE_COMMIT %s; refuse a synthetic merge checkout" % (head, drone_commit))
+
+                      pr_number = (os.environ.get("DRONE_PULL_REQUEST") or "").strip()
+                      target = (os.environ.get("DRONE_TARGET_BRANCH") or "").strip()
+                      scope = (os.environ.get("SCAN_SCOPE") or "").strip()
+                      if not scope:
+                          scope = "pullRequest" if pr_number else "branch"
+                      if scope not in ("branch", "commit", "pullRequest"):
+                          raise SystemExit("scope must be branch, commit, or pullRequest")
+
+                      branch = (os.environ.get("BRANCH_INPUT") or os.environ.get("DRONE_COMMIT_BRANCH") or os.environ.get("DRONE_BRANCH") or "").strip()
+                      if not branch:
+                          b = git("rev-parse", "--abbrev-ref", "HEAD")
+                          branch = "" if b == "HEAD" else b
+
+                      repo_url = normalize_repo_url(
+                          os.environ.get("CONNECTOR_REPO")
+                          or os.environ.get("DRONE_REPO_LINK")
+                          or os.environ.get("DRONE_REPO")
+                          or git("remote", "get-url", "origin")
+                      )
+
+                      def deepen(depth):
+                          subprocess.call(["git", "fetch", "--deepen", str(depth)])
+
+                      if target:
+                          if not git_ok("rev-parse", "--verify", "origin/" + target):
+                              subprocess.check_call(["git", "fetch", "--depth", "50", "origin", target])
+
+                      parent = git_ok("rev-parse", "--verify", "HEAD^")
+                      if not parent:
+                          for depth in (2, 8, 32, 50):
+                              deepen(depth)
+                              parent = git_ok("rev-parse", "--verify", "HEAD^")
+                              if parent:
+                                  break
+                      if scope in ("commit", "pullRequest") and not parent:
+                          raise SystemExit("HEAD^ is missing; deepen the clone instead of scanning the whole tree")
+
+                      base_sha = parent
+                      if scope == "pullRequest":
+                          if not target:
+                              raise SystemExit("DRONE_TARGET_BRANCH is required for a pullRequest scan")
+                          if not pr_number:
+                              raise SystemExit("DRONE_PULL_REQUEST is required for a pullRequest scan")
+                          mb = git_ok("merge-base", "origin/" + target, "HEAD")
+                          if not mb:
+                              for depth in (50, 100, 200):
+                                  subprocess.call(["git", "fetch", "--deepen", str(depth), "origin", target])
+                                  deepen(depth)
+                                  mb = git_ok("merge-base", "origin/" + target, "HEAD")
+                                  if mb:
+                                      break
+                          if not mb:
+                              raise SystemExit("merge-base origin/%s HEAD failed after deepen; fetch more history" % target)
+                          base_sha = mb
+
+                      identity = (os.environ.get("SCAN_IDENTITY") or "").strip()
+                      org = os.environ["ORG_ID"]
+                      project = os.environ["PROJECT_ID"]
+                      account = os.environ["ACCOUNT_ID"]
+                      token = os.environ.get("HARNESS_API_KEY") or os.environ.get("PLUGIN_API_KEY") or ""
+                      pipeline_id = os.environ.get("PIPELINE_ID", "ci_risk_scan")
+                      execution_id = os.environ.get("PIPELINE_EXECUTION_ID", "")
+                      code_repo = {"repoURL": repo_url, "scope": scope, "commitSHA": head}
+                      if scope in ("commit", "pullRequest") and base_sha:
+                          code_repo["baseSHA"] = base_sha
+                      if branch:
+                          code_repo["branch"] = branch
+                      if pr_number:
+                          code_repo["pullRequestNumber"] = pr_number
+                      if target:
+                          code_repo["targetBranch"] = target
+
+                      if not identity:
+                          if not token:
+                              raise SystemExit("pass scanIdentity from the UI, or set HARNESS_API_KEY on prepare_scan to create a CIRiskScan")
+                          slug = re.sub(r"[^a-z0-9-]", "-", (repo_url.rsplit("/", 1)[-1] or "repo").lower())[:30].strip("-")
+                          identity = "ci-risk-scan-{}-{}".format(slug, time.strftime("%Y%m%d%H%M%S"))
+                          body = json.dumps({
+                              "identity": identity,
+                              "name": "CI risk scan {}@{}".format(repo_url.rsplit("/", 1)[-1], branch or pr_number or "HEAD"),
+                              "scanType": "CIRiskScan",
+                              "detectionMethod": "External",
+                              "source": {
+                                  "codeRepository": code_repo,
+                                  "pipeline": {"pipelineIdentity": pipeline_id, "pipelineExecutionID": execution_id},
+                              },
+                          }).encode()
+                          url = (
+                              "https://app.harness.io/gateway/chaos/manager/api/v3/risk-scans"
+                              "?accountIdentifier=%s&organizationIdentifier=%s&projectIdentifier=%s"
+                              % (account, org, project)
+                          )
+                          req = urllib.request.Request(url, data=body, method="POST", headers={
+                              "x-api-key": token, "Content-Type": "application/json",
+                          })
+                          with urllib.request.urlopen(req) as resp:
+                              created = json.loads(resp.read().decode())
+                          identity = created.get("identity") or identity
+                          print("created or reused scan", identity)
+                      elif token:
+                          patch = json.dumps({"source": {
+                              "codeRepository": code_repo,
+                              "pipeline": {"pipelineIdentity": pipeline_id, "pipelineExecutionID": execution_id},
+                          }}).encode()
+                          patch_url = (
+                              "https://app.harness.io/gateway/chaos/manager/api/v3/risk-scans/%s"
+                              "?accountIdentifier=%s&organizationIdentifier=%s&projectIdentifier=%s"
+                              % (identity, account, org, project)
+                          )
+                          preq = urllib.request.Request(patch_url, data=patch, method="PUT", headers={
+                              "x-api-key": token, "Content-Type": "application/json",
+                          })
+                          try:
+                              with urllib.request.urlopen(preq) as resp:
+                                  print("patched source", resp.status)
+                          except urllib.error.HTTPError as exc:
+                              print("source patch skipped", exc.code)
+
+                      ctx = {
+                          "scanIdentity": identity,
+                          "orgId": org,
+                          "projectId": project,
+                          "accountId": account,
+                          "pipelineIdentity": pipeline_id,
+                          "pipelineExecutionID": execution_id,
+                          "repoURL": repo_url,
+                          "branch": branch,
+                          "scope": scope,
+                          "pullRequestNumber": pr_number,
+                          "targetBranch": target,
+                          "baseSHA": base_sha,
+                          "parentSHA": parent,
+                          "commitSHA": head,
+                          "skillDir": "/harness/harness-skills/skills/observability-governance/chaos-code-risk-scan",
+                      }
+                      os.makedirs("/harness", exist_ok=True)
+                      open("/harness/scan-context.json", "w", encoding="utf-8").write(json.dumps(ctx))
+                      henv = os.environ.get("HARNESS_ENV")
+                      if henv:
+                          open(henv, "a", encoding="utf-8").write("SCAN_IDENTITY=%s\n" % identity)
+                      print("wrote /harness/scan-context.json", identity, scope, head)
+                      PY
+              - step:
+                  type: Agent
+                  name: CI Risk Scan
+                  identifier: ci_risk_scan_agent
+                  spec:
+                    agentName: ci_risk_scan@1.0.0
+              - step:
+                  type: Run
+                  name: Comment on PR
+                  identifier: comment_on_pr
+                  when:
+                    stageStatus: Success
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: python:3.12-alpine
+                    shell: Sh
+                    envVariables:
+                      GH_TOKEN: <+secrets.getValue("pr_summary_github_pat")>
+                      HARNESS_API_KEY: <+secrets.getValue("ci_risk_scan_harness_pat")>
+                      ORG_ID: <+org.identifier>
+                      PROJECT_ID: <+project.identifier>
+                      ACCOUNT_ID: <+account.identifier>
+                      PIPELINE_EXECUTION_ID: <+pipeline.executionId>
+                      HARNESS_UI_BASE: https://app.harness.io
+                    command: |
+                      set -e
+                      python3 - <<'PY'
+                      import json, os, urllib.error, urllib.parse, urllib.request
+
+                      MARKER = "<!-- harness-ci-risk-scan -->"
+
+                      def fail(msg):
+                          raise SystemExit(msg)
+
+                      pr = (os.environ.get("DRONE_PULL_REQUEST") or "").strip()
+                      if not pr:
+                          print("not a PR build; skip comment")
+                          raise SystemExit(0)
+
+                      token = (os.environ.get("GH_TOKEN") or "").strip()
+                      if not token:
+                          fail("DRONE_PULL_REQUEST is set but GH_TOKEN (pr_summary_github_pat) is missing")
+                      owner = (os.environ.get("DRONE_REPO_OWNER") or "").strip()
+                      repo = (os.environ.get("DRONE_REPO_NAME") or "").strip()
+                      if not owner or not repo:
+                          fail("DRONE_PULL_REQUEST is set but DRONE_REPO_OWNER/DRONE_REPO_NAME are missing")
+
+                      try:
+                          ctx = json.load(open("/harness/scan-context.json", encoding="utf-8"))
+                      except OSError:
+                          fail("missing /harness/scan-context.json")
+                      identity = (ctx.get("scanIdentity") or "").strip()
+                      if not identity:
+                          fail("scanIdentity missing from /harness/scan-context.json")
+
+                      account = os.environ["ACCOUNT_ID"]
+                      org = os.environ["ORG_ID"]
+                      project = os.environ["PROJECT_ID"]
+                      harness_token = os.environ.get("HARNESS_API_KEY") or os.environ.get("PLUGIN_API_KEY") or ""
+                      if not harness_token:
+                          fail("HARNESS_API_KEY required to verify the scan completed before commenting")
+
+                      scan_url = (
+                          "https://app.harness.io/gateway/chaos/manager/api/v3/risk-scans/%s"
+                          "?accountIdentifier=%s&organizationIdentifier=%s&projectIdentifier=%s"
+                          % (urllib.parse.quote(identity, safe=""), account, org, project)
+                      )
+                      sreq = urllib.request.Request(scan_url, headers={"x-api-key": harness_token})
+                      try:
+                          with urllib.request.urlopen(sreq) as resp:
+                              scan = json.loads(resp.read().decode())
+                      except urllib.error.HTTPError as exc:
+                          fail("GET risk scan failed: %s %s" % (exc.code, exc.read()[:200]))
+
+                      status = (scan.get("status") or "").upper()
+                      if status != "COMPLETED":
+                          fail("scan %s status is %s; only comment after COMPLETED" % (identity, status or "unknown"))
+
+                      summary = scan.get("summary") or {}
+                      risk_summary = scan.get("riskSummary") or {}
+                      total = summary.get("totalRisks")
+                      if total is None:
+                          total = risk_summary.get("riskCount")
+                      if total is None:
+                          total = 0
+                      try:
+                          total = int(total)
+                      except (TypeError, ValueError):
+                          total = 0
+
+                      ui_base = (os.environ.get("HARNESS_UI_BASE") or "https://app.harness.io").rstrip("/")
+                      execution = (os.environ.get("PIPELINE_EXECUTION_ID") or "").strip()
+                      risks_url = (
+                          "%s/ng/account/%s/module/chaos/orgs/%s/projects/%s"
+                          "/risks/build-scans/%s?tab=RISKS"
+                          % (ui_base, account, org, project, identity)
+                      )
+                      exec_url = (
+                          "%s/ng/account/%s/home/orgs/%s/projects/%s"
+                          "/pipelines/ci_risk_scan/executions/%s/pipeline"
+                          % (ui_base, account, org, project, execution)
+                          if execution else ""
+                      )
+                      if total == 0:
+                          lead = "No resilience risks found for this pull request."
+                          link_label = "View Build Scan"
+                      else:
+                          lead = "Found **%d** resilience risk%s for this pull request." % (
+                              total, "" if total == 1 else "s",
+                          )
+                          link_label = "View generated risks"
+                      lines = [
+                          MARKER,
+                          "## Harness CI Risk Scan",
+                          "",
+                          lead,
+                          "",
+                          "[%s](%s)" % (link_label, risks_url),
+                          "",
+                          "Scan: `%s`" % identity,
+                      ]
+                      if exec_url:
+                          lines.extend(["", "[Pipeline run](%s)" % exec_url])
+                      body = "\n".join(lines) + "\n"
+
+                      gh_headers = {
+                          "Authorization": "Bearer " + token,
+                          "Accept": "application/vnd.github+json",
+                          "Content-Type": "application/json",
+                          "User-Agent": "harness-ci-risk-scan",
+                          "X-GitHub-Api-Version": "2022-11-28",
+                      }
+                      comments_url = "https://api.github.com/repos/%s/%s/issues/%s/comments" % (owner, repo, pr)
+                      existing_id = None
+                      page = 1
+                      while page <= 10 and existing_id is None:
+                          list_req = urllib.request.Request(
+                              comments_url + "?per_page=100&page=%d" % page,
+                              headers=gh_headers,
+                          )
+                          with urllib.request.urlopen(list_req) as resp:
+                              comments = json.loads(resp.read().decode())
+                          if not isinstance(comments, list) or not comments:
+                              break
+                          for c in comments:
+                              if MARKER in (c.get("body") or ""):
+                                  existing_id = c.get("id")
+                                  break
+                          if len(comments) < 100:
+                              break
+                          page += 1
+
+                      if existing_id:
+                          req = urllib.request.Request(
+                              "https://api.github.com/repos/%s/%s/issues/comments/%s" % (owner, repo, existing_id),
+                              data=json.dumps({"body": body}).encode(),
+                              method="PATCH",
+                              headers=gh_headers,
+                          )
+                      else:
+                          req = urllib.request.Request(
+                              comments_url,
+                              data=json.dumps({"body": body}).encode(),
+                              method="POST",
+                              headers=gh_headers,
+                          )
+                      with urllib.request.urlopen(req) as resp:
+                          print("comment", "patched" if existing_id else "created", resp.status, risks_url, "risks=%s" % total)
+                      PY
+              - step:
+                  type: Run
+                  name: Abort scan on failure
+                  identifier: abort_scan
+                  when:
+                    stageStatus: Failure
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: python:3.12-alpine
+                    shell: Sh
+                    envVariables:
+                      SCAN_IDENTITY: <+pipeline.variables.scanIdentity>
+                      ORG_ID: <+org.identifier>
+                      PROJECT_ID: <+project.identifier>
+                      ACCOUNT_ID: <+account.identifier>
+                      HARNESS_API_KEY: <+secrets.getValue("ci_risk_scan_harness_pat")>
+                    command: |
+                      set -e
+                      python3 - <<'PY'
+                      import json, os, urllib.request, urllib.error
+                      identity = (os.environ.get("SCAN_IDENTITY") or "").strip()
+                      if not identity:
+                          try:
+                              identity = json.load(open("/harness/scan-context.json", encoding="utf-8")).get("scanIdentity") or ""
+                          except OSError:
+                              identity = ""
+                      if not identity:
+                          print("no scan identity to abort")
+                          raise SystemExit(0)
+                      token = os.environ.get("HARNESS_API_KEY") or os.environ.get("PLUGIN_API_KEY") or ""
+                      if not token:
+                          print("no api key to abort scan", identity)
+                          raise SystemExit(0)
+                      url = (
+                          "https://app.harness.io/gateway/chaos/manager/api/v3/risk-scans/%s/abort"
+                          "?accountIdentifier=%s&organizationIdentifier=%s&projectIdentifier=%s"
+                          % (identity, os.environ["ACCOUNT_ID"], os.environ["ORG_ID"], os.environ["PROJECT_ID"])
+                      )
+                      req = urllib.request.Request(url, data=b"", method="POST", headers={"x-api-key": token, "Content-Type": "application/json"})
+                      try:
+                          with urllib.request.urlopen(req) as resp:
+                              print("abort status", resp.status)
+                      except urllib.error.HTTPError as exc:
+                          print("abort failed", exc.code, exc.read()[:200])
+                      PY
+  properties:
+    ci:
+      codebase:
+        connectorRef: <+input>
+        repoName: <+input>
+        build: <+input>
+  variables:
+    - name: scanIdentity
+      type: String
+      value: <+input>
+    - name: branch
+      type: String
+      value: <+input>
+    - name: scope
+      type: String
+      value: <+input>
+    - name: repoURL
+      type: String
+      value: <+input>

@@ -7,11 +7,22 @@ entrypoints, shutdown handling, health endpoints, unbounded pools and queues,
 local state, resilience libraries and suppression comments. Facts are not
 findings; the agent decides which facts violate a rule.
 
-Usage: inventory.py --repo PATH [--out FILE] [--max-per-kind N] [--since COMMIT]
+Usage: inventory.py --repo PATH [--out FILE] [--max-per-kind N]
+  [--since COMMIT] [--hunk-from BASE] [--commit-hunk-from PARENT] [--repo-url URL]
 
---since limits facts to files changed between COMMIT and HEAD. COMMIT must be
-an ancestor of HEAD. When it is HEAD, the inventory is empty (scanMode
-unchanged). When it is missing or not an ancestor, the whole tree is scanned.
+--since limits facts to files changed between COMMIT and HEAD (whole file).
+Branch scans use this. COMMIT must be an ancestor of HEAD. When it is HEAD,
+the inventory is empty (scanMode unchanged). When it is missing or not an
+ancestor, the whole tree is scanned.
+
+--hunk-from BASE keeps a fact only when its startLine–endLine overlaps a
+hunk from `git diff -U0 BASE HEAD`. Commit and pull-request scans use this.
+If BASE is missing, the script exits; it does not fall back to a full tree.
+
+--commit-hunk-from PARENT tags overlapping facts ciRange=commit (tip commit).
+Facts that overlap only --hunk-from are tagged ciRange=pullRequest.
+
+--repo-url overrides origin (fork PRs: the connector repository).
 """
 
 import argparse
@@ -314,6 +325,62 @@ def diff_paths(repo: str, since: str, head: str) -> Optional[List[str]]:
     return [p for p in out.split("\0") if p]
 
 
+HUNK_HEADER_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+
+
+def strip_diff_path(raw: str) -> Optional[str]:
+    """Normalize a `+++` / rename path: strip b/, quotes, and /dev/null."""
+    rest = raw.strip()
+    if rest.startswith('"') and rest.endswith('"') and len(rest) >= 2:
+        rest = rest[1:-1]
+    if rest == "/dev/null":
+        return None
+    if rest.startswith("b/"):
+        rest = rest[2:]
+    return rest or None
+
+
+def parse_unified_hunks(diff_text: str) -> Dict[str, List[Tuple[int, int]]]:
+    """Map path → inclusive new-file line ranges from `git diff -U0`."""
+    ranges: Dict[str, List[Tuple[int, int]]] = defaultdict(list)
+    path = None
+    for line in diff_text.splitlines():
+        if line.startswith("+++ "):
+            path = strip_diff_path(line[4:])
+            continue
+        if not path:
+            continue
+        m = HUNK_HEADER_RE.match(line)
+        if not m:
+            continue
+        new_start = int(m.group(3))
+        new_count = int(m.group(4) if m.group(4) is not None else "1")
+        if new_count == 0:
+            continue
+        ranges[path].append((new_start, new_start + new_count - 1))
+    return ranges
+
+
+def changed_paths_from(repo: str, base: str, head: str) -> List[str]:
+    old = git_or_none(repo, "rev-parse", "--verify", "{}^{{commit}}".format(base))
+    if not old:
+        raise SystemExit("error: hunk base {} is not in this clone; deepen the fetch".format(base))
+    out = git(repo, "diff", "--name-only", "--diff-filter=ACMR", "-z", old, head)
+    return [p for p in out.split("\0") if p]
+
+
+def hunks_from(repo: str, base: str, head: str) -> Dict[str, List[Tuple[int, int]]]:
+    old = git_or_none(repo, "rev-parse", "--verify", "{}^{{commit}}".format(base))
+    if not old:
+        raise SystemExit("error: hunk base {} is not in this clone; deepen the fetch".format(base))
+    diff = git(repo, "diff", "-U0", "--diff-filter=ACMR", old, head)
+    return parse_unified_hunks(diff)
+
+
+def overlaps_hunks(start: int, end: int, ranges: List[Tuple[int, int]]) -> bool:
+    return any(start <= b and end >= a for a, b in ranges)
+
+
 def detect_modules(files: List[str], repo: str) -> Dict[str, dict]:
     modules: Dict[str, dict] = {}
     for path in files:
@@ -405,7 +472,14 @@ def fact(kind, language, module, path, start, end, snippet, attrs) -> dict:
     }
 
 
-def build_inventory(repo: str, max_per_kind: int, since: str = "") -> dict:
+def build_inventory(
+    repo: str,
+    max_per_kind: int,
+    since: str = "",
+    hunk_from: str = "",
+    commit_hunk_from: str = "",
+    repo_url: str = "",
+) -> dict:
     repo = os.path.abspath(repo)
     if git_or_none(repo, "rev-parse", "--is-inside-work-tree") != "true":
         raise SystemExit("error: {} is not a git work tree".format(repo))
@@ -416,19 +490,35 @@ def build_inventory(repo: str, max_per_kind: int, since: str = "") -> dict:
     dirty = bool(git_or_none(repo, "status", "--porcelain"))
 
     files = list_files(repo)
-    changed = diff_paths(repo, since, commit)
-    if changed is None:
-        scan_mode = "full"
-        scan_paths = files
-        base_commit = None
-    elif not changed:
-        scan_mode = "unchanged"
-        scan_paths = []
-        base_commit = commit
+    pr_hunks = None
+    commit_hunks = None
+    if hunk_from:
+        changed = changed_paths_from(repo, hunk_from, commit)
+        pr_hunks = hunks_from(repo, hunk_from, commit)
+        scan_paths = sorted(pr_hunks)
+        base_commit = git(repo, "rev-parse", "--verify", "{}^{{commit}}".format(hunk_from)).strip()
+        # Binary / mode-only diffs change paths but produce no text hunks. That is
+        # an empty-facts submit, not scanMode=unchanged (which means no delta).
+        if not changed:
+            scan_mode = "unchanged"
+        else:
+            scan_mode = "hunk"
+        if commit_hunk_from:
+            commit_hunks = hunks_from(repo, commit_hunk_from, commit)
     else:
-        scan_mode = "diff"
-        scan_paths = changed
-        base_commit = git_or_none(repo, "rev-parse", "--verify", "{}^{{commit}}".format(since))
+        changed = diff_paths(repo, since, commit)
+        if changed is None:
+            scan_mode = "full"
+            scan_paths = files
+            base_commit = None
+        elif not changed:
+            scan_mode = "unchanged"
+            scan_paths = []
+            base_commit = commit
+        else:
+            scan_mode = "diff"
+            scan_paths = changed
+            base_commit = git_or_none(repo, "rev-parse", "--verify", "{}^{{commit}}".format(since))
     modules = detect_modules(files, repo)
     module_paths = sorted(modules)
 
@@ -454,7 +544,20 @@ def build_inventory(repo: str, max_per_kind: int, since: str = "") -> dict:
         except OSError:
             continue
         scanned += 1
-        facts.extend(scan_file(path, text, language if not is_config else None, module))
+        for fact in scan_file(path, text, language if not is_config else None, module):
+            if pr_hunks is not None:
+                if not overlaps_hunks(fact["startLine"], fact["endLine"], pr_hunks.get(path) or []):
+                    continue
+                in_commit = bool(
+                    commit_hunks and overlaps_hunks(fact["startLine"], fact["endLine"], commit_hunks.get(path) or [])
+                )
+                if commit_hunks is None:
+                    fact["ciRange"] = "commit"
+                elif in_commit:
+                    fact["ciRange"] = "commit"
+                else:
+                    fact["ciRange"] = "pullRequest"
+            facts.append(fact)
 
     grouped: Dict[Tuple[str, str], List[dict]] = defaultdict(list)
     for f in facts:
@@ -468,7 +571,7 @@ def build_inventory(repo: str, max_per_kind: int, since: str = "") -> dict:
     return {
         "repo": {
             "root": repo,
-            "repoURL": normalize_repo_url(remote),
+            "repoURL": normalize_repo_url(repo_url or remote),
             "branch": branch if branch != "HEAD" else None,
             "commitSHA": commit,
             "dirty": dirty,
@@ -497,10 +600,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--repo", required=True, help="path to the git repository")
     parser.add_argument("--out", default="-", help="output JSON file (default stdout)")
     parser.add_argument("--max-per-kind", type=int, default=40, help="facts kept per module and kind")
-    parser.add_argument("--since", default="", help="ancestor commit; only files changed since then are scanned")
+    parser.add_argument("--since", default="", help="ancestor commit; whole-file scan of paths changed since then")
+    parser.add_argument("--hunk-from", default="", help="keep facts that overlap git diff -U0 BASE HEAD hunks")
+    parser.add_argument("--commit-hunk-from", default="", help="tag facts that overlap the tip-commit hunks")
+    parser.add_argument("--repo-url", default="", help="override origin URL (connector repo on fork PRs)")
     args = parser.parse_args(argv)
 
-    inventory = build_inventory(args.repo, args.max_per_kind, args.since)
+    if args.hunk_from and args.since:
+        raise SystemExit("error: use --since for branch scans or --hunk-from for commit/PR scans, not both")
+    if args.commit_hunk_from and not args.hunk_from:
+        raise SystemExit("error: --commit-hunk-from requires --hunk-from")
+    inventory = build_inventory(
+        args.repo, args.max_per_kind, args.since, args.hunk_from, args.commit_hunk_from, args.repo_url,
+    )
     write_json(args.out, inventory)
     mode = inventory["repo"]["scanMode"]
     if args.since and mode == "full":

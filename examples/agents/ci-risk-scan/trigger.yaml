@@ -1,0 +1,53 @@
+# PR webhook for ci_risk_scan (Open + Synchronize).
+# Live in PMOrg/PMDemo as PR_Risk_Scan_webhook on Naren_Github_Repo_Connector.
+# Empty build.spec.number is filled from the webhook payload (same pattern as
+# pr_change_summary). scope=pullRequest so prepare_scan uses PR merge-base.
+
+trigger:
+  name: PR Risk Scan webhook
+  identifier: PR_Risk_Scan_webhook
+  enabled: true
+  description: Run CI Risk Scan on PR open and synchronize
+  tags: {}
+  orgIdentifier: PMOrg
+  projectIdentifier: PMDemo
+  pipelineIdentifier: ci_risk_scan
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: PullRequest
+        spec:
+          connectorRef: Naren_Github_Repo_Connector
+          autoAbortPreviousExecutions: true
+          payloadConditions: []
+          headerConditions: []
+          actions:
+            - Open
+            - Synchronize
+  inputYaml: |
+    pipeline:
+      identifier: ci_risk_scan
+      properties:
+        ci:
+          codebase:
+            connectorRef: Naren_Github_Repo_Connector
+            repoName: terraform_test
+            build:
+              type: PR
+              spec:
+                number: ""
+      variables:
+        - name: scanIdentity
+          type: String
+          value: ""
+        - name: branch
+          type: String
+          value: ""
+        - name: scope
+          type: String
+          value: pullRequest
+        - name: repoURL
+          type: String
+          value: ""

@@ -64,7 +64,7 @@ pipeline:
                     command: |
                       set -e
                       apk add --no-cache git >/dev/null
-                      SKILLS_REF="ecfb3c6eaea380413444272a9b6b4adab8830bd3"
+                      SKILLS_REF="32e13e7183b9fc32a6becc484b91f294e4207934"
                       git init /harness/harness-skills
                       git -C /harness/harness-skills remote add origin https://github.com/harness/harness-skills.git
                       git -C /harness/harness-skills fetch --depth 1 origin "$SKILLS_REF"

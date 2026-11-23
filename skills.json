@@ -131,6 +131,7 @@
         "chaos-code-risk-scan",
         "chaos-dr-test",
         "chaos-experiment",
+        "ci-risk-scan",
         "create-policy",
         "deployment-readiness",
         "dora-metrics",
@@ -690,6 +691,15 @@
       "version": "3.0.0",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "ci-risk-scan",
+      "plugin": "harness-observability-governance",
+      "path": "skills/observability-governance/ci-risk-scan",
+      "summary": "CI Risk Scan deltas on chaos-code-risk-scan",
+      "version": "1.2.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 with chaos_risk_scan submit_findings, Python 3.9+, git, and chaos-code-risk-scan/scripts. SKILL_DIR must point at that scripts parent (the chaos-code-risk-scan skill directory)."
     },
     {
       "name": "create-policy",

@@ -147,6 +147,7 @@ Plugin `harness-observability-governance`, folder `skills/observability-governan
 | `/chaos-code-risk-scan` | Scan a code repository for chaos-provable resilience risks and report them as a risk scan |
 | `/chaos-dr-test` | Create and edit DR Test pipelines with chaos steps |
 | `/chaos-experiment` | Create, edit, and reference chaos experiments (faults, probes, actions) |
+| `/ci-risk-scan` | CI Risk Scan deltas on chaos-code-risk-scan |
 | `/create-policy` | Create OPA governance policies for supply chain security |
 | `/deployment-readiness` | Pre-deployment readiness checks, environment drift, and canary decisions |
 | `/dora-metrics` | DORA metrics and engineering performance reports |

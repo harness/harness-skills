@@ -4,7 +4,7 @@
     "name": "Harness"
   },
   "metadata": {
-    "description": "74 Harness skills for AI coding agents, as 10 domain plugins."
+    "description": "75 Harness skills for AI coding agents, as 10 domain plugins."
   },
   "plugins": [
     {
@@ -147,7 +147,7 @@
     {
       "name": "harness-security",
       "displayName": "Harness Security Testing & Supply Chain",
-      "description": "11 skills: Add STO code, secret, container and DAST scans, SLSA provenance and artifact signing, and manage exemptions and PR attestation.",
+      "description": "12 skills: Add STO code, secret, container and DAST scans, SLSA provenance and artifact signing, and manage exemptions and PR attestation.",
       "source": ".",
       "strict": false,
       "skills": [

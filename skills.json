@@ -111,6 +111,7 @@
         "configure-dast-scan",
         "configure-repo-scan",
         "configure-secret-scan",
+        "dependency-firewall",
         "enforce-slsa",
         "exempt-vuln",
         "generate-slsa",
@@ -588,6 +589,15 @@
       "plugin": "harness-security",
       "path": "skills/security/configure-secret-scan",
       "summary": "Add secret detection scanning to pipelines to find exposed credentials and API keys (Gitleaks, Semgrep, Snyk, and more)",
+      "version": "1.0.0",
+      "mcp_server": "harness-mcp-v2",
+      "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"
+    },
+    {
+      "name": "dependency-firewall",
+      "plugin": "harness-security",
+      "path": "skills/security/dependency-firewall",
+      "summary": "Check package safety and diagnose Dependency Firewall blocks, fix versions, and exceptions",
       "version": "1.0.0",
       "mcp_server": "harness-mcp-v2",
       "compatibility": "Requires Harness MCP v2 server (harness-mcp-v2)"

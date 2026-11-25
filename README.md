@@ -106,7 +106,7 @@ Install in Claude Code: `/plugin install harness-platform --marketplace harness/
 
 ### Harness Security Testing & Supply Chain
 
-Plugin `harness-security` (11 skills), folder `skills/security/`.
+Plugin `harness-security` (12 skills), folder `skills/security/`.
 Install in Claude Code: `/plugin install harness-security --marketplace harness/harness-skills`.
 
 | Skill | Invoke in Claude Code | Description |
@@ -117,6 +117,7 @@ Install in Claude Code: `/plugin install harness-security --marketplace harness/
 | [configure-dast-scan](skills/security/configure-dast-scan/SKILL.md) | `/harness-security:configure-dast-scan` | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
 | [configure-repo-scan](skills/security/configure-repo-scan/SKILL.md) | `/harness-security:configure-repo-scan` | Configure code scanning in pipelines with STO security scanners |
 | [configure-secret-scan](skills/security/configure-secret-scan/SKILL.md) | `/harness-security:configure-secret-scan` | Add secret detection scanning to pipelines to find exposed credentials and API keys (Gitleaks, Semgrep, Snyk, and more) |
+| [dependency-firewall](skills/security/dependency-firewall/SKILL.md) | `/harness-security:dependency-firewall` | Check package safety and diagnose Dependency Firewall blocks, fix versions, and exceptions |
 | [enforce-slsa](skills/security/enforce-slsa/SKILL.md) | `/harness-security:enforce-slsa` | Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines |
 | [exempt-vuln](skills/security/exempt-vuln/SKILL.md) | `/harness-security:exempt-vuln` | Create STO vulnerability exemptions (waivers) scoped to Project, Pipeline, or Target |
 | [generate-slsa](skills/security/generate-slsa/SKILL.md) | `/harness-security:generate-slsa` | Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines |

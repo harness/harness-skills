@@ -129,6 +129,7 @@ Plugin `harness-security`, folder `skills/security/`.
 | `/configure-dast-scan` | Add DAST scanning to pipelines for runtime application security testing (Traceable, Burp Suite, ZAP, Nikto, Nmap) |
 | `/configure-repo-scan` | Configure code scanning in pipelines with STO security scanners |
 | `/configure-secret-scan` | Add secret detection scanning to pipelines to find exposed credentials and API keys (Gitleaks, Semgrep, Snyk, and more) |
+| `/dependency-firewall` | Check package safety and diagnose Dependency Firewall blocks, fix versions, and exceptions |
 | `/enforce-slsa` | Add SLSA Verification (verify attestation + OPA policy sets on provenance) to pipelines |
 | `/exempt-vuln` | Create STO vulnerability exemptions (waivers) scoped to Project, Pipeline, or Target |
 | `/generate-slsa` | Add SLSA Generation (provenance + optional Cosign attestation) to existing pipelines |

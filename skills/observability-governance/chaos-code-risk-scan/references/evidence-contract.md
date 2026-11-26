@@ -28,6 +28,12 @@ MCP: `harness_create` with `resource_type: chaos_risk_scan`.
 }
 ```
 
+- `scanType` is `CodeRepository` (ad-hoc MCP / skill path) or `CIRiskScan`
+  (Build Scans / Worker Agent path). Both use `detectionMethod: External` and
+  the same `source.codeRepository` shape. `CIRiskScan` may omit `commitSHA`
+  until `submit_findings`. For `CIRiskScan`, set `scope` (`branch` /
+  `commit` / `pullRequest`); `pullRequest` also needs `pullRequestNumber`
+  (and usually `targetBranch` + `baseSHA` before submit).
 - `repoURL` is normalised to `host/org/repo`, with no scheme, no credentials
   and no `.git` suffix.
 - `linkedServices` is optional. Each entry links a module path to an existing
@@ -55,11 +61,21 @@ MCP: `harness_execute` with `resource_type: chaos_risk_scan`,
       "codeLocations": [
         { "file": "services/api/charge.go", "startLine": 41, "endLine": 43, "snippet": "resp, err := http.DefaultClient.Do(req)" }
       ],
-      "callSiteCount": 7
+      "callSiteCount": 7,
+      "tags": ["ciRange:commit"]
     }
-  ]
+  ],
+  "commitSHA": "<40-char sha>"
 }
 ```
+
+On a `CIRiskScan` with `scope: pullRequest`, inventory may tag each fact
+`ciRange=commit` (overlaps the tip-commit hunks) or `ciRange=pullRequest`
+(overlaps only the PR-wide hunks). `validate_evidence.py` copies that onto
+finding `tags` as `ciRange:commit` or `ciRange:pullRequest`. A fact in both
+ranges is stored once as `ciRange:commit`. Other tags are dropped. Branch and
+commit scopes omit `ciRange`. `commitSHA` is required when the scan was
+created without one.
 
 ## Field rules
 
@@ -71,6 +87,7 @@ MCP: `harness_execute` with `resource_type: chaos_risk_scan`,
 | `codeLocations` | 1 to 5 entries; file inside the repo and not excluded by scope; snippet appears verbatim within the line range at `commitSHA` | 1 to 5 entries; relative path with no `..`; `1 <= startLine <= endLine`; snippet at most 2000 characters |
 | `module` | Path inside the repo, or `.` for the root | Relative path with no `..` |
 | `severity`, `category`, `riskRuleName` | Not sent | Taken from the rule; any sent value is overwritten |
+| `tags` | From inventory `ciRange` only (`ciRange:commit` / `ciRange:pullRequest`); commit wins | Stored on the scanned risk; list filter `tags=ciRange:…` |
 | Count | One finding per (rule, module) | At most 100 findings per request |
 
 `validationType` is always `Passive` for code findings. A finding becomes

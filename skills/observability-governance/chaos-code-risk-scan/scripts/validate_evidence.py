@@ -151,6 +151,15 @@ def validate_one(finding: dict, rules: Dict[str, dict], files: FileCache) -> Tup
         "codeLocations": locations,
         "callSiteCount": max(int(finding.get("callSiteCount") or 0), len(locations)),
     }
+    tags = finding.get("tags") or []
+    if finding.get("ciRange") == "commit":
+        tags = list(tags) + ["ciRange:commit"]
+    elif finding.get("ciRange") == "pullRequest":
+        tags = list(tags) + ["ciRange:pullRequest"]
+    if "ciRange:commit" in tags:
+        out["tags"] = ["ciRange:commit"]
+    elif "ciRange:pullRequest" in tags:
+        out["tags"] = ["ciRange:pullRequest"]
     return out, "; ".join(reasons)
 
 
@@ -168,6 +177,11 @@ def merge(findings: List[dict]) -> List[dict]:
                 kept["codeLocations"].append(loc)
                 seen.add((loc["file"], loc["startLine"]))
         kept["callSiteCount"] += f["callSiteCount"]
+        if f.get("tags") or kept.get("tags"):
+            merged = list(kept.get("tags") or []) + list(f.get("tags") or [])
+            kept["tags"] = ["ciRange:commit"] if "ciRange:commit" in merged else (
+                ["ciRange:pullRequest"] if "ciRange:pullRequest" in merged else []
+            )
         for field in ("evidence", "remediation"):
             for b in f[field]:
                 if b not in kept[field] and len(kept[field]) < MAX_BULLETS:

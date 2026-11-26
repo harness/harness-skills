@@ -126,7 +126,7 @@ Install in Claude Code: `/plugin install harness-security --marketplace harness/
 
 ### Harness Observability & Governance
 
-Plugin `harness-observability-governance` (19 skills), folder `skills/observability-governance/`.
+Plugin `harness-observability-governance` (20 skills), folder `skills/observability-governance/`.
 Install in Claude Code: `/plugin install harness-observability-governance --marketplace harness/harness-skills`.
 
 | Skill | Invoke in Claude Code | Description |
@@ -137,6 +137,7 @@ Install in Claude Code: `/plugin install harness-observability-governance --mark
 | [chaos-code-risk-scan](skills/observability-governance/chaos-code-risk-scan/SKILL.md) | `/harness-observability-governance:chaos-code-risk-scan` | Scan a code repository for chaos-provable resilience risks and report them as a risk scan |
 | [chaos-dr-test](skills/observability-governance/chaos-dr-test/SKILL.md) | `/harness-observability-governance:chaos-dr-test` | Create and edit DR Test pipelines with chaos steps |
 | [chaos-experiment](skills/observability-governance/chaos-experiment/SKILL.md) | `/harness-observability-governance:chaos-experiment` | Create, edit, and reference chaos experiments (faults, probes, actions) |
+| [ci-risk-scan](skills/observability-governance/ci-risk-scan/SKILL.md) | `/harness-observability-governance:ci-risk-scan` | CI Risk Scan deltas on chaos-code-risk-scan |
 | [create-policy](skills/observability-governance/create-policy/SKILL.md) | `/harness-observability-governance:create-policy` | Create OPA governance policies for supply chain security |
 | [deployment-readiness](skills/observability-governance/deployment-readiness/SKILL.md) | `/harness-observability-governance:deployment-readiness` | Pre-deployment readiness checks, environment drift, and canary decisions |
 | [dora-metrics](skills/observability-governance/dora-metrics/SKILL.md) | `/harness-observability-governance:dora-metrics` | DORA metrics and engineering performance reports |
